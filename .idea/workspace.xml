@@ -4,17 +4,19 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35578467-47ec-4149-be7c-60947fca684a" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/telegram bot project.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/a simple chat from scratch.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/simple chat.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/telegram_conversations.py" afterDir="false" />
+    <list default="true" id="35578467-47ec-4149-be7c-60947fca684a" name="Changes" comment="telegram bot learning class profile made">
+      <change afterPath="$PROJECT_DIR$/chat_random_test.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/data_base.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dolar_gold_price_ir.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/message_random_test.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/some practices/simple chat from scratch.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/telegram_chat_handler.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/torob_scraper.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/a simple chat from scratch.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/simple chat.py" beforeDir="false" afterPath="$PROJECT_DIR$/some practices/simple chat.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/telegram_conversations.py" beforeDir="false" afterPath="$PROJECT_DIR$/telegram_conversations.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -31,6 +33,21 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;AMirSaLaRG&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/AMirSaLaRG/telegram-bot.git&quot;,
+    &quot;accountId&quot;: &quot;20b134e7-deff-4f3e-9ae5-c99e7efec0b8&quot;
+  }
+}</component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 8
 }</component>
@@ -40,23 +57,65 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.a simple chat from scratch.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.simple chat.executor": "Run",
-    "Python.telegram_conversation.executor": "Run",
-    "Python.telegram_conversations.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "master",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.a simple chat from scratch.executor&quot;: &quot;Run&quot;,
+    &quot;Python.chat_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.data-base.executor&quot;: &quot;Run&quot;,
+    &quot;Python.data_base.executor&quot;: &quot;Run&quot;,
+    &quot;Python.dolar_gold_price_ir.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.simple chat.executor&quot;: &quot;Run&quot;,
+    &quot;Python.telegram_chat_handler.executor&quot;: &quot;Run&quot;,
+    &quot;Python.telegram_conversation.executor&quot;: &quot;Run&quot;,
+    &quot;Python.telegram_conversations.executor&quot;: &quot;Run&quot;,
+    &quot;Python.torob_scraper.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/telegram bot project/profiles&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\telegram bot project\profiles" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="D:\telegram bot project" />
+      <recent name="D:\telegram bot project\scraping torob site" />
+      <recent name="D:\telegram bot project\some practices" />
     </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="telegram bot project" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.main" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
@@ -74,6 +133,54 @@
       <option name="presentableId" value="Default" />
       <updated>1745766768472</updated>
     </task>
+    <task id="LOCAL-00001" summary="telegram bot learning class profile made">
+      <option name="closed" value="true" />
+      <created>1746783598571</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1746783598571</updated>
+    </task>
+    <task id="LOCAL-00002" summary="telegram bot learning class profile made">
+      <option name="closed" value="true" />
+      <created>1746783647749</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1746783647749</updated>
+    </task>
+    <task id="LOCAL-00003" summary="telegram bot learning class profile made">
+      <option name="closed" value="true" />
+      <created>1746783671132</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1746783671132</updated>
+    </task>
+    <task id="LOCAL-00004" summary="telegram bot learning class profile made">
+      <option name="closed" value="true" />
+      <created>1746783676939</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1746783676939</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="telegram bot learning class profile made" />
+    <option name="LAST_COMMIT_MESSAGE" value="telegram bot learning class profile made" />
   </component>
 </project>

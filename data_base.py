@@ -56,18 +56,36 @@ class GoldDollarRial(Base):
 #____________________________Initiate Gold & Dollar data base ______________________________
 #___________________________________________________________________________________________
 
-class TorobScrap(Base):
-    __tablename__ = "torob"
+class TorobScrapUser(Base):
+    __tablename__ = "torob_item"
 
-    check_id = Column(Integer, primary_key=True)
+    item_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, nullable=False)
     name_of_item = Column(String, nullable=True)
-    time_check_ir = Column(DateTime, nullable=True)
-    item_price = Column(Float, nullable=True)
     user_preferred_price = Column(Float, nullable=False)
     torob_url = Column(String, nullable=False)
     created_at = Column(DateTime, server_default=func.now())  # Database timestamp
     updated_at = Column(DateTime, onupdate=func.now())
+    price_checks = relationship(
+        'TorobCheck',
+        back_populates='item',
+        cascade="all, delete-orphan"
+    )
+
+
+class TorobCheck(Base):
+    __tablename__ = "torob_check"
+
+    check_id = Column(Integer, primary_key=True)
+    item_id = Column(Integer, ForeignKey('torob_item.item_id'))
+    checked_price = Column(Float, nullable=False)
+    check_timestamp = Column(DateTime, server_default=func.now())
+
+
+    item = relationship(
+        'TorobScrapUser',
+        back_populates='price_checks'
+    )
 
 #___________________________________________________________________________________________
 #_____________________________Initiate Users Chat data base ________________________________
@@ -973,15 +991,151 @@ class TorobDb:
         """
         with self.Session() as session:
             try:
-                new_torobi = TorobScrap(
+                new_torob = TorobScrapUser(
                     user_id = user_id,
                     name_of_item = name,
                     user_preferred_price = preferred_price,
                     torob_url = torob_url,
                 )
-                session.add(new_torobi)
+                session.add(new_torob)
                 session.commit()
                 return True
             except Exception as e:
                 print(f'Failed to add item: {e}')
                 return False
+
+    def add_check(self, item_id:int, checked_price:float) -> bool:
+        """
+        adding new check to database
+        :param item_id: id of item we checked
+        :param checked_price: price of item at this timee
+        :return: True if added to db, False if it could not add to db
+        """
+
+        try:
+            with self.Session() as session:
+                new_check = TorobCheck(
+                    item_id=item_id,
+                    checked_price=checked_price
+                )
+                session.add(new_check)
+                session.commit()
+                return True
+        except Exception as e:
+            print(f"could not added the check: {e}")
+            return False
+
+    def get_user_items(self, user_id: int) -> List[Type[TorobScrapUser]]:
+        """
+        Retrieves a list of all items tracked by a specific user.
+        :param user_id: The ID of the user whose items are to be retrieved.
+        :return: A list of TorobScrapUser objects. Returns an empty list if no items are found or on error.
+        """
+        with self.Session() as session:
+            try:
+                # Query for TorobScrapUser objects filtered by user_id
+                # .all() executes the query and returns a list of results
+                items = session.query(TorobScrapUser).filter_by(user_id=user_id).all()
+                return items
+            except Exception as e:
+                print(f"Failed to retrieve items for user {user_id}: {e}")
+                return []
+
+
+    def update_preferred_price(self, item_id: int, new_price: float) -> bool:
+        """
+        Updates the user's preferred price for a specific item.
+        :param item_id: The ID of the item to update.
+        :param new_price: The new preferred price.
+        :return: True if the price was updated successfully, False otherwise (e.g., item not found).
+        """
+        with self.Session() as session:
+            try:
+                # Find the item by its primary key
+                item_to_update = session.query(TorobScrapUser).get(item_id)
+
+                if item_to_update:
+                    item_to_update.user_preferred_price = new_price
+                    session.commit()
+                    return True
+                else:
+                    print(f"Item with ID {item_id} not found.")
+                    return False
+            except Exception as e:
+                session.rollback() # Rollback in case of error
+                print(f"Failed to update preferred price for item {item_id}: {e}")
+                return False
+
+    def get_price_history(self, item_id: int) -> List[Type[TorobCheck]]:
+        """
+        Retrieves a list of all price checks for a specific item, ordered by timestamp.
+        :param item_id: The ID of the item whose price history is to be retrieved.
+        :return: A list of TorobCheck objects, ordered by check_timestamp. Returns an empty list if no checks are found or on error.
+        """
+        with self.Session() as session:
+            try:
+                # Query for TorobCheck objects filtered by item_id
+                # .order_by(TorobCheck.check_timestamp) ensures the history is chronological
+                # .all() executes the query
+                price_history = session.query(TorobCheck).filter_by(item_id=item_id).order_by(
+                    TorobCheck.check_timestamp).all()
+                return price_history
+            except Exception as e:
+                print(f"Failed to retrieve price history for item {item_id}: {e}")
+                return []
+
+    def get_item_by_id(self, item_id: int) -> Optional[TorobScrapUser]:
+        """
+        Retrieves a single TorobScrapUser item by its primary key.
+        :param item_id: The ID of the item to retrieve.
+        :return: The TorobScrapUser object if found, None otherwise.
+        """
+        with self.Session() as session:
+            try:
+                # .get() is optimized for primary key lookups
+                item = session.query(TorobScrapUser).get(item_id)
+                return item
+            except Exception as e:
+                print(f"Failed to retrieve item {item_id}: {e}")
+                return None
+
+    def delete_item(self, item_id: int) -> bool:
+        """
+        Deletes a TorobScrapUser item and its associated price checks.
+        Requires 'cascade="all, delete-orphan"' on the relationship.
+        :param item_id: The ID of the item to delete.
+        :return: True if deleted, False otherwise (e.g., item not found).
+        """
+        with self.Session() as session:
+            try:
+                item_to_delete = session.query(TorobScrapUser).get(item_id)
+                if item_to_delete:
+                    session.delete(item_to_delete)
+                    session.commit()
+                    print(f"Item {item_id} and its checks deleted successfully.")
+                    return True
+                else:
+                    print(f"Item with ID {item_id} not found for deletion.")
+                    return False
+            except Exception as e:
+                session.rollback()
+                print(f"Failed to delete item {item_id}: {e}")
+                return False
+
+    def get_latest_price(self, item_id: int) -> Optional[float]:
+        """
+        Retrieves the most recent checked price for a given item.
+        :param item_id: The ID of the item.
+        :return: The latest checked price as a float, or None if no checks exist for the item.
+        """
+        with self.Session() as session:
+            try:
+                # Query for the latest check by item_id, order by timestamp descending, and take the first one.
+                latest_check = session.query(TorobCheck) \
+                    .filter_by(item_id=item_id) \
+                    .order_by(TorobCheck.check_timestamp.desc()) \
+                    .first()
+                return latest_check.checked_price if latest_check else None
+            except Exception as e:
+                print(f"Failed to get latest price for item {item_id}: {e}")
+                return None

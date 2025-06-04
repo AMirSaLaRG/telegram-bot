@@ -1,11 +1,12 @@
 import time
+from typing import Optional, List, Type
 
 from bs4 import BeautifulSoup
 import requests
 from requests.exceptions import HTTPError, RequestException
 #can be a class
 import random
-from data_base import TorobDb
+from data_base import TorobDb, TorobScrapUser
 
 
 
@@ -18,13 +19,33 @@ class TorobScraper:
         self.name = None
         self.db = TorobDb()
 
+    def add_item(self, user_id, item_name, url, preferred_price)->bool:
+        """
+
+        :param user_id: id of who wants the scrap
+        :param item_name: name of item
+        :param url: url of the item in torob site
+        :param preferred_price: the highest price the person need it to be
+        :return: True if item added, False if it did not add
+        """
+        try:
+            preferred_price= float(preferred_price)
+        except Exception as e:
+            print(f'price format: {e}')
+
+        if self.db.add_item(user_id, preferred_price, url, item_name):
+            return True
+        else:
+            return False
+
+
     def torop_price_format_clear(self, text:str) ->int:
         price = text.replace("٫", "")
         price = price.split()[0]
         price = int(price)
         return price
 
-    def scrap_lowest_price_torop(self):
+    def scrap_lowest_price_torop(self, url, ):
         """Get torop page check the lowest price in recommend of torop and top 5 then returns the lowest price"""
         user_agents = [
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -41,7 +62,7 @@ class TorobScraper:
         session = requests.Session()
         session.headers.update(headers)
         try:
-            response = session.get(self.url, timeout=10)
+            response = session.get(url, timeout=10)
             response.raise_for_status()
         except HTTPError as http_err:
             if response.status_code == 490:
@@ -76,14 +97,14 @@ class TorobScraper:
             else:
                 return price_torop_recommend
 
-    def the_good_offer(self, max_retries=11, retry_count=0):
+    def the_good_offer(self, url, preferred_price ,max_retries=11, retry_count=0):
         if max_retries == retry_count:
             print('got blocked more than 10 times')
             return None
-        best_price = self.scrap_lowest_price_torop()
+        best_price = self.scrap_lowest_price_torop(url)
         print(best_price)
         if best_price is not None:
-            if best_price <= self.my_price:
+            if best_price <= preferred_price:
                 return best_price
             else:
                 return None
@@ -91,6 +112,29 @@ class TorobScraper:
         else:
             time.sleep(3)
             return self.the_good_offer(max_retries, retry_count+1)
+
+    def scrap_user_items(self, user_id:int) -> Optional[List[Type[TorobScrapUser]]]:
+        """
+        this will scrap the users interested items and return list of items that are updated
+        :param user_id: id of user who want check items
+        :return: list of items or noe
+        """
+        items = self.db.get_user_items(user_id)
+        updated_items = []
+        if items:
+            for item in items:
+                best_price = self.the_good_offer(item.torob_url, item.user_preferred_price)
+                if best_price:
+                    try:
+                        self.db.add_check(item.item_id, float(best_price))
+                        updated_items.append(item)
+                    except Exception as e:
+                        print(f'could not add to check db : {e}')
+            return updated_items
+        return None
+
+#todo in fek konam bayad ye servere dige anjam bede maslaan harrooz sataye felan check kone inaro db update kone
+
 
 
 def main():

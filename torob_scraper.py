@@ -97,14 +97,14 @@ class TorobScraper:
             else:
                 return price_torop_recommend
 
-    def the_good_offer(self, url, preferred_price ,max_retries=11, retry_count=0):
+    def the_good_offer(self, url ,max_retries=11, retry_count=0):
         if max_retries == retry_count:
             print('got blocked more than 10 times')
             return None
         best_price = self.scrap_lowest_price_torop(url)
         print(best_price)
         if best_price is not None:
-            if best_price <= preferred_price:
+            if best_price:
                 return best_price
             else:
                 return None
@@ -113,25 +113,31 @@ class TorobScraper:
             time.sleep(3)
             return self.the_good_offer(max_retries, retry_count+1)
 
-    def scrap_user_items(self, user_id:int) -> Optional[List[Type[TorobScrapUser]]]:
+    def scrap_user_items(self, user_id:int) -> bool:
         """
-        this will scrap the users interested items and return list of items that are updated
+        this will scrap the users interested items and fill the database checked items
         :param user_id: id of user who want check items
-        :return: list of items or noe
+        :return: bool
         """
         items = self.db.get_user_items(user_id)
-        updated_items = []
+        added = 0
         if items:
             for item in items:
-                best_price = self.the_good_offer(item.torob_url, item.user_preferred_price)
+                best_price = self.the_good_offer(item.torob_url)
                 if best_price:
                     try:
                         self.db.add_check(item.item_id, float(best_price))
-                        updated_items.append(item)
+                        added += 1
                     except Exception as e:
                         print(f'could not add to check db : {e}')
-            return updated_items
-        return None
+            if added != 0:
+                print(f'{added} item from {len(items)} checked for new price')
+                return True
+            else:
+                print('could not update check')
+                return False
+        print('database is emty')
+        return False
 
 #todo in fek konam bayad ye servere dige anjam bede maslaan harrooz sataye felan check kone inaro db update kone
 

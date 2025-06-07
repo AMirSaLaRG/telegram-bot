@@ -4,7 +4,6 @@ import time
 from datetime import datetime, timedelta
 from data_base import ChatDatabase, UserDatabase
 
-from chat_random_test import user_sessions
 
 
 # a leave and a goffy name option

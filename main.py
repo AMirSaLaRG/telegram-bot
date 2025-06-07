@@ -1,4 +1,6 @@
 import logging
+from xmlrpc.client import DateTime
+
 from telegram import (Update, InlineQueryResultArticle,
                       InputTextMessageContent, ReplyKeyboardMarkup,
                       KeyboardButton, InlineKeyboardButton,
@@ -7,14 +9,16 @@ from telegram.error import BadRequest
 from telegram.ext import (InlineQueryHandler, filters, ContextTypes, CommandHandler,
                           ApplicationBuilder, MessageHandler, CallbackQueryHandler,
                           ConversationHandler)
-from telegram_conversations import Profile, Calculator
+from telegram_conversations import Profile, Calculator, TorobConversation
 
-from data_base import GoldPriceDatabase, UserDatabase, iran_cities_fa, ChatDatabase
+from data_base import GoldPriceDatabase, UserDatabase, iran_cities_fa, ChatDatabase, TorobDb
 from telegram_chat_handler import AnonymousChat, AnonymousMessage
 import json
 import os
 from datetime import datetime , timedelta
 
+
+divider = '〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️'
 #todo add a handler at top for each interaction with bot get trigger to make user data and user session and etc..
 #todo handle some errors in advance chat likebeing emty in profiles
 #todo For the filter handling in main.py, you could create a FilterHandler class:
@@ -36,12 +40,14 @@ anonymous_msg.leave_command = 'leave_anom_message'
 #___________________conversations_________________________________
 profile = Profile()
 calculator = Calculator()
+torob_conversation = TorobConversation()
 #___________________data_bases_________________________________
 #todo make it one db with two table (already is xD)
 #todo make a postoger db engine
 gold_db = GoldPriceDatabase()
 user_db = UserDatabase()
 chat_db = ChatDatabase()
+torob_db = TorobDb()
 
 
 #todo make a tab to check divar or digikala or shapoor (web scraping)
@@ -73,7 +79,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard= [
             [KeyboardButton("ChaT")],
             [
-                KeyboardButton("Tehran location chat"),
+                KeyboardButton("Torob price check"),
                 KeyboardButton("Gold & Dollar"),
 
             ],
@@ -86,7 +92,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [KeyboardButton("ChaT")],
             [
-                KeyboardButton("Tehran location chat"),
+                KeyboardButton("Torob price check"),
                 KeyboardButton("Gold & Dollar"),
 
             ],
@@ -201,7 +207,34 @@ async def gold_dollar(update: Update, context: ContextTypes.DEFAULT_TYPE):
               f'gold 18k 1gr international into ir = {latest_price.gold_18k_international_rial} Rial\n',
         reply_markup=reply_markup
     )
+#___________________________________________________________________________________________
+#                             Torob initiator
+#___________________________________________________________________________________________
+#todo make real calculate the price send items list
+async def torob(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    interact(update, context)
 
+
+    keyboard = [
+        [
+        InlineKeyboardButton(f'Check My Items', callback_data=f'torob: check'),
+        ],
+        [
+        InlineKeyboardButton("Addd New items", callback_data=torob_conversation.query_add_pattern),
+        InlineKeyboardButton("Update My Items", callback_data="torob: update"),
+        ],
+        [
+        InlineKeyboardButton(f'Home', callback_data=f'start'),
+        ],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text= "Torob Scraper: ",
+        reply_markup=reply_markup
+    )
 
 #___________________________________________________________________________________________
 #                             inline keys
@@ -210,6 +243,7 @@ async def gold_dollar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     interact(update, context)
     query = update.callback_query
+
     await query.answer()
 
 
@@ -299,6 +333,15 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
             city_filter.append(action)
         # Update the message with new buttons
         await cities_filter_handler(query, context)
+
+    elif query.data.startswith('torob:'):
+        action = query.data.split(':')[1].strip().lower()
+        if action == "check":
+            await check_torob_list(query, context)
+        if action == 'new':
+            pass
+        if action == 'update':
+            pass
 
 
     elif query.data == f'{calculator.calculate_command}':
@@ -599,19 +642,39 @@ async def update_advance_search(query, context: ContextTypes.DEFAULT_TYPE):
 async def calculator_gold(query, context: ContextTypes.DEFAULT_TYPE):
     pass
 
+async def check_torob_list(query, context:ContextTypes.DEFAULT_TYPE):
+    user_id = query.from_user.id
+    user_items = torob_db.get_user_items(user_id)
+    final_note = ""
+    if user_items:
+        for item in user_items:
+            name = item.name_of_item
+            latest_price = torob_db.get_latest_price(item.item_id)
+            signal_price = '✅' if latest_price <= item.user_preferred_price else '❌'
+            latest_check =  torob_db.get_latest_check(item.item_id)
+            if latest_check:
+                latest_check_format = latest_check.strftime("%Y/%m/%d: %H")
+            item_note = f"{signal_price}{name} @{latest_check}: with price of {latest_price}\n{divider}\n"
+            final_note += item_note
+    await query.edit_message_text(
+        text=final_note,
+
+    )
+
 #_______________________________________________________________________________
 #________________________Robot run and handlers_________________________________
 #_______________________________________________________________________________
 
 if __name__ == "__main__":
-    application = ApplicationBuilder().token("7651582199:AAHj9Ib_NOXga_iOZiQ5G9dD4pfC5AuFr0U").build()
+    application = ApplicationBuilder().token("7651582199:AAHj9Ib_NOXga_iOZiQ5G9dD4pfC5AuFr0U").concurrent_updates(True).build()
     #todo currect the way of messagehandler to not intract with them in casual chat
     #create handler
     start_handler = CommandHandler("start", start)
     chat_handler = MessageHandler(filters.Regex(r"^ChaT$"), chat)
     advance_search_handler = MessageHandler(filters.Regex(r"^Advance Search"), advance_search)
-    random_chat_handler = MessageHandler(filters.Regex(r"^Random chat"), random_chat)
-    gold_dollar_handler = MessageHandler(filters.Regex(r"^Gold & Dollar"), gold_dollar)
+    random_chat_handler = MessageHandler(filters.Regex(r"^Random chat$"), random_chat)
+    gold_dollar_handler = MessageHandler(filters.Regex(r"^Gold & Dollar$"), gold_dollar)
+    torob_handler = MessageHandler(filters.Regex(r"^Torob price check$"), torob)
     my_profile = CommandHandler("profile", profile.show_profile)
         #button
     buttons_handler = CallbackQueryHandler(buttons)
@@ -623,9 +686,11 @@ if __name__ == "__main__":
     application.add_handler(advance_search_handler)
     application.add_handler(random_chat_handler)
     application.add_handler(gold_dollar_handler)
+    application.add_handler(torob_handler)
     #those conversations have handler inside them check the telegram_conversation file
     application.add_handler(profile.get_profile_create_conversation_handler())
     application.add_handler(calculator.get_calculated_price_conversation_handler())
+    application.add_handler(torob_conversation.torob_add_handler())
 
     application.add_handler(my_profile)
     application.add_handlers(anonymous_chat.anonymously_chat_handlers())

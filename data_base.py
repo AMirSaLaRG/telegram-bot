@@ -61,7 +61,7 @@ class TorobScrapUser(Base):
 
     item_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, nullable=False)
-    name_of_item = Column(String, nullable=True)
+    name_of_item = Column(String, nullable=False)
     user_preferred_price = Column(Float, nullable=False)
     torob_url = Column(String, nullable=False)
     created_at = Column(DateTime, server_default=func.now())  # Database timestamp
@@ -238,17 +238,23 @@ class GoldPriceDatabase:
 #___________________Checking latest ir update from db (validate_time)__________________________
     def latest_ir_update(self, validate_time=600):
         latest_check = self.get_latest_price()
-        latest_ir_check = latest_check.time_check_ir
-        difference = datetime.now() - latest_ir_check
-        if difference.seconds > validate_time:
+        if latest_check:
+            latest_ir_check = latest_check.time_check_ir
+            difference = datetime.now() - latest_ir_check
+            if difference.seconds > validate_time:
+                return True
+        else:
             return True
-
 #___________________Checking latest int update from db (validate_time)__________________________
     def latest_int_update(self, validate_time=600):
         latest_check = self.get_latest_price()
-        latest_int_check = latest_check.time_check_int
-        difference  = datetime.now() - latest_int_check
-        if difference.seconds > validate_time:
+        if latest_check:
+            latest_int_check = latest_check.time_check_int
+            difference  = datetime.now() - latest_int_check
+
+            if difference.seconds > validate_time:
+                return True
+        else:
             return True
 #________combine of all top function to check time valide and chose from where to update_________
     # todo when it is checking take mins other users dont make request again and get from db or tell to wait
@@ -1138,4 +1144,22 @@ class TorobDb:
                 return latest_check.checked_price if latest_check else None
             except Exception as e:
                 print(f"Failed to get latest price for item {item_id}: {e}")
+                return None
+
+    def get_latest_check(self, item_id: int) -> Optional[DateTime]:
+        """
+        Retrieves the most recent checked price for a given item.
+        :param item_id: The ID of the item.
+        :return: The latest checked price as a float, or None if no checks exist for the item.
+        """
+        with self.Session() as session:
+            try:
+                # Query for the latest check by item_id, order by timestamp descending, and take the first one.
+                latest_check = session.query(TorobCheck) \
+                    .filter_by(item_id=item_id) \
+                    .order_by(TorobCheck.check_timestamp.desc()) \
+                    .first()
+                return latest_check.check_timestamp if latest_check else None
+            except Exception as e:
+                print(f"Failed to get latest check time for item {item_id}: {e}")
                 return None

@@ -1,5 +1,7 @@
 import datetime
 import logging
+
+from pyexpat.errors import messages
 from telegram import (Update, InlineQueryResultArticle,
                       InputTextMessageContent, ReplyKeyboardMarkup,
                       KeyboardButton, InlineKeyboardButton,
@@ -7,7 +9,8 @@ from telegram import (Update, InlineQueryResultArticle,
 from telegram.ext import (InlineQueryHandler, filters, ContextTypes, CommandHandler,
                           ApplicationBuilder, MessageHandler, CallbackQueryHandler,
                           ConversationHandler)
-from data_base import UserDatabase
+from data_base import UserDatabase, TorobDb
+from urllib.parse import urlparse
 
 
 
@@ -59,7 +62,7 @@ class Profile:
         await update.message.reply_text('Profile creation cancelled')
         return ConversationHandler.END
 
-    async def start_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def start_profile(self, update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['user_id'] = update.effective_user.id
         await update.message.reply_text(
             "Lets create your profile.\n First send me your photo",
@@ -335,3 +338,116 @@ class Calculator:
                 f"\n text: {context.user_data['text']}%")
 
         await update.message.reply_text(text)
+
+class TorobConversation:
+    def __init__(self):
+        self.NAME, self.PRICE, self.URL = range(3)
+        self.query_add_pattern = 'add_new_torob_item'
+        self.name = None
+        self.price = None
+        self.url = None
+        self.db = TorobDb()
+
+    def torob_add_handler(self):
+        return ConversationHandler(
+            entry_points=[
+                CallbackQueryHandler(self.start_add, pattern=f'^{self.query_add_pattern}$')
+            ],
+            states= {
+                self.NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_name)],
+                self.PRICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_price)],
+                self.URL: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_url)],
+            },
+            fallbacks=[CommandHandler('cancel', self.cancel)],
+            per_message=True
+        )
+
+    async def cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if update.callback_query:
+            await update.callback_query.answer()
+            await update.callback_query.edit_message_text('Opration cancelled')
+        elif update.message:
+            await update.message.reply_text('Operation cancelled')
+        return ConversationHandler.END
+
+    async def _send_fallback_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, text: str):
+        """Helper method to safely send messages when normal replies fail."""
+        try:
+            if update.callback_query:
+                await update.callback_query.answer()
+                await update.callback_query.edit_message_text(text)
+            elif update.message:
+                await update.message.reply_text(text)
+            elif 'chat_id' in context.user_data:
+                await context.bot.send_message(
+                    chat_id=context.user_data['chat_id'],
+                    text=text
+                )
+        except Exception as e:
+            print(f"⚠️ Failed to send fallback message: {e}")
+
+    async def start_add(self, update: Update, context:ContextTypes.DEFAULT_TYPE):
+       if not update.callback_query:
+           return ConversationHandler.END
+       await update.callback_query.answer()
+       await update.callback_query.edit_message_text(
+           f'Lets add new item to your torob list \n What is name of Item (less that 150)',
+
+       )
+
+       # Store the chat_id and message_id for later reference
+       context.user_data['chat_id'] = update.effective_chat.id
+       context.user_data['message_id'] = update.effective_message.message_id
+       return self.NAME
+
+    async def handle_name(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+        if not update.message or not update.message.text:
+            await self._send_fallback_message(update, "Please send a text message")
+            return self.NAME
+
+        if len(update.message.text) > 150:
+            await update.message.reply_text('Please enter a string with less than 150 characters!')
+            return self.NAME
+
+        print('next step')
+        self.name = update.message.text
+        await update.message.reply_text(f"Plz enter highest price that ur interest in {self.name}")
+        return self.PRICE
+
+    async def handle_price(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        try:
+            price = float(update.message.text)
+        except ValueError :
+            await update.message.reply_text("plz enter price in numbers")
+            return self.PRICE
+        else:
+            self.price = price
+            await update.message.reply_text(f'plz gimme the url from torob that is for {self.name}')
+            return self.URL
+
+    def is_torob_url(self, url_string):
+        try:
+            result = urlparse(url_string)
+            # Check if it's a valid URL (has scheme and netloc)
+            if all([result.scheme, result.netloc]):
+                # Check if 'torob.com' is in the netloc (domain) part
+                return 'torob.com' in result.netloc
+            return False
+        except:
+            return False
+
+    async def handle_url(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = update.effective_user.id
+        if not self.is_torob_url(update.message.text):
+            await update.message.reply_text('plz send a torob url ')
+            self.url = update.message.text
+            return self.URL
+
+        await update.message.reply_text(f'{self.name}: highest price{self.price}\n'
+                                        f'with ur provided url added')
+        self.db.add_item(user_id, self.price, self.url, self.name)
+        return ConversationHandler.END
+
+
+

@@ -4,9 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35578467-47ec-4149-be7c-60947fca684a" name="Changes" comment="updated some normal chat manager going to re structure the telegram_chat_handler.py lets put a save point here">
+    <list default="true" id="35578467-47ec-4149-be7c-60947fca684a" name="Changes" comment="before changes message chat">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/telegram_chat_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/telegram_chat_handler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -187,7 +187,15 @@
       <option name="project" value="LOCAL" />
       <updated>1749445365419</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="before changes message chat">
+      <option name="closed" value="true" />
+      <created>1749450324426</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1749450324426</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -207,6 +215,7 @@
     <MESSAGE value="added torop scraper working on it yet&#10;that connected too tables in database created them an added functions to them&#10;&#10;i think it should be on another server run it daily and update my db users can get them fast from db" />
     <MESSAGE value="adding torob conversation ADD" />
     <MESSAGE value="updated some normal chat manager going to re structure the telegram_chat_handler.py lets put a save point here" />
-    <option name="LAST_COMMIT_MESSAGE" value="updated some normal chat manager going to re structure the telegram_chat_handler.py lets put a save point here" />
+    <MESSAGE value="before changes message chat" />
+    <option name="LAST_COMMIT_MESSAGE" value="before changes message chat" />
   </component>
 </project>

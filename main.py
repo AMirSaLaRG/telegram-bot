@@ -12,7 +12,7 @@ from telegram.ext import (InlineQueryHandler, filters, ContextTypes, CommandHand
 from telegram_conversations import Profile, Calculator, TorobConversation
 
 from data_base import GoldPriceDatabase, UserDatabase, iran_cities_fa, ChatDatabase, TorobDb
-from telegram_chat_handler import AnonymousChat, AnonymousMessage, UserMessage
+from telegram_chat_handler import  UserMessage
 import json
 import os
 from datetime import datetime , timedelta
@@ -35,15 +35,13 @@ os.makedirs("profiles", exist_ok=True)
 os.makedirs("profiles", exist_ok=True)
 
 user_message = UserMessage()
-anonymous_chat=AnonymousChat()
-anonymous_msg = AnonymousMessage()
+
 
 #todo put a place for all commands and queries
-anonymous_chat.start_command = 'anom_chat'
-anonymous_msg.start_command = 'anom_message'
+# anonymous_chat.start_command = 'anom_chat'
+# anonymous_msg.start_command = 'anom_message'
+#
 
-anonymous_chat.leave_command = 'leave_anom_chat'
-anonymous_msg.leave_command = 'leave_anom_message'
 #todo each act in robot update user last online
 #___________________conversations_________________________________
 profile = Profile()
@@ -162,8 +160,8 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [KeyboardButton("Random chat")],
         [
-            KeyboardButton(f'/{anonymous_chat.start_command}'),
-            KeyboardButton(f'/{anonymous_msg.start_command}')
+            KeyboardButton(f'/{user_message.command_create_anon_chat}'),
+            KeyboardButton(f'/{user_message.command_create_anon_msg}')
         ],
         [KeyboardButton('Advance Search')]
     ]
@@ -831,8 +829,7 @@ if __name__ == "__main__":
 
 
     application.add_handler(my_profile)
-    application.add_handlers(anonymous_chat.anonymously_chat_handlers())
-    application.add_handlers(anonymous_msg.anonymously_msg_handlers())
+    application.add_handlers(user_message.message_handlers())
 
         #buttons
     application.add_handler(buttons_handler)

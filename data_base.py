@@ -37,6 +37,10 @@ class User(Base):
     longitude = Column(Float, nullable=True)
     registration_date = Column(DateTime, default=datetime.now, nullable=True)
 
+#todo neeed new tables for likes manaager 1 to many and list of who like who
+#todo need new friendship table 1 to many it should request accept and both side
+#todo need new block list 1 to many and need a check to stop some actions from block users
+#todo need a report list
 #___________________________________________________________________________________________
 #____________________________Initiate Gold & Dollar data base ______________________________
 #___________________________________________________________________________________________
@@ -332,6 +336,20 @@ class UserDatabase:
         session.close()
 
 
+    def get_target_user(self, target_id) ->Optional[User]:
+        """
+        search a user with provided id and return data
+        :param target_id: id of target
+        :return: data of user if not exist return None
+        """
+        with self.Session() as session:
+            try:
+                user = session.query(User).filter_by(user_id=str(target_id)).first()
+                return user
+            except Exception as e:
+                print(f'Could not find {target_id} data in data base: {e}')
+                return None
+
 
     def add_or_update_user(self, user_id, user_data):
         session = self.Session()
@@ -420,7 +438,11 @@ class UserDatabase:
          and included some extra data as distance, mins_ago, is_online(boolean) """
 
         #todo this user_id should be not there
-        self.add_or_update_user(user_data['user_id'], user_data)
+        user_id = user_data.get('user_id', "")
+
+        print(f'user_id:{user_id}')
+        print(user_data)
+        self.add_or_update_user(user_id, user_data)
         selected_users = self.get_users_location(user_data['user_id'])
         user_filters = user_data['user_filter']
 
@@ -1047,7 +1069,28 @@ class TorobDb:
                 print(f"Failed to retrieve items for user {user_id}: {e}")
                 return []
 
-
+    def check_ownership(self, user_id:int, item_id:int)->bool:
+        """
+        checks check the item id owner be the user
+        :param user_id: id of user
+        :param item_id: id of item
+        :return: True if this user is the owner of this item and False if it is not
+        """
+        try:
+            user_items = self.get_user_items(user_id)
+            if user_items:
+                user_items_id = [item.item_id for item in user_items]
+                if item_id in user_items_id:
+                    return True
+                else:
+                    print('he/she is not the owner')
+                    return False
+            else:
+                print('user do not has any item yet')
+                return False
+        except Exception as e:
+            print(f'about checking item owner this happend : {e}')
+            return False
     def update_preferred_price(self, item_id: int, new_price: float) -> bool:
         """
         Updates the user's preferred price for a specific item.
@@ -1070,6 +1113,66 @@ class TorobDb:
             except Exception as e:
                 session.rollback() # Rollback in case of error
                 print(f"Failed to update preferred price for item {item_id}: {e}")
+                return False
+
+    def update_url(self, item_id: int, new_url: str) -> bool:
+        """
+        Updates the URL for a specific item.
+
+        :param item_id: The ID of the item to update.
+        :param new_url: The new URL for the item.
+        :return: True if the URL was updated successfully, False otherwise (e.g., item not found).
+        """
+        with self.Session() as session:
+            try:
+                # Find the item by its primary key
+                item_to_update = session.query(TorobScrapUser).get(item_id)
+
+                if item_to_update:
+                    # Validate URL format if needed
+                    if not new_url.startswith(('http://', 'https://')):
+                        print(f"Invalid URL format for item {item_id}")
+                        return False
+
+                    item_to_update.torob_url = new_url
+                    session.commit()
+                    return True
+                else:
+                    print(f"Item with ID {item_id} not found.")
+                    return False
+            except Exception as e:
+                session.rollback()  # Rollback in case of error
+                print(f"Failed to update URL for item {item_id}: {e}")
+                return False
+
+    def update_name(self, item_id: int, new_name: str) -> bool:
+        """
+        Updates the name for a specific item.
+
+        :param item_id: The ID of the item to update.
+        :param new_name: The new name for the item.
+        :return: True if the name was updated successfully, False otherwise (e.g., item not found).
+        """
+        with self.Session() as session:
+            try:
+                # Find the item by its primary key
+                item_to_update = session.query(TorobScrapUser).get(item_id)
+
+                if item_to_update:
+                    # Validate name length if needed
+                    if len(new_name) > 150:  # Assuming 150 char limit
+                        print(f"Name too long for item {item_id}")
+                        return False
+
+                    item_to_update.name_of_item = new_name
+                    session.commit()
+                    return True
+                else:
+                    print(f"Item with ID {item_id} not found.")
+                    return False
+            except Exception as e:
+                session.rollback()  # Rollback in case of error
+                print(f"Failed to update name for item {item_id}: {e}")
                 return False
 
     def get_price_history(self, item_id: int) -> List[Type[TorobCheck]]:

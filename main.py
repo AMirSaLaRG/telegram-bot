@@ -12,13 +12,20 @@ from telegram.ext import (InlineQueryHandler, filters, ContextTypes, CommandHand
 from telegram_conversations import Profile, Calculator, TorobConversation
 
 from data_base import GoldPriceDatabase, UserDatabase, iran_cities_fa, ChatDatabase, TorobDb
-from telegram_chat_handler import AnonymousChat, AnonymousMessage
+from telegram_chat_handler import AnonymousChat, AnonymousMessage, Chat
 import json
 import os
 from datetime import datetime , timedelta
+from functools import wraps
 
+#_________________short conversations_______________________
+EDITING_TOROB_URL = 1
+EDITING_TOROB_PRICE = 1
+EDITING_TOROB_NAME = 1
+DELETE_TOROB_CONFIRM = 1
 
 divider = '〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️'
+#todo read about inline commands @bot etc and use it
 #todo add a handler at top for each interaction with bot get trigger to make user data and user session and etc..
 #todo handle some errors in advance chat likebeing emty in profiles
 #todo For the filter handling in main.py, you could create a FilterHandler class:
@@ -60,20 +67,57 @@ logging.basicConfig(
 #___________________________________________________________________________________________
 #                             Robot initiator
 #___________________________________________________________________________________________
-def interact(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def interact(update_query, context: ContextTypes.DEFAULT_TYPE):
     """
         This handler activates for almost any user interaction.
-        It ensures the user's session exists and updates their last_online status.
+        It ensures the user's session exists and update_querys their last_online status.
         """
-    user_id = update.effective_user.id
-    chat_db.create_user_session(user_id)
+    if hasattr(update_query, 'effective_user'):
+        user_id = update_query.effective_user.id
 
+    elif hasattr(update_query, 'from_user'):
+        user_id = update_query.from_user.id
+    else:
+        print('what is going on in interact')
+        user_id = ""
+
+    chat_db.create_user_session(user_id)
+    context.user_data['user_id'] = user_id
     context.user_data['last_online'] = datetime.now
     user_db.add_or_update_user(user_id, context.user_data)
 
+#as decorator
+def track_user_interaction(func):
+    """
+    Decorator to handle user session tracking and last online updates.
+    Automatically extracts user ID and updates user data before calling the original function.
+    """
+
+    @wraps(func)
+    async def wrapper(update_query, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
+        # Extract user ID from different update types
+        if hasattr(update_query, 'effective_user'):
+            user_id = update_query.effective_user.id
+        elif hasattr(update_query, 'from_user'):
+            user_id = update_query.from_user.id
+        else:
+            print('Warning: Could not determine user ID in track_user_interaction')
+            user_id = None
+
+        # Only proceed with tracking if we got a user ID
+        if user_id:
+            chat_db.create_user_session(user_id)
+            context.user_data['user_id'] = user_id
+            context.user_data['last_online'] = datetime.now()
+            user_db.add_or_update_user(user_id, context.user_data)
+
+        # Call the original handler function
+        return await func(update_query, context, *args, **kwargs)
+
+    return wrapper
 #todo need to be start over after parts maybe change handler to be not only command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    interact(update, context)
+    await interact(update, context)
     user_db.get_user_data(update.effective_user.id, context.user_data)
     if context.user_data['name']:
         keyboard= [
@@ -113,7 +157,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 #___________________________________________________________________________________________
 
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    interact(update, context)
+    await interact(update, context)
     keyboard = [
         [KeyboardButton("Random chat")],
         [
@@ -130,10 +174,10 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=reply_markup,
     )
 
-#todo almost done
+
 async def advance_search(update: Update, context:
 ContextTypes.DEFAULT_TYPE):
-    interact(update, context)
+    await interact(update, context)
     user_filter = {}
     keyboard = [
         [
@@ -156,10 +200,10 @@ ContextTypes.DEFAULT_TYPE):
         text= "advance searched:",
         reply_markup=reply_markup
     )
-#todo need to work on
+
 async def random_chat(update: Update, context:
 ContextTypes.DEFAULT_TYPE):
-    interact(update, context)
+    await interact(update, context)
     if "gender_filter" not in context.user_data:
         context.user_data['gender_filter']=[]
     gender_filter = context.user_data['gender_filter']
@@ -179,6 +223,18 @@ ContextTypes.DEFAULT_TYPE):
         text="random_chat mikahi",
         reply_markup=reply_markup,
     )
+async def show_profile_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    target_id_parts = update.message.text.split('_', 1)
+    if len(target_id_parts) < 2:
+        await update.message.reply_text('invalid format. use/chaT_<somthing>')
+        return
+    command, target_id = target_id_parts
+    if not target_id:
+        await update.message.reply_text('invalid item. Could not find this item')
+        return
+    await profile.show_target_profile(update, context, target_id)
+
 
 
 #___________________________________________________________________________________________
@@ -186,7 +242,7 @@ ContextTypes.DEFAULT_TYPE):
 #___________________________________________________________________________________________
 #todo make real calculate the price send items list
 async def gold_dollar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    interact(update, context)
+    await interact(update, context)
 
     latest_price = gold_db.get_latest_update()
 
@@ -212,20 +268,17 @@ async def gold_dollar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 #___________________________________________________________________________________________
 #todo make real calculate the price send items list
 async def torob(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    interact(update, context)
+    await interact(update, context)
 
 
     keyboard = [
         [
-        InlineKeyboardButton(f'Check My Items', callback_data=f'torob: check'),
+        InlineKeyboardButton(f'Check My Items/edit', callback_data=f'torob: check'),
         ],
         [
         InlineKeyboardButton("Addd New items", callback_data=torob_conversation.query_add_pattern),
-        InlineKeyboardButton("Update My Items", callback_data="torob: update"),
         ],
-        [
-        InlineKeyboardButton(f'Home', callback_data=f'start'),
-        ],
+
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -236,12 +289,55 @@ async def torob(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=reply_markup
     )
 
+async def edit_command(update:Update, context:ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    item_id_parts = update.message.text.split('_', 1)
+    if len(item_id_parts) < 2:
+        await update.message.reply_text('invalid format. use/item_<somthing>')
+        return
+    try:
+        command, item_id = item_id_parts
+        item_data = torob_db.get_item_by_id(int(item_id))
+    except ValueError:
+        await update.message.reply_text('invalid format. use/item_<somthing>')
+        return
+    if not item_data:
+        await update.message.reply_text('invalid item. Could not find this item')
+        return
+    if not torob_db.check_ownership(user_id, int(item_id)):
+        await update.message.reply_text('You are now owner of this item / plz insert a valid code')
+        return
+    context.user_data['editing_item_id'] = int(item_id)
+    keyboard = [
+        [
+            InlineKeyboardButton('Edit Price', callback_data=f'{torob_conversation.edit_price_pattern}'),
+            InlineKeyboardButton('Edit URL', callback_data=f'{torob_conversation.edit_url_pattern}'),
+            InlineKeyboardButton('Edit Name', callback_data=f'{torob_conversation.edit_name_pattern}')
+        ],
+        [
+            InlineKeyboardButton('delete', callback_data=f'{torob_conversation.delete_item_pattern}')
+        ],
+        [
+            InlineKeyboardButton('home', callback_data='item_edit:home')
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await context.bot.send_message(user_id,
+                                   text=f"✅ Item On Edit Mode!\n\n"
+                                            f"Item: {item_data.name_of_item}\n"
+                                            f"Current Highest Price: {item_data.user_preferred_price}\n\n"
+                                            f"Current URL: {item_data.torob_url}\n\n"
+                                            f"What would you like to edit?",
+                                   reply_markup=reply_markup)
+
+#todo add points to users then add price for running scrap or they can w8 for 12pm to get updated
+
 #___________________________________________________________________________________________
 #                             inline keys
 #___________________________________________________________________________________________
 
 async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    interact(update, context)
+    await interact(update, context)
     query = update.callback_query
 
     await query.answer()
@@ -267,6 +363,7 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
     elif query.data.startswith('A_F_D'):
+        await interact(query, context)
         if 'user_filter' not in context.user_data:
             context.user_data['user_filter']= {}
         if query.data.startswith('A_F_D: dis_filter:'):
@@ -333,7 +430,8 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
             city_filter.append(action)
         # Update the message with new buttons
         await cities_filter_handler(query, context)
-
+    elif query.data.startswith(profile.button_starter_command):
+        await profile.buttons(update, context)
     elif query.data.startswith('torob:'):
         action = query.data.split(':')[1].strip().lower()
         if action == "check":
@@ -343,6 +441,18 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if action == 'update':
             pass
 
+    elif query.data.startswith('item_edit:'):
+        action = query.data.split(':')[1].strip().lower()
+        if action == 'price':
+            pass
+        if action == 'url':
+            pass
+        if action == 'name':
+            pass
+        if action == 'delete':
+            pass
+        if action == 'home':
+            pass
 
     elif query.data == f'{calculator.calculate_command}':
 
@@ -361,6 +471,8 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif query.data == "home":
         await start(update, context)
+
+
 
 
 #_______________________________________________________________________________
@@ -538,13 +650,13 @@ async def cities_filter_handler(query, context):
 
 #todo check if this even needed can be used for clear eh
 async def search_filters_handler(query, context):
+    await interact(query, context)
     selected_users = user_db.get_filtered_users(context.user_data)
     #reseting filter
     context.user_data['user_filter'] = {}
     #todo return a list of n ppl with keys to C profile or chat
     first_page = ''
     for data in selected_users[:10]:
-        big_line = '_________________________________'
         name = data['user'].name
         distance = int(data['distance'])
         if data['is_online']:
@@ -562,6 +674,7 @@ async def search_filters_handler(query, context):
         gender = data['user'].gender.lower
         city = data['user'].city
         age = data['user'].age
+        user_id = data['user'].user_id
         #check persian rtl and ltr fucking it
         #todo need a link to see other ppl profiles show profile for others
         #todo need to find how connect two ppl in robot
@@ -570,15 +683,19 @@ async def search_filters_handler(query, context):
         #todo handle wrong type and wrong commends
         #todo handle random chat
 
-
-        note = f'\n{name}\n{age} Years old\n{last_online}\ncity: {city}\n{distance}km away\n{big_line}\n'
+        #todo important change data base to give any user an maked id to not use real user id
+        note = f'\n{name}\n{age} Years old\n{last_online}\ncity: {city}\n{distance}km away\n\n/chaT_{user_id}\n\n{divider}\n'
         first_page = first_page + note
     #todo can go next page on that list
     #todo get filter in first go top and make a filter dictionary or somthing like that
-
-    await query.edit_message_text(
-        text=first_page
-    )
+    if first_page:
+        await query.edit_message_text(
+            text=first_page
+        )
+    else:
+        await query.edit_message_text(
+            text='Could not find any profile for this filter\n\n/start'
+        )
 
 #todo update each button to has the filter applied
 async def update_advance_search(query, context: ContextTypes.DEFAULT_TYPE):
@@ -640,7 +757,10 @@ async def update_advance_search(query, context: ContextTypes.DEFAULT_TYPE):
 
 #todo check if this even needed i think it is a function to create more button for items of gold gallery we have
 async def calculator_gold(query, context: ContextTypes.DEFAULT_TYPE):
+
     pass
+
+
 
 async def check_torob_list(query, context:ContextTypes.DEFAULT_TYPE):
     user_id = query.from_user.id
@@ -650,16 +770,27 @@ async def check_torob_list(query, context:ContextTypes.DEFAULT_TYPE):
         for item in user_items:
             name = item.name_of_item
             latest_price = torob_db.get_latest_price(item.item_id)
-            signal_price = '✅' if latest_price <= item.user_preferred_price else '❌'
+            signal_price = '✅' if latest_price and latest_price <= item.user_preferred_price else '❌'
             latest_check =  torob_db.get_latest_check(item.item_id)
+            item_id = item.item_id
             if latest_check:
                 latest_check_format = latest_check.strftime("%Y/%m/%d: %H")
-            item_note = f"{signal_price}{name} @{latest_check}: with price of {latest_price}\n{divider}\n"
-            final_note += item_note
-    await query.edit_message_text(
-        text=final_note,
+            if latest_check and latest_price:
+                item_note = f"{signal_price}{name} @{latest_check}: with price of {latest_price}\n\nedit /item_{item_id}\n\n{divider}"
+                final_note += item_note
+            else:
+                item_note = f"\n{signal_price}{name} is not yet Checked plz wait\n\nedit /item_{item_id}\n\n{divider}\n"
+                final_note += item_note
+    if final_note:
+        await query.edit_message_text(
+            text=final_note,
 
-    )
+        )
+    else:
+        await query.edit_message_text(
+            text="there is noting to show plz add some \n\n /start",
+
+        )
 
 #_______________________________________________________________________________
 #________________________Robot run and handlers_________________________________
@@ -675,6 +806,8 @@ if __name__ == "__main__":
     random_chat_handler = MessageHandler(filters.Regex(r"^Random chat$"), random_chat)
     gold_dollar_handler = MessageHandler(filters.Regex(r"^Gold & Dollar$"), gold_dollar)
     torob_handler = MessageHandler(filters.Regex(r"^Torob price check$"), torob)
+    torob_edit_handler = MessageHandler(filters.Regex(r'^/item_'), edit_command)
+    show_profile_handler = MessageHandler(filters.Regex(r'^/chaT_'), show_profile_request)
     my_profile = CommandHandler("profile", profile.show_profile)
         #button
     buttons_handler = CallbackQueryHandler(buttons)
@@ -685,12 +818,16 @@ if __name__ == "__main__":
     application.add_handler(chat_handler)
     application.add_handler(advance_search_handler)
     application.add_handler(random_chat_handler)
+    application.add_handler(show_profile_handler)
     application.add_handler(gold_dollar_handler)
     application.add_handler(torob_handler)
+    application.add_handler(torob_edit_handler)
     #those conversations have handler inside them check the telegram_conversation file
-    application.add_handler(profile.get_profile_create_conversation_handler())
     application.add_handler(calculator.get_calculated_price_conversation_handler())
-    application.add_handler(torob_conversation.torob_add_handler())
+
+    application.add_handlers(profile.get_all_handlers())
+    application.add_handlers(torob_conversation.get_all_handlers())
+
 
     application.add_handler(my_profile)
     application.add_handlers(anonymous_chat.anonymously_chat_handlers())

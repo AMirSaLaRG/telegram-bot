@@ -11,6 +11,8 @@ from telegram.ext import (InlineQueryHandler, filters, ContextTypes, CommandHand
                           ConversationHandler)
 from data_base import UserDatabase, TorobDb
 from urllib.parse import urlparse
+from telegram_chat_handler import Chat
+
 
 
 
@@ -24,6 +26,7 @@ class Profile:
     def __init__(self):
         self.PHOTO, self.NAME, self.AGE, self.GENDER, self.ABOUT, self.LOCATION = range(6)
         self.create_commend = 'createprofile'
+        self.button_starter_command = 'start_profile_buttons:'
 
     def get_profile_create_conversation_handler(self):
         return ConversationHandler(
@@ -39,24 +42,7 @@ class Profile:
             fallbacks=[CommandHandler('cancel', self.cancel)],
         )
 
-    # def save_profile(self, user_id: int, profile_data: dict):
-    #     # Remove temporary file_id (we already saved the photo locally)
-    #     if "profile_photo_file_id" in profile_data:
-    #         del profile_data["profile_photo_file_id"]
-    #
-    #     # Load existing profiles
-    #     try:
-    #         with open("profiles/user_profiles.json", "r") as f:
-    #             profiles = json.load(f)
-    #     except FileNotFoundError:
-    #         profiles = {}
-    #
-    #     # Update with new profile
-    #     profiles[str(user_id)] = profile_data
-    #
-    #     # Save back to file
-    #     with open("profiles/user_profiles.json", "w") as f:
-    #         json.dump(profiles, f, indent=4)
+
 
     async def cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text('Profile creation cancelled')
@@ -165,7 +151,8 @@ class Profile:
             f"🔢 Age: {profile.get('age', 'Not set')}\n"
             f"👤 Gender: {profile.get('gender', 'Not set')}\n"
             f"📝 About: {profile.get('about', 'Not set')}\n"
-            f"📍 online: {profile.get('last_online', 'Not set')}"
+            f"📍 online: {profile.get('last_online', 'Not set')}\n\n\n/start"
+
         )
 
         if 'profile_photo' in profile:
@@ -175,6 +162,45 @@ class Profile:
             )
         else:
             await update.message.reply_text(text)
+
+    async def show_target_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE, target_id):
+        self.load_profile(update, context)
+
+        profile = user_db.get_target_user(target_id)
+        text = (
+            f"\n\n\n\n🏷 Name: {profile.name if profile.name else "Not sat yet"}\n"
+            f"🔢 Age: {profile.age if profile.age else "Not sat yet"}\n"
+            f"👤 Gender: {profile.gender if profile.gender else "Not sat yet"}\n"
+            f"📝 About: {profile.about if profile.about else "Not sat yet"}\n"
+            f"📍 online: {profile.last_online if profile.last_online else '"Not sat yet"'}"
+
+        )
+        #todo manage the query to send proper reply
+        keyboard = [
+            [
+                InlineKeyboardButton('Direct MSG', callback_data=f"{self.button_starter_command} direct_msg:{target_id}"),
+                InlineKeyboardButton('Chat Request', callback_data=f"{self.button_starter_command} chat_request:{target_id}"),
+            ],
+            [
+                InlineKeyboardButton('Like', callback_data=f"{self.button_starter_command} like:{target_id}"),
+                InlineKeyboardButton('ADD Friend', callback_data=f"{self.button_starter_command} add_friend:{target_id}"),
+            ],
+            [
+                InlineKeyboardButton('Block', callback_data=f"{self.button_starter_command} block:{target_id}"),
+                InlineKeyboardButton('Report', callback_data=f"{self.button_starter_command} report:{target_id}"),
+            ]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        if profile.profile_photo:
+            await update.message.reply_photo(
+                photo=profile.profile_photo,
+                caption=text,
+                reply_markup=reply_markup
+
+            )
+        else:
+            await update.message.reply_text(text,
+                                            reply_markup=reply_markup)
 
     def load_profile(sefl, update: Update, context: ContextTypes.DEFAULT_TYPE):
         # user_id = str(update.effective_chat.id)
@@ -197,6 +223,7 @@ class Profile:
         # context.user_data['location'] = user_data['location']
 
     def check_exist_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+
         context.user_data['user_id'] = str(update.effective_chat.id)
         user_db.add_or_update_user(update.effective_user.id, context.user_data)
         try:
@@ -222,6 +249,36 @@ class Profile:
         #     with open("profiles/user_profiles.json", 'w') as file:
         #         return False
 
+    async def buttons(self, update:Update, context: ContextTypes.DEFAULT_TYPE):
+        chat = Chat()
+        query = update.callback_query
+        action = query.data.split(':')[1].strip().lower()
+        target_id = query.data.split(':')[2].strip().lower()
+        print(action, target_id)
+        if action == 'direct_msg':
+            await chat.chat_request(update, context, target_id)
+        elif action == 'chat_request':
+            pass
+        elif action == 'like':
+            pass
+        elif action == 'add_friend':
+            pass
+        elif action == 'block':
+            pass
+        elif action == 'report':
+            pass
+
+
+    async def action_direct_msg_handler(self, update:Update, context, target_id):
+        user_id = update.effective_user.id
+        await context.bot.send_message(user_id, text=f'you want to direct msg: {target_id}')
+
+    def get_all_handlers(self):
+        return [
+            self.get_profile_create_conversation_handler(),
+
+
+        ]
 
 class Calculator:
     def __init__(self):
@@ -342,7 +399,15 @@ class Calculator:
 class TorobConversation:
     def __init__(self):
         self.NAME, self.PRICE, self.URL = range(3)
+        self.EDIT_NAME =1
+        self.EDIT_PRICE =1
+        self.EDIT_URL=1
+        self.DELETE=1
         self.query_add_pattern = 'add_new_torob_item'
+        self.edit_price_pattern = 'torob_edit_price'
+        self.edit_url_pattern='torob_edit_url'
+        self.edit_name_pattern='torob_edit_name'
+        self.delete_item_pattern='torob_delete_item'
         self.name = None
         self.price = None
         self.url = None
@@ -359,7 +424,43 @@ class TorobConversation:
                 self.URL: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_url)],
             },
             fallbacks=[CommandHandler('cancel', self.cancel)],
-            per_message=True
+        )
+    def torob_edit_price_handler(self):
+        return ConversationHandler(
+            entry_points=[
+                CallbackQueryHandler(self.start_edit_price, pattern=f'^{self.edit_price_pattern}$')
+            ],
+            states={
+                self.EDIT_PRICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_edit_price)],            },
+            fallbacks=[CommandHandler('cancel', self.cancel)],
+        )
+    def torob_edit_url_handler(self):
+        return ConversationHandler(
+            entry_points=[
+                CallbackQueryHandler(self.start_edit_url, pattern=f'^{self.edit_url_pattern}$')
+            ],
+            states={
+                self.EDIT_URL: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_edit_url)],                self.URL: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_url)],
+            },
+            fallbacks=[CommandHandler('cancel', self.cancel)],
+        )
+    def torob_edit_name_handler(self):
+        return ConversationHandler(
+            entry_points=[
+                CallbackQueryHandler(self.start_edit_name, pattern=f'^{self.edit_name_pattern}$')
+            ],
+            states={
+                self.EDIT_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_edit_name)],            },
+            fallbacks=[CommandHandler('cancel', self.cancel)],
+        )
+    def torob_delete_item(self):
+        return ConversationHandler(
+            entry_points=[
+                CallbackQueryHandler(self.start_delete_item, pattern=f'^{self.delete_item_pattern}$')
+            ],
+            states={
+                self.DELETE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_delete_item)],            },
+            fallbacks=[CommandHandler('cancel', self.cancel)],
         )
 
     async def cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -394,11 +495,8 @@ class TorobConversation:
            f'Lets add new item to your torob list \n What is name of Item (less that 150)',
 
        )
-
-       # Store the chat_id and message_id for later reference
-       context.user_data['chat_id'] = update.effective_chat.id
-       context.user_data['message_id'] = update.effective_message.message_id
        return self.NAME
+
 
     async def handle_name(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -439,15 +537,190 @@ class TorobConversation:
 
     async def handle_url(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
-        if not self.is_torob_url(update.message.text):
+        the_url = update.message.text
+        if not self.is_torob_url(the_url):
             await update.message.reply_text('plz send a torob url ')
-            self.url = update.message.text
+            print(the_url)
+            print(update.message)
             return self.URL
 
-        await update.message.reply_text(f'{self.name}: highest price{self.price}\n'
-                                        f'with ur provided url added')
-        self.db.add_item(user_id, self.price, self.url, self.name)
+        self.url = the_url
+        if self.db.add_item(user_id, self.price, self.url, self.name):
+
+            await update.message.reply_text(f'{self.name}: highest price{self.price}\n'
+                                            f'with ur provided url added\n\n/start')
+            self.price = None
+            self.url = None
+            self.name = None
+            print('added')
+            return ConversationHandler.END
+        else:
+            print('else')
+            self.url = None
+            await update.message.reply_text('plz send a torob url ')
+            return self.URL
+
+    async def start_delete_item(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        item_id = context.user_data.get('editing_item_id', "")
+        user_id = update.effective_user.id
+        if not update.callback_query:
+            return ConversationHandler.END
+        if not self.db.check_ownership(user_id, item_id):
+            await update.callback_query.answer()
+            await update.callback_query.edit_message_text(
+                f'This item do not belongs to You plz inter a valid item'
+            )
+            return ConversationHandler.END
+        await update.callback_query.answer()
+        await update.callback_query.edit_message_text(
+            f'Confirm delete with any world \n\nfor cancel type: /cancel'
+        )
+        return self.DELETE
+
+    async def handle_delete_item(self, update:Update, context: ContextTypes.DEFAULT_TYPE):
+        item_id = context.user_data.get('editing_item_id', "")
+        self.db.delete_item(item_id)
+        await self.show_item_edit_options(update, context)
         return ConversationHandler.END
 
 
 
+    async def start_edit_price(self, update:Update, context: ContextTypes.DEFAULT_TYPE):
+        item_id = context.user_data.get('editing_item_id', "")
+        user_id = update.effective_user.id
+        if not update.callback_query:
+            return ConversationHandler.END
+        if not self.db.check_ownership(user_id, item_id):
+            await update.callback_query.answer()
+            await update.callback_query.edit_message_text(
+                f'This item do not belongs to You plz inter a valid item'
+            )
+            return ConversationHandler.END
+        await update.callback_query.answer()
+        await update.callback_query.edit_message_text(
+            f'plz enter new price'
+        )
+        return self.EDIT_PRICE
+    async def handle_edit_price(self, update:Update, context: ContextTypes.DEFAULT_TYPE):
+        item_id = context.user_data.get('editing_item_id', "")
+        try:
+            price = float(update.message.text)
+        except ValueError :
+            await update.message.reply_text("plz enter price in numbers")
+            return self.EDIT_PRICE
+        else:
+            self.db.update_preferred_price(item_id, price)
+            await self.show_item_edit_options(update, context)
+            return ConversationHandler.END
+
+
+    async def start_edit_url(self, update:Update, context: ContextTypes.DEFAULT_TYPE):
+        item_id = context.user_data.get('editing_item_id', "")
+        user_id = update.effective_user.id
+        if not update.callback_query:
+            return ConversationHandler.END
+        if not self.db.check_ownership(user_id, item_id):
+            await update.callback_query.answer()
+            await update.callback_query.edit_message_text(
+                f'This item do not belongs to You plz inter a valid item'
+            )
+            return ConversationHandler.END
+        await update.callback_query.answer()
+        await update.callback_query.edit_message_text(
+            f'plz enter new URL'
+        )
+        return self.EDIT_URL
+    async def handle_edit_url(self, update:Update, context: ContextTypes.DEFAULT_TYPE):
+        item_id = context.user_data.get('editing_item_id', "")
+        user_id = update.effective_user.id
+        the_url = update.message.text
+        if not self.is_torob_url(the_url):
+            await update.message.reply_text('plz send a torob url ')
+            return self.EDIT_URL
+        if self.db.update_url(item_id, the_url):
+            await self.show_item_edit_options(update, context)
+            return ConversationHandler.END
+        else:
+            await update.message.reply_text('plz send a torob url ')
+            return self.EDIT_URL
+
+    async def start_edit_name(self, update:Update, context: ContextTypes.DEFAULT_TYPE):
+        item_id = context.user_data.get('editing_item_id', "")
+        user_id = update.effective_user.id
+        if not update.callback_query:
+            return ConversationHandler.END
+        if not self.db.check_ownership(user_id, item_id):
+            await update.callback_query.answer()
+            await update.callback_query.edit_message_text(
+                f'This item do not belongs to You plz inter a valid item'
+            )
+            return ConversationHandler.END
+        await update.callback_query.answer()
+        await update.callback_query.edit_message_text(
+            f'plz enter new name'
+        )
+        return self.EDIT_NAME
+    async def handle_edit_name(self, update:Update, context: ContextTypes.DEFAULT_TYPE):
+        item_id = context.user_data.get('editing_item_id', "")
+        if not update.message or not update.message.text:
+            await self._send_fallback_message(update, "Please send a text message")
+            return self.EDIT_NAME
+
+        if len(update.message.text) > 150:
+            await update.message.reply_text('Please enter a string with less than 150 characters!')
+            return self.EDIT_NAME
+
+        if self.db.update_name(item_id, update.message.text):
+            await self.show_item_edit_options(update, context)
+            return ConversationHandler.END
+
+    async def show_item_edit_options(self, update, context):
+        item_id = context.user_data.get('editing_item_id', "")
+        item_data = self.db.get_item_by_id(item_id)
+        if item_data:
+            keyboard = [
+                [
+                    InlineKeyboardButton('Edit Price', callback_data=f'{self.edit_price_pattern}'),
+                    InlineKeyboardButton('Edit URL', callback_data=f'{self.edit_url_pattern}'),
+                    InlineKeyboardButton('Edit Name', callback_data=f'{self.edit_name_pattern}')
+                ],
+                [InlineKeyboardButton('Delete', callback_data=f'{self.delete_item_pattern}')],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            if hasattr(update, 'message'):
+                await update.message.reply_text(
+                    f"✅ Item updated successfully!\n\n"
+                    f"Item: {item_data.name_of_item}\n"
+                    f"Current Highest Price: {item_data.user_preferred_price}\n\n"
+                    f"Current URL: {item_data.torob_url}\n\n"
+                    f"What would you like to edit next?",
+                    reply_markup=reply_markup
+                )
+            else:
+                await update.callback_query.edit_message_text(
+                    f"✅ Item updated successfully!\n\n"
+                    f"Item: {item_data.name_of_item}\n"
+                    f"Current URL: {item_data.torob_url}\n\n"
+                    f"What would you like to edit next?",
+                    reply_markup=reply_markup
+                )
+        else:
+            if hasattr(update, 'message'):
+                await update.message.reply_text(
+                    f"✅ Item Deleted successfully!\n\n/start")
+
+            else:
+                await update.callback_query.edit_message_text(
+                    f"✅ Item Deleted successfully!\n\n/start")
+
+
+
+    def get_all_handlers(self):
+        return [
+            self.torob_add_handler(),
+            self.torob_edit_name_handler(),
+            self.torob_edit_price_handler(),
+            self.torob_edit_url_handler(),
+            self.torob_delete_item(),
+        ]

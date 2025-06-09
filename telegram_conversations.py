@@ -11,10 +11,7 @@ from telegram.ext import (InlineQueryHandler, filters, ContextTypes, CommandHand
                           ConversationHandler)
 from data_base import UserDatabase, TorobDb
 from urllib.parse import urlparse
-from telegram_chat_handler import Chat
-
-
-
+from telegram_chat_handler import UserMessage
 
 # Initialize DB
 user_db = UserDatabase()
@@ -250,13 +247,14 @@ class Profile:
         #         return False
 
     async def buttons(self, update:Update, context: ContextTypes.DEFAULT_TYPE):
-        chat = Chat()
+        message_handler = UserMessage()
         query = update.callback_query
+        print(query.data)
         action = query.data.split(':')[1].strip().lower()
         target_id = query.data.split(':')[2].strip().lower()
         print(action, target_id)
         if action == 'direct_msg':
-            await chat.chat_request(update, context, target_id)
+            await message_handler.chat_request(update, context, target_id)
         elif action == 'chat_request':
             pass
         elif action == 'like':

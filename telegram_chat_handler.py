@@ -1,8 +1,8 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import ContextTypes, MessageHandler, filters,CallbackQueryHandler,CommandHandler, filters
 import time
-from datetime import datetime, timedelta
 from data_base import ChatDatabase, UserDatabase
+
 
 
 # a leave and a goffy name option
@@ -19,62 +19,16 @@ from data_base import ChatDatabase, UserDatabase
 # todo get connected with db
 #  oh there is alot of connection with db should take care
 
-class Chat:
-    def __init__(self):
-        self.start_command = 'start'
-        self.leave_command = 'leave'
-        self.secret_command = 'secret_chat'
-        self.delete_command = 'confirm_delete'
-        self.button_start_command = 'chat_request'
-        self.db = ChatDatabase()
-        self.user_db = UserDatabase()
-
-
-    async def chat_request(self, update:Update, context: ContextTypes.DEFAULT_TYPE, target_id):
-        user_id = update.effective_user.id
-        keyboard = [
-            [
-                InlineKeyboardButton("Accept", callback_data=f'{self.button_start_command}t: accept: {user_id}'),
-                InlineKeyboardButton("Deny", callback_data=f'{self.button_start_command}t: deny: {user_id}'),
-            ],
-
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await context.bot.send_message(user_id, text=f"you chat request for /chaT_{target_id} \n sent plz wait for answer")
-        await context.bot.send_message(target_id, text=f'user: /chaT_{user_id} \nrequested to chat with you', reply_markup=reply_markup)
-
-
-
-    async def buttons(self, update:Update, context: ContextTypes.DEFAULT_TYPE):
-        query = update.callback_query
-        action = query.data.split(':')[1].strip().lower()
-        target_id = query.data.split(':')[2].strip().lower()
-        if action == 'accept':
-            await self.accept_chat(update, context, target_id)
-        elif action == "deny":
-            await self.deny_chat(update, context, target_id)
-
-
-    async def accept_chat(self, update:Update, context:ContextTypes.DEFAULT_TYPE, target_id):
-        user_id = update.effective_user.id
-        if self.db.set_partnership(user_id, target_id):
-            await context.bot.send_message(user_id, text=f'connected to /chaT_{target_id}')
-            await context.bot.send_message(target_id, text=f'connected to /chaT_{user_id}')
-        else:
-            await context.bot.send_message(user_id, text=f'Could not find this user')
-
-    async def deny_chat(self, update:Update, context:ContextTypes.DEFAULT_TYPE, target_id):
-        user_id = update.effective_user.id
-        await context.bot.send_message(user_id, text=f'/chaT_{target_id} got denied')
-        await context.bot.send_message(target_id, text=f'/chaT_{user_id} did not accept your chat request')
-
 class UserMessage:
     def __init__(self):
         self.leave_command = "LeaveChat"
         self.secret_command= 'SecretChat'
         self.delete_command = 'ConfirmDeleteChat'
-        self.command_create_anon_chat = 'CreateAnonymousChat'
-        self.command_create_anon_msg = 'CreateAnonymousMsg'
+        self.command_create_anon_chat = 'createanonymousChat'
+        self.command_create_anon_msg = 'createanonymousMsg'
+        self.button_start_with_command = 'usermessagehandlerStarter'
+        self.accept_chat_button_command = "acceptchat"
+        self.deny_chat_button_command = 'denychat'
         self.db = ChatDatabase()
         self.user_db = UserDatabase()
 
@@ -161,10 +115,10 @@ class UserMessage:
                 self.db.map_message(message.message_id, send_msg.message_id, user_id, partner_id, msg_txt=message.text)
             if not self.db.get_partner_id(partner_id) and not self.db.get_partner_id(partner_id) == user_id:
                 await self.leave_chat(update, context)
-                context.bot.send_message(user_id, text=f'Message sent to {partner_id}')
+                await context.bot.send_message(user_id, text=f'Message sent to {partner_id}')
 
         except Exception as e:
-            print(f"Error sending message xxx1: {e}")
+            print(f"Error sending message message reply: {e}")
     async def handle_edit(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
         self.db.get_user_session(user_id)
@@ -231,21 +185,62 @@ class UserMessage:
             print(f"Error in delete_handler: {e}")
             await query.edit_message_text("❌ Error deleting messages")
     async def leave_chat(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        self.user_db.get_user_data(update.effective_user.id, context.user_data)
         user_id = update.effective_user.id
+        if context.user_data['name']:
+            keyboard2 = [
+                [KeyboardButton("ChaT")],
+                [
+                    KeyboardButton("Torob price check"),
+                    KeyboardButton("Gold & Dollar"),
+
+                ],
+                [
+                    KeyboardButton('/profile')
+                ]
+
+            ]
+        else:
+            keyboard2 = [
+                [KeyboardButton("ChaT")],
+                [
+                    KeyboardButton("Torob price check"),
+                    KeyboardButton("Gold & Dollar"),
+
+                ],
+                [
+                    KeyboardButton(f'/createprofile')
+                ]
+
+            ]
+        reply_markup2 = ReplyKeyboardMarkup(keyboard2)
         if self.db.get_partner_id(user_id):
             partner_id = self.db.get_partner_id(user_id)
             if self.db.get_partner_id(partner_id) and self.db.get_partner_id(partner_id) == user_id:
                 self.db.remove_partnership(user_id)
                 keyboard = [[InlineKeyboardButton("Confirm Delete All", callback_data=self.delete_command)]]
                 self.db.secret_chat_toggle(user_id, hand_change=False)
+
                 # notify partner
-                await context.bot.send_message(partner_id, "❌ Your partner has left the chat.",reply_markup=InlineKeyboardMarkup(keyboard))
-                await update.message.reply_text("✅ You've left the chat. Use /start to generate a new link.\n\n⚠️ Delete ALL your sent messages?",reply_markup=InlineKeyboardMarkup(keyboard))
+                await context.bot.send_message(partner_id, "❌ Your partner has left the chat.",
+                                               reply_markup=InlineKeyboardMarkup(keyboard))
+                await context.bot.send_message(partner_id, "what else i can do for you.",
+                                               reply_markup=reply_markup2)
+                await update.message.reply_text("✅ You've left the chat."
+                                                " Use /start to generate a new link.\n\n⚠️"
+                                                " Delete ALL your sent messages?",
+                                                reply_markup=InlineKeyboardMarkup(keyboard))
+                await context.bot.send_message(user_id, "what else i can do for you.",
+                                               reply_markup=reply_markup2)
+
                 self.db.secret_chat_toggle(user_id, hand_change=False)
                 self.db.secret_chat_toggle(partner_id, hand_change=False)
             else:
                 self.db.remove_partner(user_id)
                 self.db.secret_chat_toggle(user_id, hand_change=False)
+                await context.bot.send_message(user_id, "what else i can do for you.",
+                                               reply_markup=reply_markup2)
+
 
         else:
             await update.message.reply_text("⚠️ You're not in an active chat.")
@@ -255,18 +250,27 @@ class UserMessage:
         if not partner_id:
             await update.message.reply_text("⚠️ You're not in an active chat.")
             return
-        status = "activated 🔒" if self.db.secret_chat_toggle(user_id) else "deactivated 🔓"
-        secret_note = "\n\nℹ️ Media will be blurred and protected from saving." if self.db.secret_chat_toggle(
-            user_id) else ""
+        self.db.secret_chat_toggle(user_id)
+        status = "activated 🔒" if self.db.get_user_session(user_id).secret_chat else "deactivated 🔓"
+
+        secret_note = "\n\nℹ️ Media will be blurred and protected from saving." if (
+            self.db.get_user_session(user_id).secret_chat) else ""
         # Notify both users
-        await context.bot.send_message(
-            user_id,
-            f"Secret mode {status} for your chat.{secret_note}",
-            parse_mode="Markdown")
-        await context.bot.send_message(
-            partner_id,
-            f"Secret mode {status} for your partner chat.{secret_note}",
-            parse_mode="Markdown")
+        if self.db.get_partner_id(partner_id) and self.db.get_partner_id(partner_id) == user_id:
+
+            await context.bot.send_message(
+                user_id,
+                f"Secret mode {status} for your chat.{secret_note}",
+                parse_mode="Markdown")
+            await context.bot.send_message(
+                partner_id,
+                f"Secret mode {status} for your partner chat.{secret_note}",
+                parse_mode="Markdown")
+        else:
+            await context.bot.send_message(
+                user_id,
+                f"Secret mode {status} for your chat.{secret_note}",
+                parse_mode="Markdown")
 
 
     async def create_anonymous_chat_link(self, update:Update, context:ContextTypes.DEFAULT_TYPE):
@@ -325,7 +329,7 @@ class UserMessage:
                     KeyboardButton(f'/{self.secret_command}'),
                 ]
             ]
-            reply_markup = ReplyKeyboardMarkup(keyboard)
+            reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
             await context.bot.send_message(
                 partner_id,
                 "🔄 A stranger has joined your chat! Say hello :)",
@@ -356,7 +360,7 @@ class UserMessage:
                     KeyboardButton(f'/{self.secret_command}'),
                 ]
             ]
-            reply_markup = ReplyKeyboardMarkup(keyboard)
+            reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
             # await context.bot.send_message(
             #     partner_id,
             #     "🔄 A stranger has joined your chat! Say hello :)",
@@ -368,6 +372,65 @@ class UserMessage:
         else:
             await update.message.reply_text("❌ The link is wrong or has been expire")
             # return
+
+    async def chat_request(self, update:Update, context: ContextTypes.DEFAULT_TYPE, target_id):
+        user_id = update.effective_user.id
+        if self.db.get_partner_id(user_id):
+            await context.bot.send_message(user_id,
+                                           text=f"You are in active chat first leave chat")
+
+        elif self.db.get_user_session(target_id):
+            if not self.db.get_partner_id(target_id):
+
+                keyboard = [
+                    [
+                        InlineKeyboardButton("Accept", callback_data=f'{self.button_start_with_command}: {self.accept_chat_button_command}: {user_id}'),
+                        InlineKeyboardButton("Deny", callback_data=f'{self.button_start_with_command}: {self.deny_chat_button_command}: {user_id}'),
+                    ],
+
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                await context.bot.send_message(user_id, text=f"you chat request for /chaT_{target_id} \n sent plz wait for answer")
+                await context.bot.send_message(target_id, text=f'user: /chaT_{user_id} \nrequested to chat with you', reply_markup=reply_markup)
+            else:
+                await context.bot.send_message(user_id, text=f"user txting another user /chaT_{target_id} \n plz w8 until it is finished")
+        else:
+            await context.bot.send_message(user_id,
+                                           text=f"invalid user id")
+
+    async def buttons_set(self, update:Update, context:ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        await query.answer()
+        if query.data.startswith(self.button_start_with_command):
+            action = query.data.split(':')[1].strip().lower()
+            target_id = query.data.split(':')[2].strip().lower()
+            print(action)
+            print(self.accept_chat_button_command)
+            if action == self.accept_chat_button_command:
+                await self.accept_chat(update, context, target_id)
+            elif action == self.deny_chat_button_command:
+                await self.deny_chat(update, context, target_id)
+
+    async def accept_chat(self, update:Update, context:ContextTypes.DEFAULT_TYPE, target_id):
+        user_id = update.effective_user.id
+        query = update.callback_query
+        if self.db.set_partnership(user_id, target_id):
+            keyboard = [
+                [KeyboardButton(f'/{self.leave_command}')],
+                [KeyboardButton(f'/{self.secret_command}')],
+            ]
+            reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+            await query.edit_message_text(f'connected to /chaT_{target_id}')
+            await context.bot.send_message(user_id, text='You can use buttons to leave or start secret chats', reply_markup=reply_markup)
+            await context.bot.send_message(target_id, text=f'connected to /chaT_{user_id}',
+                                           reply_markup=reply_markup)
+        else:
+            await context.bot.send_message(user_id, text=f'Could not find this user')
+
+    async def deny_chat(self, update:Update, context:ContextTypes.DEFAULT_TYPE, target_id):
+        user_id = update.effective_user.id
+        await context.bot.send_message(user_id, text=f'/chaT_{target_id} got denied')
+        await context.bot.send_message(target_id, text=f'/chaT_{user_id} did not accept your chat request')
 
     def message_handlers(self):
         return [
@@ -386,7 +449,9 @@ class UserMessage:
             MessageHandler(
                 filters.ALL & ~filters.COMMAND & filters.UpdateType.EDITED,
                 self.handle_edit
-            )
+            ),
+
+
         ]
 
 

@@ -908,6 +908,7 @@ class ChatDatabase:
     """
         with self.Session() as session:
             try:
+
                 session_obj = session.query(Sessions).filter_by(user_id=user_id).first()
                 if not session_obj:
                     print(f'no session found for user {user_id}')

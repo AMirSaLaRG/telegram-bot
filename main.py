@@ -391,6 +391,12 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Update the message with new buttons
             await gender_filter_handler(query, context)
 
+    elif query.data.startswith(user_message.button_start_with_command):
+        await interact(update, context)
+        print(query.data)
+        print(user_message.button_start_with_command)
+        print('xxx2')
+        await user_message.buttons_set(update, context)
 
     #this is get of age filter
     elif query.data.startswith("age_filter:"):

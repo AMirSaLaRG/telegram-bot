@@ -12,7 +12,7 @@ from telegram.ext import (InlineQueryHandler, filters, ContextTypes, CommandHand
 from telegram_conversations import Profile, Calculator, TorobConversation
 
 from data_base import GoldPriceDatabase, UserDatabase, iran_cities_fa, ChatDatabase, TorobDb
-from telegram_chat_handler import AnonymousChat, AnonymousMessage, Chat
+from telegram_chat_handler import AnonymousChat, AnonymousMessage, UserMessage
 import json
 import os
 from datetime import datetime , timedelta
@@ -34,6 +34,7 @@ os.makedirs("profiles", exist_ok=True)
 # Ensure directory exists
 os.makedirs("profiles", exist_ok=True)
 
+user_message = UserMessage()
 anonymous_chat=AnonymousChat()
 anonymous_msg = AnonymousMessage()
 

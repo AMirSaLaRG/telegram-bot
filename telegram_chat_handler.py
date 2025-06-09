@@ -71,7 +71,12 @@ class Chat:
 class UserMessage:
     def __init__(self):
         self.leave_command = "LeaveChat"
+        self.secret_command= 'SecretChat'
+        self.delete_command = 'ConfirmDeleteChat'
+        self.command_create_anon_chat = 'CreateAnonymousChat'
+        self.command_create_anon_msg = 'CreateAnonymousMsg'
         self.db = ChatDatabase()
+        self.user_db = UserDatabase()
 
     async def reply_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
@@ -154,6 +159,9 @@ class UserMessage:
 
             if send_msg and hasattr(send_msg, "message_id"):
                 self.db.map_message(message.message_id, send_msg.message_id, user_id, partner_id, msg_txt=message.text)
+            if not self.db.get_partner_id(partner_id) and not self.db.get_partner_id(partner_id) == user_id:
+                await self.leave_chat(update, context)
+                context.bot.send_message(user_id, text=f'Message sent to {partner_id}')
 
         except Exception as e:
             print(f"Error sending message xxx1: {e}")
@@ -222,27 +230,153 @@ class UserMessage:
         except Exception as e:
             print(f"Error in delete_handler: {e}")
             await query.edit_message_text("❌ Error deleting messages")
-
     async def leave_chat(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
         if self.db.get_partner_id(user_id):
             partner_id = self.db.get_partner_id(user_id)
             if self.db.get_partner_id(partner_id) and self.db.get_partner_id(partner_id) == user_id:
                 self.db.remove_partnership(user_id)
-                keyboard = [[InlineKeyboardButton("Confirm Delete All", callback_data="confirm_delete")]]
+                keyboard = [[InlineKeyboardButton("Confirm Delete All", callback_data=self.delete_command)]]
                 self.db.secret_chat_toggle(user_id, hand_change=False)
                 # notify partner
                 await context.bot.send_message(partner_id, "❌ Your partner has left the chat.",reply_markup=InlineKeyboardMarkup(keyboard))
                 await update.message.reply_text("✅ You've left the chat. Use /start to generate a new link.\n\n⚠️ Delete ALL your sent messages?",reply_markup=InlineKeyboardMarkup(keyboard))
+                self.db.secret_chat_toggle(user_id, hand_change=False)
+                self.db.secret_chat_toggle(partner_id, hand_change=False)
             else:
                 self.db.remove_partner(user_id)
+                self.db.secret_chat_toggle(user_id, hand_change=False)
 
         else:
             await update.message.reply_text("⚠️ You're not in an active chat.")
+    async def secret_toggle(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = update.effective_user.id
+        partner_id = self.db.get_partner_id(user_id)
+        if not partner_id:
+            await update.message.reply_text("⚠️ You're not in an active chat.")
+            return
+        status = "activated 🔒" if self.db.secret_chat_toggle(user_id) else "deactivated 🔓"
+        secret_note = "\n\nℹ️ Media will be blurred and protected from saving." if self.db.secret_chat_toggle(
+            user_id) else ""
+        # Notify both users
+        await context.bot.send_message(
+            user_id,
+            f"Secret mode {status} for your chat.{secret_note}",
+            parse_mode="Markdown")
+        await context.bot.send_message(
+            partner_id,
+            f"Secret mode {status} for your partner chat.{secret_note}",
+            parse_mode="Markdown")
 
+
+    async def create_anonymous_chat_link(self, update:Update, context:ContextTypes.DEFAULT_TYPE):
+        user_id = update.effective_user.id
+        token = f'anonymously_chat-{abs(hash(str(user_id + time.time())))}'
+        self.db.add_link(token, user_id, max_uses=1)
+        bot_username = (await context.bot.get_me()).username
+        deep_link = f'https://telegram.me/{bot_username}?text={token}'
+
+        keyboard = [
+            [
+                InlineKeyboardButton("Share this link!!", url=f'https://t.me/share/url?url={deep_link}'),
+            ]
+        ]
+        await update.message.reply_text(
+            f"🔗 Your private chat link:\n`{token}`\n\n"
+            "Share it to let others chat with you anonymously!",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="Markdown"
+        )
+    async def create_anonymous_msg_link(self, update:Update, context:ContextTypes.DEFAULT_TYPE):
+        print("started anom MSG")
+        user_id = update.effective_user.id
+        token = f'anonymously_msg-{abs(hash(str(user_id + time.time())))}'
+        self.db.add_link(token, user_id)
+        bot_username = (await context.bot.get_me()).username
+        deep_link = f'https://telegram.me/{bot_username}?text={token}'
+
+        keyboard = [
+            [
+                InlineKeyboardButton("Share this link!!", url=f'https://t.me/share/url?url={deep_link}'),
+            ]
+        ]
+        await update.message.reply_text(
+            f"🔗 Your private Message link:\n`{token}`\n\n"
+            "Share it to let others can send you anonymous message to you anonymously!",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="Markdown"
+        )
+
+    async def handle_link_chat(self, update:Update, context:ContextTypes.DEFAULT_TYPE):
+        user_id = update.effective_user.id
+        text = update.message.text.strip()
+        if self.db.get_link(text):
+            partner_id = self.db.get_link_owner(text)
+            if user_id == partner_id:
+                await update.message.reply_text("❌ You can't chat with yourself!")
+                # return
+            self.user_db.add_or_update_user(user_id, context.user_data)
+            self.db.create_user_session(user_id)
+            self.db.set_partnership(user_id, partner_id)
+            self.db.decrement_link_use(text)
+            keyboard = [
+                [
+                    KeyboardButton(f'/{self.leave_command}'),
+                    KeyboardButton(f'/{self.secret_command}'),
+                ]
+            ]
+            reply_markup = ReplyKeyboardMarkup(keyboard)
+            await context.bot.send_message(
+                partner_id,
+                "🔄 A stranger has joined your chat! Say hello :)",
+                reply_markup=reply_markup
+            )
+            await update.message.reply_text("🔄 Connected to a stranger! Start chatting.",
+                                            reply_markup=reply_markup)
+
+        else:
+            await update.message.reply_text("❌ The link is wrong or has been expire")
+            # return
+    async def handle_link_msg(self, update:Update, context:ContextTypes.DEFAULT_TYPE):
+        user_id = update.effective_user.id
+        text = update.message.text.strip()
+        print('handling_link')
+        if self.db.get_link(text):
+            partner_id = self.db.get_link_owner(text)
+            if user_id == partner_id:
+                await update.message.reply_text("❌ You can't chat with yourself!")
+                # return
+            self.user_db.add_or_update_user(user_id, context.user_data)
+            self.db.create_user_session(user_id)
+            self.db.add_partner(user_id, partner_id)
+            self.db.decrement_link_use(text)
+            keyboard = [
+                [
+                    KeyboardButton(f'/{self.leave_command}'),
+                    KeyboardButton(f'/{self.secret_command}'),
+                ]
+            ]
+            reply_markup = ReplyKeyboardMarkup(keyboard)
+            # await context.bot.send_message(
+            #     partner_id,
+            #     "🔄 A stranger has joined your chat! Say hello :)",
+            #     reply_markup=reply_markup
+            # )
+            await update.message.reply_text("🔄 Connected to a stranger! Start chatting.",
+                                            reply_markup=reply_markup)
+
+        else:
+            await update.message.reply_text("❌ The link is wrong or has been expire")
+            # return
 
     def message_handlers(self):
         return [
+            CommandHandler(f'{self.command_create_anon_chat}', self.create_anonymous_chat_link),
+            CommandHandler(f'{self.command_create_anon_msg}', self.create_anonymous_msg_link),
+            CommandHandler(f"{self.secret_command}", self.secret_toggle),
+            CallbackQueryHandler(self.delete_handler, pattern=f"^{self.delete_command}$"),
+            MessageHandler(filters.TEXT & filters.Regex(r'^anonymously_chat-'), self.handle_link_chat),
+            MessageHandler(filters.TEXT & filters.Regex(r'^anonymously_msg-'), self.handle_link_msg),
             CommandHandler(f"{self.leave_command}", self.leave_chat),
             MessageHandler(
                 filters.ALL & ~filters.COMMAND & ~filters.Regex(r'^anonymously_msg-') & ~filters.Regex(
@@ -269,7 +403,6 @@ class AnonymousChat:
     #todo create anom chat link
     # --- 1. Start ---
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        print("started anom chat")
         user_id = update.effective_user.id
         token = f'anonymously_chat-{abs(hash(str(user_id + time.time())))}'
         self.db.add_link(token, user_id, max_uses=1)

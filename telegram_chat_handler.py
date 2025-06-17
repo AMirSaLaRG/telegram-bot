@@ -1,8 +1,13 @@
+import datetime
+import logging
+from datetime import timedelta
+
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import ContextTypes, MessageHandler, filters,CallbackQueryHandler,CommandHandler, filters
 import time
 from data_base import ChatDatabase, UserDatabase
-
+from random import choice
+import asyncio
 
 
 # a leave and a goffy name option
@@ -34,6 +39,7 @@ class UserMessage:
 
     async def reply_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
+        name = "👤"
         if not self.db.get_partner_id(user_id):
             await update.message.reply_text("⚠️ You're not doing anything. Do somthing /start")
             return
@@ -42,6 +48,10 @@ class UserMessage:
         message = update.message
 
         reply_to_id = None
+        msg_name = context.user_data.get('msg_name', "")
+
+        if msg_name:
+            name = msg_name
 
         try:
             send_msg = None
@@ -55,11 +65,11 @@ class UserMessage:
                     reply_to_id = self.db.get_msg_id_by_user_msg(reply_msg_id)
 
             if message.text:
-                send_msg = await context.bot.send_message(partner_id, f"👤: {message.text}",
+                send_msg = await context.bot.send_message(partner_id, f"{name}: {message.text}",
                                                           reply_to_message_id=reply_to_id)
             elif message.photo:
                 send_msg = await context.bot.send_photo(partner_id, photo=message.photo[-1].file_id,
-                                                        caption=f"👤: {message.caption}" if message.caption else None,
+                                                        caption=f"{name}: {message.caption}" if message.caption else None,
                                                         reply_to_message_id=reply_to_id,
                                                         has_spoiler=self.db.get_user_session(user_id).secret_chat,
                                                         protect_content=self.db.get_user_session(user_id).secret_chat)
@@ -67,7 +77,7 @@ class UserMessage:
                 send_msg = await context.bot.send_video(
                     partner_id,
                     video=update.message.video.file_id,
-                    caption=f"👤: {update.message.caption}" if update.message.caption else None,
+                    caption=f"{name}: {update.message.caption}" if update.message.caption else None,
                     reply_to_message_id=reply_to_id,
                     has_spoiler=self.db.get_user_session(user_id).secret_chat,
                     protect_content=self.db.get_user_session(user_id).secret_chat,
@@ -79,7 +89,7 @@ class UserMessage:
                 send_msg = await context.bot.send_audio(
                     partner_id,
                     audio=update.message.audio.file_id,
-                    caption=f"👤: {update.message.caption}" if update.message.caption else None,
+                    caption=f"{name}: {update.message.caption}" if update.message.caption else None,
                     reply_to_message_id=reply_to_id,
                     has_spoiler=self.db.get_user_session(user_id).secret_chat,
                     protect_content=self.db.get_user_session(user_id).secret_chat,
@@ -89,7 +99,7 @@ class UserMessage:
                 send_msg = await context.bot.send_document(
                     partner_id,
                     document=update.message.document.file_id,
-                    caption=f"👤: {update.message.caption}" if update.message.caption else None,
+                    caption=f"{name}: {update.message.caption}" if update.message.caption else None,
                     reply_to_message_id=reply_to_id,
                     has_spoiler=self.db.get_user_session(user_id).secret_chat,
                     protect_content=self.db.get_user_session(user_id).secret_chat,
@@ -117,6 +127,10 @@ class UserMessage:
                 await self.leave_chat(update, context)
                 await context.bot.send_message(user_id, text=f'Message sent to {partner_id}')
 
+            user_saved_name = context.user_data.get('msg_name', "")
+            if user_saved_name == name:
+                context.user_data['msg_name'] = ''
+
         except Exception as e:
             print(f"Error sending message message reply: {e}")
     async def handle_edit(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -124,6 +138,7 @@ class UserMessage:
         self.db.get_user_session(user_id)
         partner_id = self.db.get_partner_id(user_id)
         edited_message = update.edited_message
+
         try:
             original_msg_id = edited_message.message_id
             partner_msg_id = self.db.get_msg_id_by_user_msg(original_msg_id)
@@ -133,13 +148,13 @@ class UserMessage:
                 await context.bot.edit_message_text(
                     chat_id=partner_id,
                     message_id=partner_msg_id,
-                    text=f"✏️👤: {edited_message.text}"
+                    text=f"✏️edited: {edited_message.text}"
                 )
             elif edited_message.caption:
                 await context.bot.edit_message_caption(
                     chat_id=partner_id,
                     message_id=partner_msg_id,
-                    caption=f"✏️👤: {edited_message.caption}"
+                    caption=f"✏️edited: {edited_message.caption}"
                 )
         except Exception as e:
             print(f"Error forwarding edited message: {e}")
@@ -187,7 +202,7 @@ class UserMessage:
     async def leave_chat(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         self.user_db.get_user_data(update.effective_user.id, context.user_data)
         user_id = update.effective_user.id
-        if context.user_data['name']:
+        if context.user_data.get('name', ''):
             keyboard2 = [
                 [KeyboardButton("ChaT")],
                 [
@@ -292,7 +307,6 @@ class UserMessage:
             parse_mode="Markdown"
         )
     async def create_anonymous_msg_link(self, update:Update, context:ContextTypes.DEFAULT_TYPE):
-        print("started anom MSG")
         user_id = update.effective_user.id
         token = f'anonymously_msg-{abs(hash(str(user_id + time.time())))}'
         self.db.add_link(token, user_id)
@@ -314,11 +328,21 @@ class UserMessage:
     async def handle_link_chat(self, update:Update, context:ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
         text = update.message.text.strip()
-        if self.db.get_link(text):
-            partner_id = self.db.get_link_owner(text)
+        try:
+            link_obj = self.db.get_link(text)
+            if not link_obj:
+                await update.message.reply_text(
+                    "⚠️ This link is invalid or has expired.\n\n"
+                    "Please ask your friend for a new link."
+                )
+                return
+
+            partner_id = link_obj.owner_id
             if user_id == partner_id:
                 await update.message.reply_text("❌ You can't chat with yourself!")
-                # return
+                return
+
+
             self.user_db.add_or_update_user(user_id, context.user_data)
             self.db.create_user_session(user_id)
             self.db.set_partnership(user_id, partner_id)
@@ -338,18 +362,24 @@ class UserMessage:
             await update.message.reply_text("🔄 Connected to a stranger! Start chatting.",
                                             reply_markup=reply_markup)
 
-        else:
-            await update.message.reply_text("❌ The link is wrong or has been expire")
-            # return
+
+        except Exception as e:
+
+            logging.error(f"Link chat error: {e}")
+
+            await update.message.reply_text(
+                "⚠️ Something went wrong while processing your request.\n"
+                "Please try again later."
+            )
     async def handle_link_msg(self, update:Update, context:ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
         text = update.message.text.strip()
-        print('handling_link')
+        context.user_data['msg_name'] = 'Some Person Over Link: '
         if self.db.get_link(text):
             partner_id = self.db.get_link_owner(text)
             if user_id == partner_id:
                 await update.message.reply_text("❌ You can't chat with yourself!")
-                # return
+                return
             self.user_db.add_or_update_user(user_id, context.user_data)
             self.db.create_user_session(user_id)
             self.db.add_partner(user_id, partner_id)
@@ -372,6 +402,91 @@ class UserMessage:
         else:
             await update.message.reply_text("❌ The link is wrong or has been expire")
             # return
+
+    async def handle_random_chat(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = update.effective_user.id
+        user_data = context.user_data
+
+        # Set user as looking for chat
+        if not self.db.set_random_chat(user_id, True):
+            await context.bot.send_message(user_id, text="Couldn't start random chat search")
+            return
+
+
+        # Get user's gender preferences
+        gender_prefs = user_data.get('gender_filter', [])
+        male_pref = 'male' in gender_prefs
+        female_pref = 'female' in gender_prefs
+
+        # Send searching message
+        searching_msg = await context.bot.send_message(
+            user_id,
+            text='🔍 Searching for a random chat partner...'
+        )
+
+        # Search parameters
+        start_time = datetime.datetime.now()
+        search_timeout = 30  # seconds
+        partner_found = False
+        partner_id = None
+
+        while not partner_found:
+            # Check timeout
+            if (datetime.datetime.now() - start_time).seconds > search_timeout:
+                await context.bot.edit_message_text(
+                    chat_id=user_id,
+                    message_id=searching_msg.message_id,
+                    text='⏳ Could not find a partner in time. Try again later!'
+                )
+                self.db.set_random_chat(user_id, False)
+                return
+            if self.db.get_partner_id(user_id):
+                return
+            # Get potential partners based on gender preferences
+            ppl_for_chat = self.db.get_random_chaters(
+                male=male_pref,
+                female=female_pref
+            )
+            # Filter out self and invalid users
+            #todo block users to and add
+            valid_partners = [
+                p for p in ppl_for_chat
+                if p.user_id and p.user_id != user_id
+            ]
+
+            if valid_partners:
+                partner = choice(valid_partners)
+                partner_id = partner.user_id
+                partner_found = True
+            else:
+                # Wait before next try
+                await asyncio.sleep(2)
+
+        # Establish partnership
+        if partner_id and self.db.set_partnership(user_id, partner_id):
+            # Update both users
+            success_text = '✅ Connected! Start chatting now'
+            await context.bot.edit_message_text(
+                chat_id=user_id,
+                message_id=searching_msg.message_id,
+                text=success_text
+            )
+            await context.bot.send_message(
+                partner_id,
+                text=success_text
+            )
+
+            # Cleanup
+            self.db.set_random_chat(user_id, False)
+            self.db.set_random_chat(partner_id, False)
+        else:
+            await context.bot.edit_message_text(
+                chat_id=user_id,
+                message_id=searching_msg.message_id,
+                text='❌ Failed to establish connection. Please try again.'
+            )
+            self.db.set_random_chat(user_id, False)
+
 
     async def chat_request(self, update:Update, context: ContextTypes.DEFAULT_TYPE, target_id):
         user_id = update.effective_user.id
@@ -398,18 +513,20 @@ class UserMessage:
             await context.bot.send_message(user_id,
                                            text=f"invalid user id")
 
+
+
     async def buttons_set(self, update:Update, context:ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
         await query.answer()
         if query.data.startswith(self.button_start_with_command):
             action = query.data.split(':')[1].strip().lower()
             target_id = query.data.split(':')[2].strip().lower()
-            print(action)
-            print(self.accept_chat_button_command)
             if action == self.accept_chat_button_command:
                 await self.accept_chat(update, context, target_id)
             elif action == self.deny_chat_button_command:
                 await self.deny_chat(update, context, target_id)
+
+
 
     async def accept_chat(self, update:Update, context:ContextTypes.DEFAULT_TYPE, target_id):
         user_id = update.effective_user.id

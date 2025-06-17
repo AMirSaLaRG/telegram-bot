@@ -1,5 +1,10 @@
+import time
+from csv import excel
+from time import sleep
+
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Text, select, inspect, ForeignKey, \
     Index, Boolean, text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.horizontal_shard import set_shard_id
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from datetime import datetime, timedelta
@@ -8,6 +13,9 @@ from dolar_gold_price_ir import CheckSitePrice
 from typing import Optional, Type, List
 from sqlalchemy.sql import func
 import os
+import secrets
+import string
+import logging
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 db_path = os.path.join(basedir, 'database/telegram_database.db')
@@ -16,6 +24,38 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:///' + db_path
 site_checker_gold = CheckSitePrice()
 
 Base = declarative_base()
+
+#___________________________________________________________________________________________
+def generate_secure_random_id(length=8):
+    # Define character sets
+    lowercase = string.ascii_lowercase
+    uppercase = string.ascii_uppercase
+    digits = string.digits
+    special = ""
+
+    # Combine all characters
+    all_chars = lowercase + uppercase + digits + special
+
+    # Ensure at least one character from each set
+    password = [
+        secrets.choice(lowercase),
+        secrets.choice(uppercase),
+        secrets.choice(digits),
+        # secrets.choice(special)
+    ]
+
+    # Fill the rest with random choices from all characters
+    password += [secrets.choice(all_chars) for _ in range(length - 4)]
+
+    # Shuffle the list to avoid predictable patterns
+    secrets.SystemRandom().shuffle(password)
+
+    # Convert list to string
+    return ''.join(password)
+
+
+# Example usage
+
 #___________________________________________________________________________________________
 #_________________Initiate Users data base (for chat , etc, ..)_____________________________
 #___________________________________________________________________________________________
@@ -24,6 +64,7 @@ class User(Base):
     __tablename__ = 'users'
 
     user_id = Column(Integer, primary_key=True)
+    generated_id = Column(String)
     name = Column(String(50), nullable=True)
     first_name = Column(String(50), nullable=True)
     last_name = Column(String(50), nullable=True)
@@ -36,6 +77,8 @@ class User(Base):
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     registration_date = Column(DateTime, default=datetime.now, nullable=True)
+
+
 
 #todo neeed new tables for likes manaager 1 to many and list of who like who
 #todo need new friendship table 1 to many it should request accept and both side
@@ -105,6 +148,7 @@ class Sessions(Base):
     secret_chat = Column(Boolean, default=False)
     created_at = Column(DateTime, server_default=func.now())  # Database timestamp
     updated_at = Column(DateTime, onupdate=func.now())
+    looking_random_chat = Column(Boolean, default=False)
 
     # Relationship to messages where this user is the sender
     sent_messages = relationship(
@@ -141,6 +185,7 @@ class MessageMap(Base):
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
     msg_txt = Column(String, nullable=True)
+    requested = Column(Boolean, nullable=True)
 
     # Relationship to the sender (Sessions)
     sender = relationship(
@@ -210,6 +255,7 @@ class GoldPriceDatabase:
         self.engine = create_engine(SQLALCHEMY_DATABASE_URI)
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
+        self.on_check = None
 
 #________________________________adding new price to the db manually________________________
 
@@ -263,41 +309,70 @@ class GoldPriceDatabase:
 #________combine of all top function to check time valide and chose from where to update_________
     # todo when it is checking take mins other users dont make request again and get from db or tell to wait
     def get_latest_update(self):
-        #this looks overkill check again
         latest_check = self.get_latest_price()
-        #if both site or not past long time should update from db
 
-        if not self.latest_ir_update():
-            if not self.latest_int_update():
-                pass
+        # If another check is in progress, wait and return the cached data
+        if self.on_check:
+            logging.info("Another update is in progress. Returning the latest cached price.")
+            time.sleep(2)
+            return latest_check  # return cached/latest instead of risky recursion
 
+        self.on_check = True
+        try:
+            # Check if Iranian site needs update
+            if not self.latest_ir_update():
+                # Check if International site also needs update
+                if not self.latest_int_update():
+                    logging.info("Both IR and INT data are up-to-date in DB. No need to fetch.")
+                    pass  # Both are fine, use DB value
+                else:
+                    # Only INT site needs update, IR is valid from DB
+                    try:
+                        logging.info("Fetching INT site data only.")
+                        gold_18k_ir = latest_check.gold_18k_ir
+                        dollar_ir = latest_check.dollar_ir_rial
+                        time_check_ir = latest_check.time_check_ir
 
-            # if int site or not past valid time but ir site did should int update from db and ir update from site
-            # this looks kinda overkill, but it will use full if we have two Different validator for time
+                        gold_18k_int_dlr, gold_18k_int_rial, check_time_int = site_checker_gold.get_int_gold_to_dollar_to_rial(
+                            price_dollar_rial=dollar_ir
+                        )
+
+                        self.add_price(
+                            float(gold_18k_ir.replace(",", "")),
+                            float(dollar_ir.replace(",", "")),
+                            time_check_ir,
+                            float(gold_18k_int_dlr),
+                            float(gold_18k_int_rial),
+                            check_time_int
+                        )
+                    except Exception as e:
+                        logging.error(f"Error fetching INT site data: {e}")
             else:
-                gold_18k_ir = latest_check.gold_18k_ir
-                dollar_ir = latest_check.dollar_ir_rial
-                time_check_ir = latest_check.time_check_ir
-                gold_18k_int_dlr, gold_18k_int_rial, check_time_int = site_checker_gold.get_int_gold_to_dollar_to_rial(
-                    price_dollar_rial=dollar_ir)
-                self.add_price(float(gold_18k_ir.replace(",", "")), float(dollar_ir.replace(",", "")), time_check_ir,
-                              float(gold_18k_int_dlr),
-                              float(gold_18k_int_rial),
-                              check_time_int)
+                # Both need updating from the sites
+                try:
+                    logging.info("Fetching both IR and INT site data.")
+                    gold_18k_ir, dollar_ir, time_check_ir = site_checker_gold.get_ir_gold_dollar()
+                    gold_18k_int_dlr, gold_18k_int_rial, check_time_int = site_checker_gold.get_int_gold_to_dollar_to_rial(
+                        price_dollar_rial=dollar_ir
+                    )
 
+                    self.add_price(
+                        float(gold_18k_ir.replace(",", "")),
+                        float(dollar_ir.replace(",", "")),
+                        time_check_ir,
+                        float(gold_18k_int_dlr),
+                        float(gold_18k_int_rial),
+                        check_time_int
+                    )
+                except Exception as e:
+                    logging.error(f"Error fetching both IR and INT site data: {e}")
 
-        #if both need to be updated from sites
-        else:
-            gold_18k_ir, dollar_ir, time_check_ir = site_checker_gold.get_ir_gold_dollar()
-            gold_18k_int_dlr, gold_18k_int_rial, check_time_int = site_checker_gold.get_int_gold_to_dollar_to_rial(
-                price_dollar_rial=dollar_ir)
-            self.add_price(float(gold_18k_ir.replace(",", "")), float(dollar_ir.replace(",", "")), time_check_ir,
-                           float(gold_18k_int_dlr),
-                           float(gold_18k_int_rial),
-                           check_time_int)
-
+        finally:
+            self.on_check = False  # Always release the lock
 
         return self.get_latest_price()
+
+
 
 
 
@@ -313,6 +388,7 @@ class UserDatabase:
         self.engine = create_engine(SQLALCHEMY_DATABASE_URI)
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
+
 
 
 
@@ -335,8 +411,48 @@ class UserDatabase:
         session.commit()
         session.close()
 
+    def generate_user_special_id(self, max_attempts=25):
+        """
+        Generates a unique special ID for new users.
 
-    def get_target_user(self, target_id) ->Optional[User]:
+        Args:
+            max_attempts (int): Maximum number of generation attempts before failing
+
+        Returns:
+            str: A unique generated ID
+
+        Raises:
+            RuntimeError: If unable to generate a unique ID after max_attempts
+        """
+        attempt = 0
+
+        while attempt < max_attempts:
+            generated_id = generate_secure_random_id()
+
+            try:
+                with self.Session() as session:
+                    # More efficient exists query - stops at first match
+                    exists = session.query(
+                        session.query(User)
+                        .filter_by(generated_id=generated_id)
+                        .exists()
+                    ).scalar()
+
+                    if not exists:
+                        return generated_id
+
+                    attempt += 1
+
+            except Exception as e:
+                print(f'Error generating user ID (attempt {attempt + 1}): {e}')
+                attempt += 1
+                continue
+
+        raise RuntimeError(
+            f"Failed to generate unique ID after {max_attempts} attempts"
+        )
+
+    def get_user_information(self, target_id:int) ->Optional[User]:
         """
         search a user with provided id and return data
         :param target_id: id of target
@@ -347,31 +463,50 @@ class UserDatabase:
                 user = session.query(User).filter_by(user_id=str(target_id)).first()
                 return user
             except Exception as e:
-                print(f'Could not find {target_id} data in data base: {e}')
+                logging.error(f"Database error fetching user {target_id}: {e}")
                 return None
 
 
     def add_or_update_user(self, user_id, user_data):
         session = self.Session()
+        try:
+            user = session.query(User).filter_by(user_id=str(user_id)).first()
 
-        user = session.query(User).filter_by(user_id=str(user_id)).first()
+            if not user:
+                generated_id = self.generate_user_special_id()
+                user = User(user_id=str(user_id), generated_id=generated_id)
+                user.registration_date = datetime.now()
+                user_data['generated_id'] = generated_id
+            if not self.get_user_generated_id(user_id):
+                generated_id = self.generate_user_special_id()
+                user_data['generated_id'] = generated_id
 
-        if not user:
-            user = User(user_id=str(user_id))
-            user.registration_date = datetime.now()
 
-        if not user_data:
-            user_data = {}
-        # Update all fields
-        for key, value in user_data.items():
 
-            if hasattr(user, key):
-                setattr(user, key, value)
+            if not user_data:
+                user_data = {}
+            generated_id = user_data.get('generated_id', "")
+            # for before update ppl
+            if not generated_id:
 
-        user.last_online = datetime.now()
-        session.add(user)
-        session.commit()
-        session.close()
+                user_data['generated_id'] = self.get_user_generated_id(user_id)
+
+
+            # Update all fields
+
+            for key, value in user_data.items():
+
+                if hasattr(user, key):
+                    setattr(user, key, value)
+
+            user.last_online = datetime.now()
+            session.add(user)
+            session.commit()
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
 
     def get_all_users(self):
         session = self.Session()
@@ -433,51 +568,99 @@ class UserDatabase:
                     x['distance']  # Then by distance
                 )
             )
+
     def get_filtered_users(self, user_data):
-        """" return a list of dict from users witch one has the data of db with key of user
-         and included some extra data as distance, mins_ago, is_online(boolean) """
+        """
+        Returns filtered users with additional calculated fields.
 
-        #todo this user_id should be not there
-        user_id = user_data.get('user_id', "")
+        Args:
+            user_data (dict): Should contain:
+                - user_id: The requesting user's ID
+                - user_filter: Dictionary of filter criteria including:
+                    - dis_filter: Max distance in km
+                    - last_online_filter: Max minutes since last online
+                    - gender_filter: List of genders to include
+                    - age_filter: [min_age, max_age] or [exact_age]
+                    - city_filter: List of cities to include
 
-        print(f'user_id:{user_id}')
-        print(user_data)
-        self.add_or_update_user(user_id, user_data)
-        selected_users = self.get_users_location(user_data['user_id'])
-        user_filters = user_data['user_filter']
+        Returns:
+            List[dict]: Each containing user data with additional fields:
+                - user: User object
+                - distance: Distance from requesting user
+                - mins_ago: Minutes since last online
+                - is_online: Boolean if user is currently online
+        """
+        try:
+            # Validate input
+            if not isinstance(user_data, dict):
+                raise ValueError("user_data must be a dictionary")
 
-        if 'dis_filter' in user_filters and user_filters['dis_filter'] != "":
-            # load_profile
-            max_dis = float(user_filters['dis_filter'])
-            print(selected_users)
+            user_id = str(user_data.get('user_id', ""))
+            if not user_id:
+                raise ValueError("user_id is required")
 
-            selected_users = [data for data in selected_users if max_dis >= data['distance']]
-            print([f"{data['user'].name}: {data['distance']}" for data in selected_users])
+            # Update/create the requesting user's record
+            self.add_or_update_user(user_id, user_data)
+            self.get_user_data(user_id, user_data)
 
-        if 'last_online_filter' in user_filters and user_filters['last_online_filter'] != "":
-            time_now = datetime.now()
-            selected_users = [data for data in selected_users if
-                         data['mins_ago'] <= user_filters['last_online_filter']]
-            print([f"{data['user'].name}: {data['mins_ago']}" for data in selected_users])
+            # Get initial user set with location data
+            selected_users = self.get_users_location(user_id)
+            if not selected_users:
+                return []
 
-        if 'gender_filter' in user_filters and user_filters['gender_filter'] != []:
-            selected_users = [data for data in selected_users if data['user'].gender.lower() in user_filters['gender_filter']]
-            print([f"{data['user'].name}:{data['user'].gender}" for data in selected_users])
+            user_filters = user_data.get('user_filter', {})
 
-        if 'age_filter' in user_filters and user_filters['age_filter'] != []:
-            if len(user_filters['age_filter']) == 2:
-                min_age = user_filters['age_filter'][0]
-                max_age = user_filters['age_filter'][1]
-                selected_users = [data for data in selected_users if min_age <= data['user'].age <= max_age]
-            elif len(user_filters['age_filter']) == 1:
-                selected_users = [data for data in selected_users if data['user'].age == user_filters['age_filter'][0]]
-            print([f"{data['user'].name}:{data['user'].age}" for data in selected_users])
+            # Apply filters sequentially
+            if 'dis_filter' in user_filters and user_filters['dis_filter']:
+                try:
+                    max_dis = float(user_filters['dis_filter'])
+                    selected_users = [u for u in selected_users if u['distance'] <= max_dis]
+                except (ValueError, TypeError):
+                    pass  # Skip invalid distance filter
 
-        if 'city_filter' in user_filters and user_filters['city_filter'] != []:
-            selected_users = [data for data in selected_users if data['user'].city in user_filters['city_filter']]
-            print([f"{data['user'].name}:{data['user'].city}" for data in selected_users])
+            if 'last_online_filter' in user_filters and user_filters['last_online_filter']:
+                try:
+                    max_mins = int(user_filters['last_online_filter'])
+                    selected_users = [u for u in selected_users if u['mins_ago'] <= max_mins]
+                except (ValueError, TypeError):
+                    pass
 
-        return selected_users
+            if 'gender_filter' in user_filters and user_filters['gender_filter']:
+                gender_filter = [g.lower() for g in user_filters['gender_filter']]
+                selected_users = [
+                    u for u in selected_users
+                    if u['user'].gender and u['user'].gender.lower() in gender_filter
+                ]
+
+            if 'age_filter' in user_filters and user_filters['age_filter']:
+                try:
+                    age_filter = user_filters['age_filter']
+                    if len(age_filter) == 2:
+                        min_age, max_age = age_filter
+                        selected_users = [
+                            u for u in selected_users
+                            if u['user'].age and min_age <= u['user'].age <= max_age
+                        ]
+                    elif len(age_filter) == 1:
+                        selected_users = [
+                            u for u in selected_users
+                            if u['user'].age and u['user'].age == age_filter[0]
+                        ]
+                except (ValueError, TypeError):
+                    pass
+
+            if 'city_filter' in user_filters and user_filters['city_filter']:
+                city_filter = user_filters['city_filter']
+                selected_users = [
+                    u for u in selected_users
+                    if u['user'].city and u['user'].city in city_filter
+                ]
+
+            return selected_users
+
+        except Exception as e:
+            print(f"Error in get_filtered_users: {str(e)}")
+            return []
 
     @staticmethod
     def _calculate_distance(lat1, lon1, lat2, lon2):
@@ -493,6 +676,70 @@ class UserDatabase:
         a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
         c = 2 * atan2(sqrt(a), sqrt(1 - a))
         return R * c
+
+    def get_user_generated_id(self, user_id: int) -> Optional[str]:
+        """
+        Retrieves the system-generated ID for a user based on their user ID.
+
+        Args:
+            user_id: The integer user ID to look up
+
+        Returns:
+            The generated ID string if found, None otherwise
+
+        Example:
+            generated_id = await get_user_generated_id(12345)
+            if generated_id:
+                print(f"Found ID: {generated_id}")
+        """
+        try:
+            with self.Session() as session:
+                # Using scalar() for single-value queries is more efficient
+                generated_id = session.execute(
+                    select(User.generated_id).where(User.user_id == user_id)
+                ).scalar()
+                if generated_id:
+                    return generated_id if generated_id else None
+
+        except SQLAlchemyError as e:
+            #logger.error(f"Database error fetching generated ID for user {user_id}: {e}",
+            print(f"Error fetching generated ID for user {user_id}: {e}")
+            return None
+        except Exception as e:
+            print(f"Unexpected error in get_user_generated_id: {e}")
+            return None
+
+    def get_user_id_from_generated_id(self, generated_id):
+        """
+                Retrieves the user ID  for a user based on their system-generated ID.
+
+                Args:
+                    generated_id: The integer user Generated ID to look up
+
+                Returns:
+                    The User ID string if found, None otherwise
+
+                Example:
+                    generated_id = await get_user_generated_id(12345)
+                    if generated_id:
+                        print(f"Found ID: {generated_id}")
+                """
+        try:
+            with self.Session() as session:
+                # Using scalar() for single-value queries is more efficient
+                user_id = session.execute(
+                    select(User.user_id).where(User.generated_id == generated_id)
+                ).scalar()
+                if user_id:
+                    return user_id if user_id else None
+
+        except SQLAlchemyError as e:
+            # logger.error(f"Database error fetching generated ID for user {user_id}: {e}",
+            print(f"Error fetching generated Generated ID for user {generated_id}: {e}")
+            return None
+        except Exception as e:
+            print(f"Unexpected error in user_id from generated_id: {e}")
+            return None
 
 # ___________________________________________________________________________________________
 # _________________simple way of input a list of towns (this can be in db ___________________
@@ -978,7 +1225,11 @@ class ChatDatabase:
                 query = session.query(MessageMap)
 
                 # Build filters
-                filters = []
+                # inja nabayad request bashe check she ke doroste
+                filters = [MessageMap.requested == False]
+
+
+
                 if exp_time:
                     time_threshold = datetime.now() - timedelta(hours=exp_time)
                     filters.append(MessageMap.time <= time_threshold)
@@ -987,6 +1238,8 @@ class ChatDatabase:
                         (MessageMap.sender_id == user_id) |
                         (MessageMap.receiver_id == user_id)
                     )
+
+
 
                 # Execute deletion in single operation
                 if filters:
@@ -1000,6 +1253,126 @@ class ChatDatabase:
                 error_msg = f"Error clearing message_map: {str(e)}"
                 print(error_msg)
                 return (0, error_msg)
+    def set_random_chat(self, user_id:int, stat:bool) -> bool:
+        """
+        set users looking for random chat status
+        :param user_id: id of the user
+        :param stat: True if looking false if not looking
+        :return: True if it is successful Fale if it is not
+        """
+        with self.Session() as session:
+            try:
+                user_session = session.query(Sessions).filter_by(user_id=user_id).first()
+                if not user_session:
+                    print(f"User session not found for {user_id}")
+                    return False
+                user_session.looking_random_chat = stat
+                session.commit()
+
+                # Verify the change
+                session.refresh(user_session)
+                print(f"Updated status for {user_id}: {user_session.looking_random_chat}")
+                return True
+            except Exception as e:
+                print(f'Could not change random chat statuse : {e}')
+                return False
+
+    def get_random_chaters(self, female=True, male=True) -> list:
+        """
+        Get all users looking for random chat based on gender filters.
+
+        Args:
+            female (bool): Include female users.
+            male (bool): Include male users.
+
+        Returns:
+            list: List of User objects matching the gender filter.
+        """
+        with self.Session() as session:
+            try:
+                random_users = session.query(Sessions, User) \
+                    .join(User, Sessions.user_id == User.user_id) \
+                    .filter(Sessions.looking_random_chat == True) \
+                    .all()
+
+                result = []
+                print(random_users)
+                for session_obj, user in random_users:
+                    if user.gender and user.gender.lower() == 'male':
+                        if male:  # Include male users if requested
+                            result.append(user)
+                    elif user.gender and user.gender.lower() == 'female':
+                        if female:  # Include female users if requested
+                            result.append(user)
+                    else:
+                        if not male and not female:  # Include 'other' only if both male and female are False
+                            result.append(user)
+
+                return result
+
+            except Exception as e:
+                print(f"Error getting random chatters: {e}")
+                return []
+    def get_msg_requests_from_map(self, user_id:int, sender_id:int) -> Optional[List[Column[str]]]:
+        """
+        try to return list of text of requested msgs
+        :param user_id: number
+        :param sender_id: number
+        :return: a list of requested msg
+        """
+        with self.Session() as session:
+            try:
+                messages = session.query(MessageMap).filter_by(receiver_id=user_id,
+                                                                sender_id=sender_id,
+                                                                requested=True).all()
+                texts = [msg.msg_txt for msg in messages]
+                for msg in messages:
+                    msg.requested = False
+                session.commit()
+
+                return texts
+            except Exception as e:
+                print(f'Could not get request msgs : {e}')
+                return None
+    def clear_msg_requests_from_map(self, user_id:int, sender_id:int) -> bool:
+        """
+        try to delete list of text of requested msgs
+        :param user_id: number
+        :param sender_id: number
+        :return: True if deleted else false
+        """
+        with self.Session() as session:
+            try:
+                messages = session.query(MessageMap).filter_by(receiver_id=user_id,
+                                                               sender_id=sender_id,
+                                                               requested=True).all()
+
+                for msg in messages:
+                    session.delete(msg)
+                    session.commit()
+
+                return True
+            except Exception as e:
+                print(f'Could not get request msgs : {e}')
+                return False
+    def add_requested_msg(self, sender_id, receiver_id, msg_txt)->bool:
+        with self.Session() as session:
+            #todo bot_msg_id should be none and nullable in the table
+            try:
+                new_msg = MessageMap(
+                    bot_message_id=6969,
+                    sender_id=sender_id,
+                    receiver_id=receiver_id,
+                    msg_txt=msg_txt,
+                    requested=True,
+                    time=datetime.now()
+                )
+                session.add(new_msg)
+                session.commit()
+                return True
+            except Exception as e:
+                print(f'error in adding new request msg: {e}')
+                return False
 
 
 #todo user can has a current name for setuation he is in like anom goes with unknown person

@@ -1,4 +1,5 @@
 import logging
+import math
 from xmlrpc.client import DateTime
 
 from telegram import (Update, InlineQueryResultArticle,
@@ -18,11 +19,7 @@ import os
 from datetime import datetime , timedelta
 from functools import wraps
 
-#_________________short conversations_______________________
-EDITING_TOROB_URL = 1
-EDITING_TOROB_PRICE = 1
-EDITING_TOROB_NAME = 1
-DELETE_TOROB_CONFIRM = 1
+
 
 divider = '〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️'
 #todo read about inline commands @bot etc and use it
@@ -144,7 +141,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]
 
         ]
-    reply_markup = ReplyKeyboardMarkup(keyboard)
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=f'start',
@@ -163,10 +160,11 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
             KeyboardButton(f'/{user_message.command_create_anon_chat}'),
             KeyboardButton(f'/{user_message.command_create_anon_msg}')
         ],
-        [KeyboardButton('Advance Search')]
+        [KeyboardButton('Advance Search')],
+        [KeyboardButton('/start')]
     ]
 
-    reply_markup=ReplyKeyboardMarkup(keyboard)
+    reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text='What you looking for?',
@@ -177,6 +175,7 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def advance_search(update: Update, context:
 ContextTypes.DEFAULT_TYPE):
     await interact(update, context)
+
     user_filter = {}
     keyboard = [
         [
@@ -209,17 +208,17 @@ ContextTypes.DEFAULT_TYPE):
     keyboard = [
 
         [
-            InlineKeyboardButton( f"{'✓ ' if 'male' in gender_filter else ''}Male", callback_data="gender: male"),
-            InlineKeyboardButton(f"{'✓ ' if 'female' in gender_filter else ''}Female", callback_data="gender: female"),
+            InlineKeyboardButton( f"{'✓ ' if 'male' in gender_filter else ''}Male", callback_data="random gender: male"),
+            InlineKeyboardButton(f"{'✓ ' if 'female' in gender_filter else ''}Female", callback_data="random gender: female"),
         ],
         [
-            InlineKeyboardButton('Done', callback_data="random_chat: done"),
+            InlineKeyboardButton('Done', callback_data="random_chat: gender: done"),
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="random_chat mikahi",
+        text="random_chat mikhai",
         reply_markup=reply_markup,
     )
 async def show_profile_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -228,10 +227,14 @@ async def show_profile_request(update: Update, context: ContextTypes.DEFAULT_TYP
     if len(target_id_parts) < 2:
         await update.message.reply_text('invalid format. use/chaT_<somthing>')
         return
-    command, target_id = target_id_parts
-    if not target_id:
+    command, target_id_generated = target_id_parts
+    if not target_id_generated:
         await update.message.reply_text('invalid item. Could not find this item')
         return
+    if not user_db.get_user_id_from_generated_id(target_id_generated):
+        await update.message.reply_text('This user is not registered!')
+        return
+    target_id = user_db.get_user_id_from_generated_id(target_id_generated)
     await profile.show_target_profile(update, context, target_id)
 
 
@@ -241,27 +244,42 @@ async def show_profile_request(update: Update, context: ContextTypes.DEFAULT_TYP
 #___________________________________________________________________________________________
 #todo make real calculate the price send items list
 async def gold_dollar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """ Scraps the sites and return the msg of prices up to date any way it could not just return a error msg to user to try later"""
     await interact(update, context)
+    user_id = update.effective_chat.id
+    checking_msg = await context.bot.send_message(user_id, text='Checking site .... wait')
+    try:
+        latest_price = gold_db.get_latest_update()
+        if not latest_price:
+            raise Exception("Could not fetch prices")
 
-    latest_price = gold_db.get_latest_update()
-
-    keyboard = [
-        [
-        InlineKeyboardButton(f'calculator', callback_data=f'{calculator.calculate_command}'),
-        InlineKeyboardButton("done", callback_data="home")
+        keyboard = [
+            [
+            InlineKeyboardButton(f'calculator', callback_data=f'{calculator.calculate_command}'),
+            ]
         ]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
-
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text= f'gold 18k 1gr Iran= {latest_price.gold_18k_ir} Rial\n'
-              f'dollar Iran = {latest_price.dollar_ir_rial} Rial\n'
-              f'gold 18k 1gr international = ${latest_price.gold_18k_international_dollar}\n'
-              f'gold 18k 1gr international into ir = {latest_price.gold_18k_international_rial} Rial\n',
-        reply_markup=reply_markup
-    )
+        #todo format the rials mostly
+        #todo add date hr
+        await context.bot.edit_message_text(
+            chat_id=user_id,
+            message_id=checking_msg.message_id,
+            text= f'Updated @ {latest_price.time_check_ir.strftime('%Y-%m-%d %H:%M')}\n'
+                f'gold 18k 1gr Iran= {latest_price.gold_18k_ir:,} Rial\n'
+                  f'dollar Iran = {latest_price.dollar_ir_rial:,} Rial\n'
+                  f'gold 18k 1gr international = ${latest_price.gold_18k_international_dollar}\n'
+                  f'gold 18k 1gr international into ir = {latest_price.gold_18k_international_rial:,} Rial\n',
+            reply_markup=reply_markup
+        )
+    except Exception as e:
+        logging.error(f"Gold price error: {e}")
+        await context.bot.edit_message_text(
+            chat_id=user_id,
+            message_id=checking_msg.message_id,
+            text="⚠️ Sorry, I couldn't fetch the latest prices right now.\n\n"
+                 "Please try again in a few minutes."
+        )
 #___________________________________________________________________________________________
 #                             Torob initiator
 #___________________________________________________________________________________________
@@ -390,12 +408,27 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             # Update the message with new buttons
             await gender_filter_handler(query, context)
+    elif query.data.startswith("random gender:"):
+        if 'user_filter' not in context.user_data:
+            context.user_data['user_filter']= {}
+        if "gender_filter" not in context.user_data:
+            context.user_data['gender_filter'] = []
+        gender_filter = context.user_data['gender_filter']
+        action = query.data.split(":")[1].strip().lower()
+        if action in ["male", "female"]:
+            # Toggle selection
+            if action in gender_filter:
+                gender_filter.remove(action)
+            else:
+                gender_filter.append(action)
 
+            # Update the message with new buttons
+            await random_chat_gender_done(query, context)
+    elif query.data.startswith("random_chat: gender: done"):
+        await user_message.handle_random_chat(update, context)
     elif query.data.startswith(user_message.button_start_with_command):
         await interact(update, context)
-        print(query.data)
-        print(user_message.button_start_with_command)
-        print('xxx2')
+
         await user_message.buttons_set(update, context)
 
     #this is get of age filter
@@ -435,8 +468,7 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
             city_filter.append(action)
         # Update the message with new buttons
         await cities_filter_handler(query, context)
-    elif query.data.startswith(profile.button_starter_command):
-        await profile.buttons(update, context)
+
     elif query.data.startswith('torob:'):
         action = query.data.split(':')[1].strip().lower()
         if action == "check":
@@ -473,9 +505,13 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await query.delete_message()
 
+    elif query.data == 'page_before':
+        await search_filters_handler(query, context, current_page=+1)
 
-    elif query.data == "home":
-        await start(update, context)
+    elif query.data == 'page_next':
+        await search_filters_handler(query, context, current_page=-1)
+
+    await profile.buttons(update, context)
 
 
 
@@ -568,6 +604,26 @@ async def gender_filter_handler(query, context):
         text="Chose gender:",
         reply_markup=reply_markup,
     )
+async def random_chat_gender_done(query, context):
+    if "gender_filter" not in context.user_data:
+        context.user_data['gender_filter']=[]
+    gender_filter = context.user_data['gender_filter']
+    keyboard = [
+
+        [
+            InlineKeyboardButton(f"{'✓ ' if 'male' in gender_filter else ''}Male", callback_data="random gender: male"),
+            InlineKeyboardButton(f"{'✓ ' if 'female' in gender_filter else ''}Female", callback_data="random gender: female"),
+        ],
+        [
+            InlineKeyboardButton('Done', callback_data="random_chat: gender: done"),
+        ],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(
+        text="Chose gender:",
+        reply_markup=reply_markup,
+    )
+
 
 #made it two part to put in dict but can be like other in one part to get the way
 def get_gender_filter(query, context):
@@ -654,48 +710,112 @@ async def cities_filter_handler(query, context):
     )
 
 #todo check if this even needed can be used for clear eh
-async def search_filters_handler(query, context):
+async def search_filters_handler(query, context, current_page=1):
+    """
+        Handles user search requests by applying filters and displaying matching profiles.
+
+        Processes user search criteria from context, queries the database for matches,
+        and formats the results into a paginated message with profile previews.
+
+        Features:
+        - Online status detection ('Online' or time-based last seen)
+        - Distance display in kilometers
+        - Profile linking via /chaT_[id] commands
+        - Automatic filter reset after search
+
+        Args:
+            query: Telegram callback query object
+            context: Context object containing user data and filters
+            current_page: shows the number of page it shows starts from one default
+
+        Returns:
+            None (edits the original message with results)
+
+        Side Effects:
+            - Updates user data if no generated_id exists
+            - Resets user_filter in context after search
+            - Modifies the original query message
+        """
+    user_id = query.from_user.id
+    generated_id = context.user_data.get('generated_id')
+    if not generated_id:
+        user_db.add_or_update_user(user_id, context.user_data)
+
     await interact(query, context)
     selected_users = user_db.get_filtered_users(context.user_data)
     #reseting filter
     context.user_data['user_filter'] = {}
     #todo return a list of n ppl with keys to C profile or chat
-    first_page = ''
-    for data in selected_users[:10]:
-        name = data['user'].name
-        distance = int(data['distance'])
-        if data['is_online']:
-            last_online = 'Online'
-        else:
-            if int(data["mins_ago"]) <= 60:
-                last_online = f'{int(data["mins_ago"])} mins ago'
-            elif int(data["mins_ago"]) <= 1440:
-                last_online = f'{int(int(data["mins_ago"]) / 60)} hr ago'
-            elif int(data["mins_ago"]) <= 10080:
-                last_online = f'{int(int(data["mins_ago"])/ 1440)} day ago'
+    all_pages= []
+    page = ''
+    num_show_page = 10
+    page_number = 1
+    for i in range(math.ceil((len(selected_users)/10))):
+        for data in selected_users[:num_show_page]:
+            name = data['user'].name
+            generated_id = data['user'].generated_id
+            distance = int(data['distance'])
+            if data['is_online']:
+                last_online = 'Online'
             else:
-                last_online = "long time ago"
+                if int(data["mins_ago"]) <= 60:
+                    last_online = f'{int(data["mins_ago"])} mins ago'
+                elif int(data["mins_ago"]) <= 1440:
+                    last_online = f'{int(int(data["mins_ago"]) / 60)} hr ago'
+                elif int(data["mins_ago"]) <= 10080:
+                    last_online = f'{int(int(data["mins_ago"])/ 1440)} day ago'
+                else:
+                    last_online = "long time ago"
 
-        gender = data['user'].gender.lower
-        city = data['user'].city
-        age = data['user'].age
-        user_id = data['user'].user_id
-        #check persian rtl and ltr fucking it
-        #todo need a link to see other ppl profiles show profile for others
-        #todo need to find how connect two ppl in robot
-        #todo need to keshoii model mostlykly it was with robot name inline shit
-        #todo make a home button to go back start
-        #todo handle wrong type and wrong commends
-        #todo handle random chat
+            gender = data['user'].gender.lower()
+            city = data['user'].city
+            age = data['user'].age
+            user_id = data['user'].user_id
 
-        #todo important change data base to give any user an maked id to not use real user id
-        note = f'\n{name}\n{age} Years old\n{last_online}\ncity: {city}\n{distance}km away\n\n/chaT_{user_id}\n\n{divider}\n'
-        first_page = first_page + note
+            #check persian rtl and ltr fucking it
+            #todo need a link to see other ppl profiles show profile for others
+            #todo need to find how connect two ppl in robot
+            #todo need to keshoii model mostlykly it was with robot name inline shit
+            #todo make a home button to go back start
+            #todo handle wrong type and wrong commends
+            #todo handle random chat
+
+            #todo important change data base to give any user an maked id to not use real user id
+            note = f'\nName:{"👨🏻‍🦱" if gender=='male' else '👩🏻'} {name}\nAge: {age} Years old\nLast Online: {last_online}\ncity: {city}\nDistance: {distance}km away\n\nuser_id: /chaT_{generated_id}\n\n{divider}\n'
+            page += note
+        all_pages.append(page)
     #todo can go next page on that list
     #todo get filter in first go top and make a filter dictionary or somthing like that
-    if first_page:
+    if current_page == 1 and current_page == len(all_pages):
+        keyboard = None
+    elif current_page == 1:
+        keyboard = [
+            [
+                InlineKeyboardButton('next', callback_data='page_next'),
+
+            ]
+        ]
+    elif current_page == len(all_pages):
+        keyboard = [
+            [
+                InlineKeyboardButton('Back', callback_data='page_before'),
+
+            ]
+        ]
+    else:
+        keyboard = [
+            [
+                InlineKeyboardButton('Back', callback_data='page_before'),
+                InlineKeyboardButton('Next', callback_data='page_next')
+            ]
+        ]
+    reply_markup=InlineKeyboardMarkup(keyboard) if keyboard else None
+    show_page = all_pages[current_page-1]
+    if all_pages:
         await query.edit_message_text(
-            text=first_page
+            text=show_page,
+            reply_markup=reply_markup
+
         )
     else:
         await query.edit_message_text(
@@ -766,11 +886,17 @@ async def calculator_gold(query, context: ContextTypes.DEFAULT_TYPE):
     pass
 
 
-
+#todo add button to calculate item for this we need to give  each user point after creating profile and reduce it when they use this
+#todo update db with point
+#todo update profile to give point after creation
 async def check_torob_list(query, context:ContextTypes.DEFAULT_TYPE):
     user_id = query.from_user.id
     user_items = torob_db.get_user_items(user_id)
     final_note = ""
+    keyboard = [
+        [InlineKeyboardButton('Add Item', callback_data=torob_conversation.query_add_pattern)]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
     if user_items:
         for item in user_items:
             name = item.name_of_item
@@ -789,12 +915,13 @@ async def check_torob_list(query, context:ContextTypes.DEFAULT_TYPE):
     if final_note:
         await query.edit_message_text(
             text=final_note,
+            reply_markup=reply_markup
 
         )
     else:
         await query.edit_message_text(
             text="there is noting to show plz add some \n\n /start",
-
+            reply_markup=reply_markup
         )
 
 #_______________________________________________________________________________
@@ -802,7 +929,7 @@ async def check_torob_list(query, context:ContextTypes.DEFAULT_TYPE):
 #_______________________________________________________________________________
 
 if __name__ == "__main__":
-    application = ApplicationBuilder().token("7651582199:AAHj9Ib_NOXga_iOZiQ5G9dD4pfC5AuFr0U").concurrent_updates(True).build()
+    application = ApplicationBuilder().token(os.getenv('TELEGRAM_TOKEN')).concurrent_updates(True).build()
     #todo currect the way of messagehandler to not intract with them in casual chat
     #create handler
     start_handler = CommandHandler("start", start)
@@ -813,7 +940,7 @@ if __name__ == "__main__":
     torob_handler = MessageHandler(filters.Regex(r"^Torob price check$"), torob)
     torob_edit_handler = MessageHandler(filters.Regex(r'^/item_'), edit_command)
     show_profile_handler = MessageHandler(filters.Regex(r'^/chaT_'), show_profile_request)
-    my_profile = CommandHandler("profile", profile.show_profile)
+    my_profile = CommandHandler("profile", profile.show_my_profile)
         #button
     buttons_handler = CallbackQueryHandler(buttons)
 

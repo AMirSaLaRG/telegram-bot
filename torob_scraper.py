@@ -1,3 +1,4 @@
+import logging
 import time
 from typing import Optional, List, Type
 
@@ -99,19 +100,17 @@ class TorobScraper:
 
     def the_good_offer(self, url ,max_retries=11, retry_count=0):
         if max_retries == retry_count:
-            print('got blocked more than 10 times')
+            logging.warning(f"Max retries reached for URL: {url}")
             return None
-        best_price = self.scrap_lowest_price_torop(url)
-        print(best_price)
-        if best_price is not None:
-            if best_price:
-                return best_price
-            else:
-                return None
-
-        else:
-            time.sleep(3)
-            return self.the_good_offer(max_retries, retry_count+1)
+        try:
+            best_price = self.scrap_lowest_price_torop(url)
+            if best_price is None:
+                time.sleep(2)
+                return self.the_good_offer(url, max_retries, retry_count + 1)
+            return best_price
+        except Exception as e:
+            logging.error(f"Scraping error: {e}")
+            return None
 
     def scrap_user_items(self, user_id:int) -> bool:
         """

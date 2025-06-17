@@ -1,5 +1,6 @@
-import datetime
+from datetime import datetime, timedelta
 import logging
+from datetime import timedelta
 
 from pyexpat.errors import messages
 from telegram import (Update, InlineQueryResultArticle,
@@ -9,7 +10,7 @@ from telegram import (Update, InlineQueryResultArticle,
 from telegram.ext import (InlineQueryHandler, filters, ContextTypes, CommandHandler,
                           ApplicationBuilder, MessageHandler, CallbackQueryHandler,
                           ConversationHandler)
-from data_base import UserDatabase, TorobDb
+from data_base import UserDatabase, TorobDb, ChatDatabase
 from urllib.parse import urlparse
 from telegram_chat_handler import UserMessage
 
@@ -19,11 +20,17 @@ user_db = UserDatabase()
 
 
 # todo last online time
+# todo  in self profile add buttons (who liked, see friends, edit(each step a button), torob items, add shop:new, etc, ..)
 class Profile:
     def __init__(self):
         self.PHOTO, self.NAME, self.AGE, self.GENDER, self.ABOUT, self.LOCATION = range(6)
         self.create_commend = 'createprofile'
         self.button_starter_command = 'start_profile_buttons:'
+        self.DIRECT_TEXT = 1
+        self.msg_request_pattern = 'user_wants_to_send_direct_msg'
+        self.msg_req_command = 'the_msg_req_ask'
+        self.my_profile_key_starter = 'my_Profile_command_starter'
+
 
     def get_profile_create_conversation_handler(self):
         return ConversationHandler(
@@ -39,6 +46,15 @@ class Profile:
             fallbacks=[CommandHandler('cancel', self.cancel)],
         )
 
+    def direct_msg_conversation_handler(self):
+        return ConversationHandler(
+            entry_points=[CallbackQueryHandler(self.start_msg_request, pattern=f'^{self.msg_request_pattern}')],
+            states={
+                self.DIRECT_TEXT : [MessageHandler(filters.TEXT, self.handle_direct_msg)]
+            },
+            fallbacks=[CommandHandler('cancel', self.cancel)]
+
+        )
 
 
     async def cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -62,7 +78,6 @@ class Profile:
         # store highest resolution
         photo_file = await update.message.photo[-1].get_file()
         context.user_data['profile_photo'] = photo_file.file_id
-        print(context.user_data['profile_photo'])
 
         await update.message.reply_text("Great!! \n now send me your name")
         return self.NAME
@@ -77,10 +92,17 @@ class Profile:
         try:
             age = int(update.message.text)
             if age < 13 or age > 120:
-                raise ValueError
+                await update.message.reply_text(
+                    "⚠️ Please enter a valid age between 13-120."
+                    "\n\nHow old are you?"
+                )
+                return self.AGE
             context.user_data['age'] = age
         except ValueError:
-            await update.message.reply_text("Please enter a valid age (13-120)")
+            await update.message.reply_text(
+                "❌ That doesn't look like a valid age."
+                "\n\nPlease enter your age as a number (e.g. 25):"
+            )
             return self.AGE
 
         # Create gender selection keyboard
@@ -117,7 +139,8 @@ class Profile:
             "Finally, share your location:",
             reply_markup=ReplyKeyboardMarkup(
                 reply_keyboard,
-                one_time_keyboard=True
+                one_time_keyboard=True,
+                resize_keyboard=True,
             )
         )
         return self.LOCATION
@@ -134,48 +157,104 @@ class Profile:
         user_db.add_or_update_user(update.effective_user.id ,context.user_data)
 
         # Display the profile
-        await self.show_profile(update, context)
+        await self.show_my_profile(update, context)
 
         return ConversationHandler.END
 
-    async def show_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def show_my_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         self.load_profile(update, context)
+        user_id = update.effective_user.id
 
-        profile = context.user_data
-        print(profile)
-        text = (
-            f"🏷 Name: {profile.get('name', 'Not set')}\n"
-            f"🔢 Age: {profile.get('age', 'Not set')}\n"
-            f"👤 Gender: {profile.get('gender', 'Not set')}\n"
-            f"📝 About: {profile.get('about', 'Not set')}\n"
-            f"📍 online: {profile.get('last_online', 'Not set')}\n\n\n/start"
-
-        )
-
-        if 'profile_photo' in profile:
-            await update.message.reply_photo(
-                photo=profile['profile_photo'],
-                caption=text
-            )
+        profile = user_db.get_user_information(user_id)
+        time_dif = datetime.now() - profile.last_online
+        if time_dif <= timedelta(minutes=5):
+            last_online = 'Online'
+        elif time_dif < timedelta(hours=1):
+            last_online = f'{round(time_dif.seconds / 60)}min ago'
+        elif time_dif <= timedelta(hours=24):
+            last_online = f'{round(time_dif.seconds / 3600)}hr ago'
         else:
-            await update.message.reply_text(text)
-
-    async def show_target_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE, target_id):
-        self.load_profile(update, context)
-
-        profile = user_db.get_target_user(target_id)
+            last_online = f'{time_dif.days} days ago'
         text = (
             f"\n\n\n\n🏷 Name: {profile.name if profile.name else "Not sat yet"}\n"
             f"🔢 Age: {profile.age if profile.age else "Not sat yet"}\n"
             f"👤 Gender: {profile.gender if profile.gender else "Not sat yet"}\n"
             f"📝 About: {profile.about if profile.about else "Not sat yet"}\n"
-            f"📍 online: {profile.last_online if profile.last_online else '"Not sat yet"'}"
+            f"🕰 online: {last_online if profile.last_online else '"Long time ago"'}"
+            f"\n\nuser_id: /chaT_{profile.generated_id}"
+            "\n\n\n"
+
+        )
+
+        keyboard = [
+            [
+                InlineKeyboardButton('Edit', callback_data=f'{self.my_profile_key_starter}: edit'),
+                InlineKeyboardButton('Update Location', callback_data=f'{self.my_profile_key_starter}: update location')
+            ],
+            [
+                InlineKeyboardButton('Who liked', callback_data=f'{self.my_profile_key_starter}: liked'),
+                InlineKeyboardButton('Friends', callback_data=f"{self.my_profile_key_starter}: friends")
+            ]
+        ]
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        if profile.profile_photo:
+            await update.message.reply_photo(
+                photo=profile.profile_photo,
+                caption=text,
+                reply_markup=reply_markup
+            )
+        else:
+            await update.message.reply_text(text)
+
+    async def show_my_profile_edit_mode(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        self.load_profile(update, context)
+        keyboard = [
+            [
+                InlineKeyboardButton('Edit Name', callback_data='edit'),
+                InlineKeyboardButton('Edit About', callback_data='update location')
+            ],
+            [
+                InlineKeyboardButton('Edit City', callback_data='liked'),
+                InlineKeyboardButton('Edit Photo', callback_data="friends")
+            ]
+        ]
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        query = update.callback_query
+        await query.edit_message_reply_markup(
+            reply_markup=reply_markup
+        )
+
+
+
+    async def show_target_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE, target_id):
+        self.load_profile(update, context)
+
+        profile = user_db.get_user_information(target_id)
+        time_dif = datetime.now() - profile.last_online
+        if time_dif <= timedelta(minutes=5):
+            last_online = 'Online'
+        elif time_dif < timedelta(hours=1):
+            last_online = f'{round(time_dif.seconds / 60)}min ago'
+        elif time_dif <= timedelta(hours=24):
+            last_online = f'{round(time_dif.seconds / 3600)}hr ago'
+        else:
+            last_online = f'{time_dif.days} days ago'
+        text = (
+            f"\n\n\n\n🏷 Name: {profile.name if profile.name else "Not sat yet"}\n"
+            f"🔢 Age: {profile.age if profile.age else "Not sat yet"}\n"
+            f"👤 Gender: {profile.gender if profile.gender else "Not sat yet"}\n"
+            f"📝 About: {profile.about if profile.about else "Not sat yet"}\n"
+            f"🕰 Last seen: {last_online if profile.last_online else '"Not sat yet"'}"
+            f"\n\nuser_id: /chaT_{profile.generated_id}"
+            "\n\n\n"
 
         )
         #todo manage the query to send proper reply
         keyboard = [
             [
-                InlineKeyboardButton('Direct MSG', callback_data=f"{self.button_starter_command} direct_msg:{target_id}"),
+                InlineKeyboardButton('Direct MSG', callback_data=f"{self.msg_request_pattern}: {target_id}"),
                 InlineKeyboardButton('Chat Request', callback_data=f"{self.button_starter_command} chat_request:{target_id}"),
             ],
             [
@@ -249,31 +328,85 @@ class Profile:
     async def buttons(self, update:Update, context: ContextTypes.DEFAULT_TYPE):
         message_handler = UserMessage()
         query = update.callback_query
-        print(query.data)
-        action = query.data.split(':')[1].strip().lower()
-        target_id = query.data.split(':')[2].strip().lower()
-        print(action, target_id)
-        if action == 'direct_msg':
-            await message_handler.chat_request(update, context, target_id)
-        elif action == 'chat_request':
-            pass
-        elif action == 'like':
-            pass
-        elif action == 'add_friend':
-            pass
-        elif action == 'block':
-            pass
-        elif action == 'report':
-            pass
+        if query.data.startswith(self.button_starter_command):
+            action = query.data.split(':')[1].strip().lower()
+            target_id = query.data.split(':')[2].strip().lower()
+            if action == 'chat_request':
+                await message_handler.chat_request(update, context, target_id)
+            elif action == 'like':
+                pass
+            elif action == 'add_friend':
+                pass
+            elif action == 'block':
+                pass
+            elif action == 'report':
+                pass
+        elif query.data.startswith(self.msg_req_command):
+            action = query.data.split(':')[1].strip().lower()
+            target_id = query.data.split(':')[2].strip().lower()
+            if action == 'accept':
+                await self.chat_request_accepted(update, context, target_id)
+            elif action == 'decline':
+                await self.chat_reqeust_declined(update, context, target_id)
+        elif query.data.startswith(self.my_profile_key_starter):
+            action = query.data.split(':')[1].strip().lower()
+            if action == 'edit':
+                await self.show_my_profile_edit_mode(update, context)
 
-
-    async def action_direct_msg_handler(self, update:Update, context, target_id):
+    async def start_msg_request(self, update:Update, context:ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        target_id = query.data.split(':')[1].strip()
+        context.user_data['request_from_id'] = target_id
+        context.user_data['user_id'] = update.effective_user.id
         user_id = update.effective_user.id
-        await context.bot.send_message(user_id, text=f'you want to direct msg: {target_id}')
+        await context.bot.send_message(user_id, text='Plz send Your msg')
+        return self.DIRECT_TEXT
+
+    async def handle_direct_msg(self, update:Update, context:ContextTypes.DEFAULT_TYPE):
+        user_id = update.effective_user.id
+        target_id = context.user_data['request_from_id']
+        msg = update.message.text
+        if not msg:
+            return
+        if len(msg) > 250:
+            return
+        chat_db = ChatDatabase()
+
+        if chat_db.add_requested_msg(user_id, target_id, msg):
+            keyboard = [
+                [
+                    InlineKeyboardButton("Accept", callback_data=f"{self.msg_req_command}: accept: {user_id}"),
+                    InlineKeyboardButton("Decline", callback_data=f"{self.msg_req_command}: decline: {user_id}")
+                ]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text("Your message request has been sent. The recipient will be notified.")
+            await context.bot.send_message(target_id, text=f"User /chaT_{user_id} wants to send you a message. Do you want to accept it?",
+                                           reply_markup=reply_markup)
+            return ConversationHandler.END
+    async def chat_request_accepted(self, update:Update, context:ContextTypes.DEFAULT_TYPE, target_id):
+        user_id = update.effective_user.id
+        message_db = ChatDatabase()
+        msgs= message_db.get_msg_requests_from_map(user_id, target_id)
+        query = update.callback_query
+        if msgs:
+            for msg in msgs:
+                await query.edit_message_text(f'Accepted: msgs from /chaT_{target_id}')
+                await context.bot.send_message(user_id, text=f"/chaT_{target_id}: {msg}")
+            await context.bot.send_message(target_id, text=f'/chaT_{user_id}:Received your Messages')
+    async def chat_reqeust_declined(self, update:Update, context:ContextTypes.DEFAULT_TYPE, target_id):
+        user_id = update.effective_user.id
+        message_db = ChatDatabase()
+        query = update.callback_query
+        if message_db.clear_msg_requests_from_map(user_id, target_id):
+            await query.edit_message_text(f'Declined: msgs from /chaT_{target_id}')
+            await context.bot.send_message(target_id, text=f'/chaT_{user_id} declined ur direct messages')
+
 
     def get_all_handlers(self):
         return [
             self.get_profile_create_conversation_handler(),
+            self.direct_msg_conversation_handler()
 
 
         ]
@@ -290,14 +423,13 @@ class Calculator:
                 CallbackQueryHandler(self.start_calculation, pattern=f"^{self.calculate_command}$")
             ],
             states={
-                self.ITEM: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_item)],
+                self.ITEM: [CallbackQueryHandler(self.handle_item)],
                 self.AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_amount)],
                 self.CONST_FEE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_const_fee)],
                 self.SHOP_FEE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_shop_fee)],
                 self.TEXT: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_text)]
             },
             fallbacks=[CommandHandler("cancel", self.cancel)],
-            per_message=True  # 👈 Add this line
         )
     async def cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text('Calculator stopped')
@@ -309,22 +441,29 @@ class Calculator:
             message = update.message
         else:
             message = update.callback_query.message
+        keyboard = [
+            [InlineKeyboardButton('gold: 18karat', callback_data='18kr')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
         await context.bot.send_message(
         chat_id=message.chat.id,
         text="Let's calculate it. \nFirst what item we will calculate",
-        reply_markup=ReplyKeyboardRemove()
+        reply_markup=reply_markup
     )
         return self.ITEM
 
     async def handle_item(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         #check item
-        if update.message.text != "18k":
-            await update.message.reply_text("This item is not in our list plz Enter another:")
+        query = update.callback_query
+        await query.answer()
+        item = query.data
+        if not item == '18kr':
+            await query.edit_message_text("This item is not in our list plz Enter another:")
             return self.ITEM
 
-        context.user_data['calculate_item'] = update.message.text
+        context.user_data['calculate_item'] = item
 
-        await update.message.reply_text(f"OK! How much of {context.user_data['calculate_item']}:\n (gold: gram)")
+        await query.edit_message_text(f"OK! How much of {context.user_data['calculate_item']}:\n (gold: gram)")
         return self.AMOUNT
     async def handle_amount(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
@@ -506,7 +645,6 @@ class TorobConversation:
             await update.message.reply_text('Please enter a string with less than 150 characters!')
             return self.NAME
 
-        print('next step')
         self.name = update.message.text
         await update.message.reply_text(f"Plz enter highest price that ur interest in {self.name}")
         return self.PRICE
@@ -514,11 +652,21 @@ class TorobConversation:
     async def handle_price(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             price = float(update.message.text)
-        except ValueError :
-            await update.message.reply_text("plz enter price in numbers")
+            if price <= 0:
+                await update.message.reply_text(
+                    "❌ Price must be greater than 0."
+                    "\n\nPlease enter the maximum price you're willing to pay:"
+                )
+                return self.PRICE
+            self.price = price
+        except ValueError:
+            await update.message.reply_text(
+                "❌ Please enter a valid price (numbers only)."
+                "\n\nExample: 1250000"
+            )
             return self.PRICE
         else:
-            self.price = price
+
             await update.message.reply_text(f'plz gimme the url from torob that is for {self.name}')
             return self.URL
 
@@ -538,8 +686,6 @@ class TorobConversation:
         the_url = update.message.text
         if not self.is_torob_url(the_url):
             await update.message.reply_text('plz send a torob url ')
-            print(the_url)
-            print(update.message)
             return self.URL
 
         self.url = the_url
@@ -550,10 +696,8 @@ class TorobConversation:
             self.price = None
             self.url = None
             self.name = None
-            print('added')
             return ConversationHandler.END
         else:
-            print('else')
             self.url = None
             await update.message.reply_text('plz send a torob url ')
             return self.URL
@@ -722,3 +866,5 @@ class TorobConversation:
             self.torob_edit_url_handler(),
             self.torob_delete_item(),
         ]
+
+

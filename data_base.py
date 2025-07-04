@@ -92,12 +92,12 @@ class User(Base):
     gender = Column(String(50), nullable=True)
     age = Column(Integer, nullable=True)
     city = Column(String(50), nullable=True)
-    last_online = Column(DateTime, default=datetime.now, nullable=True)
+    last_online = Column(DateTime, default=datetime.now(), nullable=True)
     profile_photo = Column(Text, nullable=True)
     about = Column(Text, default='No bio yet', nullable=True)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
-    registration_date = Column(DateTime, default=datetime.now, nullable=True)
+    registration_date = Column(DateTime, default=datetime.now(), nullable=True)
 
 
 # todo neeed new tables for likes manager 1 to many and list of who like who

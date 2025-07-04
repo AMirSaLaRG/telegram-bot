@@ -1,5 +1,6 @@
 import logging
 import math
+from dotenv import load_dotenv
 from xmlrpc.client import DateTime
 
 from telegram import (Update, InlineQueryResultArticle,
@@ -19,6 +20,9 @@ import os
 from datetime import datetime, timedelta
 from functools import wraps
 
+
+
+load_dotenv()
 divider = '〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️'
 # todo read about inline commands @bot etc and use it
 # todo add a handler at top for each interaction with bot get trigger to make user data and user session and etc..

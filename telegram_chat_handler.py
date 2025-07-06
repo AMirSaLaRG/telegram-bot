@@ -1,8 +1,9 @@
 import datetime
 import logging
 from datetime import timedelta
+from typing import Optional
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, Message
 from telegram.ext import ContextTypes, MessageHandler, filters,CallbackQueryHandler,CommandHandler, filters
 import time
 from data_base import ChatDatabase, UserDatabase
@@ -37,6 +38,153 @@ class UserMessage:
         self.db = ChatDatabase()
         self.user_db = UserDatabase()
 
+    def _get_reply_to_id(self, message: Message) -> Optional[int]:
+        """Resolves reply_to_message_id for cross-chat replies."""
+        if not message.reply_to_message:
+            return None
+
+        return (
+                self.db.get_msg_id_by_robot_msg(message.reply_to_message.message_id)
+                or self.db.get_msg_id_by_user_msg(message.reply_to_message.message_id)
+        )
+
+    async def _handle_text_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, partner_id: int, name: str,
+                                   reply_to_id: Optional[int], secret_chat: bool) -> Optional[Message]:
+        """Handles text messages."""
+        return await context.bot.send_message(
+            partner_id,
+            f"{name}: {update.message.text}",
+            reply_to_message_id=reply_to_id,
+        )
+
+    async def _handle_photo_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, partner_id: int,
+                                    name: str, reply_to_id: Optional[int], secret_chat: bool) -> Optional[Message]:
+        """Handles photo messages."""
+        return await context.bot.send_photo(
+            partner_id,
+            photo=update.message.photo[-1].file_id,
+            caption=f"{name}: {update.message.caption}" if update.message.caption else None,
+            reply_to_message_id=reply_to_id,
+            has_spoiler=secret_chat,
+            protect_content=secret_chat,
+        )
+
+    async def _handle_video_message(self, update:Update, context:ContextTypes.DEFAULT_TYPE, partner_id: int
+                                    , name: str, reply_to_id: Optional[int], secret_chat: bool)-> Optional[Message]:
+        """handles vide messages"""
+        return await context.bot.send_video(
+            partner_id,
+            video=update.message.video.file_id,
+            caption=f"{name}: {update.message.caption}" if update.message.caption else None,
+            reply_to_message_id=reply_to_id,
+            has_spoiler=secret_chat,
+            protect_content=secret_chat,
+            supports_streaming=secret_chat
+        )
+
+    async def _handle_video_note_message(
+            self,
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE,
+            partner_id: int,
+            name: str,
+            reply_to_id: Optional[int],
+            secret_chat: bool
+    ) -> Optional[Message]:
+        """Handles circular video messages."""
+        return await context.bot.send_video_note(
+            chat_id=partner_id,
+            video_note=update.message.video_note.file_id,
+            reply_to_message_id=reply_to_id,
+            protect_content=secret_chat
+        )
+
+    async def _handle_audio_message(self, update:Update, context:ContextTypes.DEFAULT_TYPE, partner_id: int
+                                    , name: str, reply_to_id: Optional[int], secret_chat: bool)-> Optional[Message]:
+        """handles audio messages"""
+        return await context.bot.send_audio(
+            partner_id,
+            audio=update.message.audio.file_id,
+            caption=f"{name}: {update.message.caption}" if update.message.caption else None,
+            reply_to_message_id=reply_to_id,
+            protect_content=secret_chat,
+        )
+
+    async def _handle_document_message(
+            self,
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE,
+            partner_id: int,
+            name: str,
+            reply_to_id: Optional[int],
+            secret_chat: bool
+    ) -> Optional[Message]:
+        """Handles document messages without has_spoiler parameter."""
+        kwargs = {
+            'chat_id': partner_id,
+            'document': update.message.document.file_id,
+            'reply_to_message_id': reply_to_id,
+            'protect_content': secret_chat
+        }
+
+        if update.message.caption:
+            kwargs['caption'] = f"{name}: {update.message.caption}"
+
+        return await context.bot.send_document(**kwargs)
+
+    async def _handle_sticker_message(self, update:Update, context:ContextTypes.DEFAULT_TYPE, partner_id: int
+                                    , name: str, reply_to_id: Optional[int], secret_chat: bool)-> Optional[Message]:
+        """handles sticker messages"""
+        return await context.bot.send_sticker(
+            partner_id,
+            sticker=update.message.sticker.file_id,
+            reply_to_message_id=reply_to_id
+        )
+
+    async def _handle_voice_message(self, update:Update, context:ContextTypes.DEFAULT_TYPE, partner_id: int
+                                    , name: str, reply_to_id: Optional[int], secret_chat: bool)-> Optional[Message]:
+        """handles voice messages"""
+        return await context.bot.send_voice(
+            partner_id,
+            voice=update.message.voice.file_id,
+            reply_to_message_id=reply_to_id,
+            protect_content=secret_chat,
+        )
+    async def _send_message_to_partner(self, update:Update, context:ContextTypes.DEFAULT_TYPE,
+                                       partner_id: int, name: str)-> Optional[Message]:
+        """centralized message dispatch based on type."""
+        if not update.message or not hasattr(update, 'effective_user'):
+            return None
+        handler_map = {
+            'text': self._handle_text_message,
+            'photo': self._handle_photo_message,
+            'video': self._handle_video_message,
+            'video_note': self._handle_video_note_message,
+            'audio': self._handle_audio_message,
+            'document': self._handle_document_message,
+            'sticker': self._handle_sticker_message,
+            'voice': self._handle_voice_message
+        }
+        message = update.message
+        msg_type = next((t for t in handler_map if getattr(message, t, None)), None)
+
+        if not msg_type:
+            return None
+
+        secret_chat = self.db.get_user_session(update.effective_user.id).secret_chat
+        reply_to_id = self._get_reply_to_id(message)
+
+        return await handler_map[msg_type](
+            update, context, partner_id, name, reply_to_id, secret_chat
+        )
+
+    # async def _check_partner_status(self, partner_id, user_id, update, context):
+    #     if not self.db.get_partner_id(partner_id) and not self.db.get_partner_id(partner_id) == user_id:
+    #         await self.leave_chat(update, context)
+    #         await context.bot.send_message(user_id, text=f'Message sent to {partner_id}')
+
+
+
     async def reply_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Handles incoming messages and forwards them to the connected chat partner.
@@ -44,95 +192,17 @@ class UserMessage:
         Also handles replies and secret chat protections.
         """
         user_id = update.effective_user.id
-        name = "👤" # Default anonymous name
-        # Check if the user is in an active chat
-        if not self.db.get_partner_id(user_id):
-            await update.message.reply_text("⚠️ You're not doing anything. Do somthing /start")
+        if not (partner_id := self.db.get_partner_id(user_id)):
+            await update.message.reply_text("⚠️ You're not in an active chat. Use /start to begin.")
             return
-
-        partner_id = self.db.get_partner_id(user_id)
-        message = update.message
-
-        reply_to_id = None
-        msg_name = context.user_data.get('msg_name', "") # Get custom message name from user data
-
-        if msg_name:
-            name = msg_name
-
         try:
-            send_msg = None
+            name = context.user_data.get("msg_name", "👤")
+            send_msg = await self._send_message_to_partner(update, context, partner_id, name)
 
-            # Handling replies to specific messages
-            if message.reply_to_message:
-                reply_msg_id = message.reply_to_message.message_id
-
-                # Retrieve the corresponding message ID in the partner's chat
-                reply_to_id = self.db.get_msg_id_by_robot_msg(reply_msg_id)
-                if not reply_to_id:
-                    reply_to_id = self.db.get_msg_id_by_user_msg(reply_msg_id)
-
-            # Handle different message types
-            if message.text:
-                send_msg = await context.bot.send_message(partner_id, f"{name}: {message.text}",
-                                                          reply_to_message_id=reply_to_id)
-            elif message.photo:
-                send_msg = await context.bot.send_photo(partner_id, photo=message.photo[-1].file_id,
-                                                        caption=f"{name}: {message.caption}" if message.caption else None,
-                                                        reply_to_message_id=reply_to_id,
-                                                        has_spoiler=self.db.get_user_session(user_id).secret_chat, # Apply spoiler for secret chat
-                                                        protect_content=self.db.get_user_session(user_id).secret_chat) # Protect content for secret chat
-            elif message.video:
-                send_msg = await context.bot.send_video(
-                    partner_id,
-                    video=update.message.video.file_id,
-                    caption=f"{name}: {update.message.caption}" if update.message.caption else None,
-                    reply_to_message_id=reply_to_id,
-                    has_spoiler=self.db.get_user_session(user_id).secret_chat,
-                    protect_content=self.db.get_user_session(user_id).secret_chat,
-                    supports_streaming=self.db.get_user_session(user_id).secret_chat
-
-                )
-
-            elif message.audio:
-                send_msg = await context.bot.send_audio(
-                    partner_id,
-                    audio=update.message.audio.file_id,
-                    caption=f"{name}: {update.message.caption}" if message.caption else None,
-                    reply_to_message_id=reply_to_id,
-                    has_spoiler=self.db.get_user_session(user_id).secret_chat,
-                    protect_content=self.db.get_user_session(user_id).secret_chat,
-                )
-
-            elif message.document:
-                send_msg = await context.bot.send_document(
-                    partner_id,
-                    document=update.message.document.file_id,
-                    caption=f"{name}: {update.message.caption}" if message.caption else None,
-                    reply_to_message_id=reply_to_id,
-                    has_spoiler=self.db.get_user_session(user_id).secret_chat,
-                    protect_content=self.db.get_user_session(user_id).secret_chat,
-                )
-
-            elif update.message.sticker:  # Stickers
-
-                send_msg = await context.bot.send_sticker(
-                    partner_id,
-                    sticker=update.message.sticker.file_id,
-                    reply_to_message_id=reply_to_id
-                )
-            elif update.message.voice:  # Voice messages
-
-                send_msg = await context.bot.send_voice(
-                    partner_id,
-                    voice=update.message.voice.file_id,
-                    reply_to_message_id=reply_to_id,
-                    protect_content=self.db.get_user_session(user_id).secret_chat,
-                )
-
-            # Map original message ID to the sent message ID for future reference (e.g., editing)
             if send_msg and hasattr(send_msg, "message_id"):
-                self.db.map_message(message.message_id, send_msg.message_id, user_id, partner_id, msg_txt=message.text)
-            # If partner has left the chat (or invalid state), notify user and leave chat
+                self.db.map_message(update.message.message_id, send_msg.message_id, user_id, partner_id, msg_txt=update.message.text)
+
+
             if not self.db.get_partner_id(partner_id) and not self.db.get_partner_id(partner_id) == user_id:
                 await self.leave_chat(update, context)
                 await context.bot.send_message(user_id, text=f'Message sent to {partner_id}')
@@ -144,6 +214,118 @@ class UserMessage:
 
         except Exception as e:
             print(f"Error sending message message reply: {e}")
+            retry_keyboard = [
+                [InlineKeyboardButton("↻ Retry", callback_data=f"retry_{update.message.message_id}")],
+                [InlineKeyboardButton("✖ Cancel", callback_data="cancel_failed_message")]
+            ]
+            await update.message.reply_text(
+                "⚠️ Failed to send message. Please try again.",
+                reply_markup=InlineKeyboardMarkup(retry_keyboard)
+            )
+
+
+        #
+        #
+        # name = "👤" # Default anonymous name
+        # # Check if the user is in an active chat
+        # if not self.db.get_partner_id(user_id):
+        #     await update.message.reply_text("⚠️ You're not doing anything. Do somthing /start")
+        #     return
+        #
+        # partner_id = self.db.get_partner_id(user_id)
+        # message = update.message
+        #
+        # reply_to_id = None
+        # msg_name = context.user_data.get('msg_name', "") # Get custom message name from user data
+        #
+        # if msg_name:
+        #     name = msg_name
+        #
+        # try:
+        #     send_msg = None
+        #
+        #     # Handling replies to specific messages
+        #     if message.reply_to_message:
+        #         reply_msg_id = message.reply_to_message.message_id
+        #
+        #         # Retrieve the corresponding message ID in the partner's chat
+        #         reply_to_id = self.db.get_msg_id_by_robot_msg(reply_msg_id)
+        #         if not reply_to_id:
+        #             reply_to_id = self.db.get_msg_id_by_user_msg(reply_msg_id)
+        #
+        #     # Handle different message types
+        #     if message.text:
+        #         send_msg = await context.bot.send_message(partner_id, f"{name}: {message.text}",
+        #                                                   reply_to_message_id=reply_to_id)
+        #     elif message.photo:
+        #         send_msg = await context.bot.send_photo(partner_id, photo=message.photo[-1].file_id,
+        #                                                 caption=f"{name}: {message.caption}" if message.caption else None,
+        #                                                 reply_to_message_id=reply_to_id,
+        #                                                 has_spoiler=self.db.get_user_session(user_id).secret_chat, # Apply spoiler for secret chat
+        #                                                 protect_content=self.db.get_user_session(user_id).secret_chat) # Protect content for secret chat
+        #     elif message.video:
+        #         send_msg = await context.bot.send_video(
+        #             partner_id,
+        #             video=update.message.video.file_id,
+        #             caption=f"{name}: {update.message.caption}" if update.message.caption else None,
+        #             reply_to_message_id=reply_to_id,
+        #             has_spoiler=self.db.get_user_session(user_id).secret_chat,
+        #             protect_content=self.db.get_user_session(user_id).secret_chat,
+        #             supports_streaming=self.db.get_user_session(user_id).secret_chat
+        #
+        #         )
+        #
+        #     elif message.audio:
+        #         send_msg = await context.bot.send_audio(
+        #             partner_id,
+        #             audio=update.message.audio.file_id,
+        #             caption=f"{name}: {update.message.caption}" if message.caption else None,
+        #             reply_to_message_id=reply_to_id,
+        #             has_spoiler=self.db.get_user_session(user_id).secret_chat,
+        #             protect_content=self.db.get_user_session(user_id).secret_chat,
+        #         )
+        #
+        #     elif message.document:
+        #         send_msg = await context.bot.send_document(
+        #             partner_id,
+        #             document=update.message.document.file_id,
+        #             caption=f"{name}: {update.message.caption}" if message.caption else None,
+        #             reply_to_message_id=reply_to_id,
+        #             has_spoiler=self.db.get_user_session(user_id).secret_chat,
+        #             protect_content=self.db.get_user_session(user_id).secret_chat,
+        #         )
+        #
+        #     elif update.message.sticker:  # Stickers
+        #
+        #         send_msg = await context.bot.send_sticker(
+        #             partner_id,
+        #             sticker=update.message.sticker.file_id,
+        #             reply_to_message_id=reply_to_id
+        #         )
+        #     elif update.message.voice:  # Voice messages
+        #
+        #         send_msg = await context.bot.send_voice(
+        #             partner_id,
+        #             voice=update.message.voice.file_id,
+        #             reply_to_message_id=reply_to_id,
+        #             protect_content=self.db.get_user_session(user_id).secret_chat,
+        #         )
+        #
+        #     # Map original message ID to the sent message ID for future reference (e.g., editing)
+        #     if send_msg and hasattr(send_msg, "message_id"):
+        #         self.db.map_message(message.message_id, send_msg.message_id, user_id, partner_id, msg_txt=message.text)
+        #     # If partner has left the chat (or invalid state), notify user and leave chat
+        #     if not self.db.get_partner_id(partner_id) and not self.db.get_partner_id(partner_id) == user_id:
+        #         await self.leave_chat(update, context)
+        #         await context.bot.send_message(user_id, text=f'Message sent to {partner_id}')
+        #
+        #     # Clear custom message name after sending if it was used
+        #     user_saved_name = context.user_data.get('msg_name', "")
+        #     if user_saved_name == name:
+        #         context.user_data['msg_name'] = ''
+        #
+        # except Exception as e:
+        #     print(f"Error sending message message reply: {e}")
 
     async def handle_edit(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """

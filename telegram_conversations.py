@@ -366,19 +366,7 @@ class Profile:
                                    context.user_data)  # Ensures user exists and updates last_online
         user_db.get_user_data(update.effective_user.id, context.user_data)  # Populates context.user_data
 
-        # Original commented out code for JSON file-based profile loading (not used with current DB)
-        # try:
-        #     with open("profiles/user_profiles.json", 'r') as file:
-        #         data = json.load(file)
-        # except FileNotFoundError:
-        #     print('file not created')
-        # user_data = data[user_id]
-        # context.user_data['profile_photo'] = user_data['profile_photo']
-        # context.user_data['name'] = user_data['name']
-        # context.user_data['age'] = user_data['age']
-        # context.user_data['gender'] = user_data['gender']
-        # context.user_data['about'] = user_data['about']
-        # context.user_data['location'] = user_data['location']
+
 
     def check_exist_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
@@ -405,22 +393,8 @@ class Profile:
                 return False
             else:
                 return True
-        # Original commented out code for JSON file-based profile checking (not used with current DB)
-        # try:
-        #     with open("profiles/user_profiles.json", 'r') as file:
-        #         data = json.load(file)
-        #         if user_id in data:
-        #             self.load_profile(update, context)
-        #             return True
-        #         else:
-        #
-        #             return False
-        #
-        # except FileNotFoundError:
-        #     with open("profiles/user_profiles.json", 'w') as file:
-        #         return False
 
-    # eh
+
     async def buttons(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Handles callbacks from inline keyboard buttons related to profile interactions
@@ -444,7 +418,6 @@ class Profile:
                 pass  # Placeholder for block functionality
             elif action == 'report':
                 pass  # Placeholder for report functionality
-        # Handle buttons related to message requests (accept/decline)
         elif query.data.startswith(self.msg_req_command):
             action = query.data.split(':')[1].strip().lower()
             target_id = query.data.split(':')[2].strip().lower()

@@ -503,7 +503,6 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         filter_name = query.data.split(':')[1].strip().lower()
         await advance_filter_lvl1_buttons(query, context, filter_name)
 
-
     elif query.data.startswith('A_F_D'):
         await interact(update, context)
         await advance_filter_lvl2_buttons(query, context)
@@ -511,13 +510,17 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # this is get of gender filter
     elif query.data.startswith("gender:"):
         await gender_filter_buttons(query, context)
+
     elif query.data.startswith("random gender:"):
         await random_search_gender_filter_buttons(query, context)
+
     elif query.data.startswith("random_chat: gender: done"):
         await user_message.handle_random_chat(update, context)
+
     elif query.data.startswith(user_message.button_start_with_command):
         await interact(update, context)
         await user_message.buttons_set(update, context)
+
     # this is get of age filter
     elif query.data.startswith("age_filter:"):
         await age_filter_buttons(query, context)
@@ -530,34 +533,15 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         action = query.data.split(':')[1].strip().lower()
         if action == "check":
             await check_torob_list(query, context)
-        if action == 'new':
-            pass
-        if action == 'update':
-            pass
 
-    elif query.data.startswith('item_edit:'):
-        action = query.data.split(':')[1].strip().lower()
-        if action == 'price':
-            pass
-        if action == 'url':
-            pass
-        if action == 'name':
-            pass
-        if action == 'delete':
-            pass
-        if action == 'home':
-            pass
+
 
     elif query.data == f'{calculator.calculate_command}':
-
         await query.answer()
-
         # Get the conversation handler
         conv_handler = calculator.get_calculated_price_conversation_handler()
-
         # Start the conversation manually
         await conv_handler.trigger(update, context)
-
         await query.delete_message()
 
     elif query.data == 'page_before':

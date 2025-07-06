@@ -62,7 +62,7 @@ class CheckSitePrice:
         """
         html_iran = self.safe_get(self.ir_site)
         if html_iran:
-            # todo akharin zaman update / get it from https://www.estjt.ir/
+
             soup = BeautifulSoup(html_iran, "html.parser")
             # Select the element containing the 18K gold price
             price_iran_18k_gold = soup.select_one("#l-geram18 .info-price").getText()
@@ -91,7 +91,6 @@ class CheckSitePrice:
         """
         html_world = self.safe_get(self.int_site)
         if html_world:
-            # todo akharin zaman update
             soup = BeautifulSoup(html_world, "html.parser")
             # Select the element containing the international 18K gold price in USD
             price_element = soup.select_one('p span[aria-label="Current 18-Karat Gold Price per Gram in USD"]')
@@ -109,7 +108,6 @@ class CheckSitePrice:
                     price_dollar_rial = input("plz insert price of dollar in Rial")
                     int_gold_rial = float(price_usd_18k_gold) * float(price_dollar_rial.replace(',', ''))
                     print(f"International 18K Gold (Rial): {int_gold_rial}")
-                # todo check if this works
                 return price_usd_18k_gold, int_gold_rial, datetime.now()
         return None, None, None
 

@@ -18,8 +18,7 @@ from telegram_chat_handler import UserMessage
 user_db = UserDatabase()
 
 
-# todo last online time
-# todo  in self profile add buttons (who liked, see friends, edit(each step a button), torob items, add shop:new, etc, ..)
+
 class Profile:
     """
     Handles user profile creation, viewing, and editing functionalities.
@@ -325,7 +324,7 @@ class Profile:
             "\n\n\n"
 
         )
-        # todo manage the query to send proper reply
+
         # Define inline keyboard buttons for interacting with the target user
         keyboard = [
             [
@@ -363,7 +362,6 @@ class Profile:
         Ensures the user exists in the database and updates their `last_online` status.
         """
         # user_id = str(update.effective_chat.id) # Original comment, now using effective_user.id
-        # todo switch db (This comment indicates a potential refactoring to a different DB strategy)
         user_db.add_or_update_user(update.effective_user.id,
                                    context.user_data)  # Ensures user exists and updates last_online
         user_db.get_user_data(update.effective_user.id, context.user_data)  # Populates context.user_data
@@ -952,7 +950,8 @@ class TorobConversation:
                 # Check if 'torob.com' is in the netloc (domain) part
                 return 'torob.com' in result.netloc
             return False
-        except:  # Catch any parsing errors
+        except Exception as e:  # Catch any parsing errors
+            print(f'torob conversation: {e}')
             return False
 
     async def handle_url(self, update: Update, context: ContextTypes.DEFAULT_TYPE):

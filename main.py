@@ -1,7 +1,7 @@
 import logging
 import math
 from dotenv import load_dotenv
-from xmlrpc.client import DateTime
+
 
 from telegram import (Update, InlineQueryResultArticle,
                       InputTextMessageContent, ReplyKeyboardMarkup,
@@ -24,10 +24,7 @@ from functools import wraps
 
 load_dotenv()
 divider = '〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️'
-# todo read about inline commands @bot etc and use it
-# todo add a handler at top for each interaction with bot get trigger to make user data and user session and etc..
-# todo handle some errors in advance chat likebeing emty in profiles
-# todo For the filter handling in main.py, you could create a FilterHandler class:
+
 os.makedirs("profiles", exist_ok=True)
 
 # Ensure directory exists
@@ -35,25 +32,24 @@ os.makedirs("profiles", exist_ok=True)
 
 user_message = UserMessage()
 
-# todo put a place for all commands and queries
+
 # anonymous_chat.start_command = 'anom_chat'
 # anonymous_msg.start_command = 'anom_message'
 #
 
-# todo each act in robot update user last online
+
 # ___________________conversations_________________________________
 profile = Profile()
 calculator = Calculator()
 torob_conversation = TorobConversation()
 # ___________________data_bases_________________________________
-# todo make it one db with two table (already is xD)
-# todo make a postoger db engine
+
 gold_db = GoldPriceDatabase()
 user_db = UserDatabase()
 chat_db = ChatDatabase()
 torob_db = TorobDb()
 
-# todo make a tab to check divar or digikala or shapoor (web scraping)
+
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -115,7 +111,7 @@ def track_user_interaction(func):
     return wrapper
 
 
-# todo need to be start over after parts maybe change handler to be not only command
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Handles the /start command.
@@ -269,7 +265,7 @@ async def show_profile_request(update: Update, context: ContextTypes.DEFAULT_TYP
 # ___________________________________________________________________________________________
 #                             Gold Gallery initiator
 # ___________________________________________________________________________________________
-# todo make real calculate the price send items list
+
 async def gold_dollar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Scrapes gold and dollar prices and sends them to the user.
@@ -291,8 +287,6 @@ async def gold_dollar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        # todo format the rials mostly
-        # todo add date hr
         await context.bot.edit_message_text(
             chat_id=user_id,
             message_id=checking_msg.message_id,
@@ -316,7 +310,7 @@ async def gold_dollar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ___________________________________________________________________________________________
 #                             Torob initiator
 # ___________________________________________________________________________________________
-# todo make real calculate the price send items list
+
 async def torob(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Initiates the Torob price tracking feature.
@@ -387,8 +381,6 @@ async def edit_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                         f"What would you like to edit?",
                                    reply_markup=reply_markup)
 
-
-# todo add points to users then add price for running scrap or they can w8 for 12pm to get updated
 
 # ___________________________________________________________________________________________
 #                             inline keys
@@ -787,7 +779,6 @@ async def cities_filter_handler(query, context):
     )
 
 
-# todo check if this even needed can be used for clear eh
 async def search_filters_handler(query, context, current_page=1):
     """
         Handles user search requests by applying filters and displaying matching profiles.
@@ -823,7 +814,7 @@ async def search_filters_handler(query, context, current_page=1):
     selected_users = user_db.get_filtered_users(context.user_data)
     # reseting filter
     context.user_data['user_filter'] = {}
-    # todo return a list of n ppl with keys to C profile or chat
+
     all_pages = []
     page = ''
     num_show_page = 10
@@ -864,15 +855,8 @@ async def search_filters_handler(query, context, current_page=1):
         age = data['user'].age
         user_id = data['user'].user_id
 
-        # check persian rtl and ltr fucking it
-        # todo need a link to see other ppl profiles show profile for others
-        # todo need to find how connect two ppl in robot
-        # todo need to keshoii model mostlykly it was with robot name inline shit
-        # todo make a home button to go back start
-        # todo handle wrong type and wrong commends
-        # todo handle random chat
 
-        # todo important change data base to give any user an maked id to not use real user id
+
         note = f'\nName:{"👨🏻‍🦱" if gender == 'male' else '👩🏻'} {name}\nAge: {age} Years old\nLast Online: {last_online}\ncity: {city}\nDistance: {distance}km away\n\nuser_id: /chaT_{generated_id}\n\n{divider}\n'
         page += note
     all_pages.append(page)
@@ -899,7 +883,6 @@ async def search_filters_handler(query, context, current_page=1):
         )
 
 
-# todo update each button to has the filter applied
 async def update_advance_search(query, context: ContextTypes.DEFAULT_TYPE):
     """
     Updates the displayed advanced search message with the currently applied filters.
@@ -961,17 +944,12 @@ async def update_advance_search(query, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-# todo check if this even needed i think it is a function to create more button for items of gold gallery we have
 async def calculator_gold(query, context: ContextTypes.DEFAULT_TYPE):
     """
     Placeholder for a gold calculator function.
     """
     pass
 
-
-# todo add button to calculate item for this we need to give  each user point after creating profile and reduce it when they use this
-# todo update db with point
-# todo update profile to give point after creation
 async def check_torob_list(query, context: ContextTypes.DEFAULT_TYPE):
     """
     Displays a list of Torob items tracked by the user, including their latest prices and check times.
@@ -1019,7 +997,6 @@ async def check_torob_list(query, context: ContextTypes.DEFAULT_TYPE):
 if __name__ == "__main__":
     # Initialize the Telegram Application Builder with bot token and concurrent updates.
     application = ApplicationBuilder().token(os.getenv('TELEGRAM_TOKEN')).concurrent_updates(True).build()
-    # todo currect the way of messagehandler to not intract with them in casual chat
 
     # Create Handlers for various commands and message types.
     start_handler = CommandHandler("start", start)
@@ -1062,4 +1039,3 @@ if __name__ == "__main__":
 # ___________________________Problems & checks___________________________________
 # _______________________________________________________________________________
 
-# todo conversation gold kar nemikard check she

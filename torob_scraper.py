@@ -138,8 +138,6 @@ class TorobScraper:
         print('database is emty')
         return False
 
-#todo in fek konam bayad ye servere dige anjam bede maslaan harrooz sataye felan check kone inaro db update kone
-
 
 
 def main():

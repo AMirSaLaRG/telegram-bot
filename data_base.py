@@ -1,11 +1,9 @@
 import time
-from csv import excel
-from time import sleep
+
 
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Text, select, inspect, ForeignKey, \
     Index, Boolean, text
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.horizontal_shard import set_shard_id
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from datetime import datetime, timedelta
 from math import radians, sin, cos, sqrt, atan2
@@ -99,11 +97,6 @@ class User(Base):
     longitude = Column(Float, nullable=True)
     registration_date = Column(DateTime, default=datetime.now(), nullable=True)
 
-
-# todo neeed new tables for likes manager 1 to many and list of who like who
-# todo need new friendship table 1 to many it should request accept and both side
-# todo need new block list 1 to many and need a check to stop some actions from block users
-# todo need a report list
 
 # ___________________________________________________________________________________________
 # ____________________________Initiate Gold & Dollar data base ______________________________
@@ -301,7 +294,7 @@ class Links(Base):
 # ____________________________Class of Gold & Dollar data base ______________________________
 # ___________________________________________________________________________________________
 
-# todo merge two table in one db put them in a folder
+
 class GoldPriceDatabase:
     """
     Manages database operations for gold and dollar prices.
@@ -348,7 +341,6 @@ class GoldPriceDatabase:
         session.close()
 
     # ________________________________Getting latest update from db_______________________________
-    # todo this may not return get back any should be handled i think
     def get_latest_price(self) -> Optional[GoldDollarRial]:
         """
         Retrieves the latest gold and dollar price entry from the database.
@@ -362,9 +354,8 @@ class GoldPriceDatabase:
         finally:
             session.close()
 
-    # todo is it better to get request from here or the main how is time managed
     # ___________________Checking latest ir update from db (validate_time)__________________________
-    def latest_ir_update(self, validate_time: int = 600) -> bool:
+    def latest_ir_update(self, validate_time: int = 600) -> Optional[bool]:
         """
         Checks if the latest Iranian price update in the database is older than 'validate_time' seconds.
 
@@ -405,7 +396,6 @@ class GoldPriceDatabase:
             return True
 
     # ________combine of all top function to check time valide and chose from where to update_________
-    # todo when it is checking take mins other users dont make request again and get from db or tell to wait
     def get_latest_update(self) -> Optional[GoldDollarRial]:
         """
         Retrieves the latest gold and dollar prices, updating them from external sources if necessary.
@@ -735,6 +725,99 @@ class UserDatabase:
                     x['distance']  # Then by distance
                 )
             )
+    def apply_dis_filter(self, user_filters, selected_users):
+        """
+        filters by distance
+        :param user_filters: the filters that saved inside user_data
+        :param selected_users: the users
+        :return: list of who passed the filter
+        """
+        dis_filter = user_filters.get('dis_filter', None)
+
+        if user_filters:
+            if dis_filter:
+                print("hello fucking world")
+                max_dis = float(user_filters['dis_filter'])
+                return [u for u in selected_users if u['distance'] <= max_dis]
+
+        return selected_users
+
+    def apply_last_online_filter(self, user_filters, selected_users):
+        """
+        filters by last_online
+        :param user_filters: the filters that saved inside user_data
+        :param selected_users: the users
+        :return: list of who passed the filter
+        """
+        last_online = user_filters.get('last_online_filter', None)
+        if user_filters:
+            if last_online:
+                max_mins = int(user_filters['last_online_filter'])
+                return [u for u in selected_users if u['mins_ago'] <= max_mins]
+
+        return selected_users
+
+    def apply_gender_filter(self, user_filters, selected_users):
+        """
+        filters by gender
+        :param user_filters: the filters that saved inside user_data
+        :param selected_users: the users
+        :return: list of who passed the filter
+        """
+        gender_filter = user_filters.get('gender_filter', None)
+
+        if user_filters:
+            if gender_filter:
+                gender_filter = [g.lower() for g in user_filters['gender_filter']]
+                return [
+                    u for u in selected_users
+                    if u['user'].gender and u['user'].gender.lower() in gender_filter
+                ]
+
+        return selected_users
+
+    def apply_age_filter(self, user_filters, selected_users):
+        """
+        filters by age
+        :param user_filters: the filters that saved inside user_data
+        :param selected_users: the users
+        :return: list of who passed the filter
+        """
+        age_filter = user_filters.get('age_filter', None)
+        if user_filters:
+            if age_filter:
+                age_filter = user_filters['age_filter']
+                if len(age_filter) == 2:  # Age range [min, max]
+                    min_age, max_age = age_filter
+                    return [
+                        u for u in selected_users
+                        if u['user'].age is not None and min_age <= u['user'].age <= max_age
+                    ]
+                elif len(age_filter) == 1:  # Exact age
+                    return [
+                        u for u in selected_users
+                        if u['user'].age is not None and u['user'].age == age_filter[0]
+                    ]
+
+        return selected_users
+
+    def apply_city_filter(self, user_filters, selected_users):
+        """
+        filters by city
+        :param user_filters: the filters that saved inside user_data
+        :param selected_users: the users
+        :return: list of who passed the filter
+        """
+        city_filter = user_filters.get('city_filter', None)
+        if user_filters:
+            if city_filter:
+                city_filter = user_filters['city_filter']
+                return [
+                    u for u in selected_users
+                    if u['user'].city and u['user'].city in city_filter
+                ]
+
+        return selected_users
 
     def get_filtered_users(self, user_data: dict) -> List[dict]:
         """
@@ -761,14 +844,14 @@ class UserDatabase:
             if not isinstance(user_data, dict):
                 raise ValueError("user_data must be a dictionary")
 
-            user_id = str(user_data.get('user_id', ""))
+            user_id = int(user_data.get('user_id', ""))
             if not user_id:
                 raise ValueError("user_id is required")
-
-            # Update/create the requesting user's record (e.g., update last_online, location)
-            self.add_or_update_user(user_id, user_data)
-            # Retrieve the full user data for the requesting user (important for location)
-            self.get_user_data(user_id, user_data)
+            else:
+                # Update/create the requesting user's record (e.g., update last_online, location)
+                self.add_or_update_user(user_id, user_data)
+                # Retrieve the full user data for the requesting user (important for location)
+                self.get_user_data(user_id, user_data)
 
             # Get an initial set of users with location data and basic online status
             selected_users = self.get_users_location(int(user_id))
@@ -776,56 +859,15 @@ class UserDatabase:
                 return []
 
             user_filters = user_data.get('user_filter', {})
-
-            # Apply filters sequentially
-            if 'dis_filter' in user_filters and user_filters['dis_filter'] is not None:
-                try:
-                    max_dis = float(user_filters['dis_filter'])
-                    selected_users = [u for u in selected_users if u['distance'] <= max_dis]
-                except (ValueError, TypeError):
-                    pass  # Skip if distance filter is invalid
-
-            if 'last_online_filter' in user_filters and user_filters['last_online_filter'] is not None:
-                try:
-                    max_mins = int(user_filters['last_online_filter'])
-                    selected_users = [u for u in selected_users if u['mins_ago'] <= max_mins]
-                except (ValueError, TypeError):
-                    pass  # Skip if last_online filter is invalid
-
-            if 'gender_filter' in user_filters and user_filters['gender_filter']:
-                gender_filter = [g.lower() for g in user_filters['gender_filter']]
-                selected_users = [
-                    u for u in selected_users
-                    if u['user'].gender and u['user'].gender.lower() in gender_filter
-                ]
-
-            if 'age_filter' in user_filters and user_filters['age_filter']:
-                try:
-                    age_filter = user_filters['age_filter']
-                    if len(age_filter) == 2:  # Age range [min, max]
-                        min_age, max_age = age_filter
-                        selected_users = [
-                            u for u in selected_users
-                            if u['user'].age is not None and min_age <= u['user'].age <= max_age
-                        ]
-                    elif len(age_filter) == 1:  # Exact age
-                        selected_users = [
-                            u for u in selected_users
-                            if u['user'].age is not None and u['user'].age == age_filter[0]
-                        ]
-                except (ValueError, TypeError):
-                    pass  # Skip if age filter is invalid
-
-            if 'city_filter' in user_filters and user_filters['city_filter']:
-                city_filter = user_filters['city_filter']
-                selected_users = [
-                    u for u in selected_users
-                    if u['user'].city and u['user'].city in city_filter
-                ]
+            selected_users = self.apply_dis_filter(user_filters, selected_users)
+            selected_users = self.apply_last_online_filter(user_filters, selected_users)
+            selected_users = self.apply_gender_filter(user_filters, selected_users)
+            selected_users = self.apply_age_filter(user_filters, selected_users)
+            selected_users = self.apply_city_filter(user_filters, selected_users)
 
             return selected_users
 
-        except Exception as e:
+        except FileExistsError as e:
             print(f"Error in get_filtered_users: {str(e)}")
             return []
 
@@ -953,7 +995,6 @@ class ChatDatabase:
             conn.execute(text("ALTER TABLE message_map ADD COLUMN msg_txt TEXT"))
             conn.commit()
 
-    # todo this should be activate each intract of user with bot
     def create_user_session(self, user_id: int):
         """
         Ensures a user has an entry in the 'users_sessions' database table.
@@ -1256,8 +1297,6 @@ class ChatDatabase:
         link_obj = self.get_link(link)  # Reuse the get_link method
         return int(link_obj.owner_id) if link_obj and link_obj.owner_id else None # Ensure owner_id is returned as int
 
-    # todo badan havasam bashe number of use handle shode bashe
-    # todo decrement_link_use nemishe too get link bashe?
     def decrement_link_use(self, link: str) -> bool:
         """
         Decrements the remaining uses of a link. If max_uses reaches 0 or
@@ -1627,7 +1666,6 @@ class ChatDatabase:
             bool: True if the message was successfully added, False otherwise.
         """
         with self.Session() as session:
-            # todo bot_msg_id should be none and nullable in the table (current code sets a placeholder)
             try:
                 new_msg = MessageMap(
                     bot_message_id=6969,  # Placeholder ID, consider making nullable in schema
@@ -1644,8 +1682,6 @@ class ChatDatabase:
                 print(f'Error in adding new request msg: {e}')
                 return False
 
-
-# todo user can has a current name for setuation he is in like anom goes with unknown person
 class TorobDb:
     """
     Manages database operations for tracking items on Torob (an Iranian price comparison website).

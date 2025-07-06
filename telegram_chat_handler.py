@@ -14,15 +14,8 @@ import asyncio
 # kasaii ke online ya 15 min online boodan beheshoon ye request bere hatman nabayad link dashte bashan
 
 
-#todo 1-chat nashenas(done) 2-message nashenas
-# 3-sakht link darkhast chat 4-random chat to app
-# 5-sakht group chat nashensa ba esme mostaar
-# 6-sakhte chat ba ai
-# 7-match up be vasile ai
 
-# todo link ke mifreste axe profile va description nadare bebin mishe doross kard
-# todo get connected with db
-#  oh there is alot of connection with db should take care
+
 
 class UserMessage:
     """
@@ -518,7 +511,6 @@ class UserMessage:
                 female=female_pref
             )
             # Filter out self and invalid users (e.g., already in chat, blocked)
-            #todo block users to and add
             valid_partners = [
                 p for p in ppl_for_chat
                 if p.user_id and p.user_id != user_id

@@ -4,12 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35578467-47ec-4149-be7c-60947fca684a" name="Changes" comment="added .env for security">
+    <list default="true" id="35578467-47ec-4149-be7c-60947fca684a" name="Changes" comment="Cleared TODO!&#10;function get_filtered_users removed complexity&#10;extract it to couples of functions of filtering">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data_base.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_base.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dolar_gold_price_ir.py" beforeDir="false" afterPath="$PROJECT_DIR$/dolar_gold_price_ir.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/telegram_chat_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/telegram_chat_handler.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/telegram_conversations.py" beforeDir="false" afterPath="$PROJECT_DIR$/telegram_conversations.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/torob_scraper.py" beforeDir="false" afterPath="$PROJECT_DIR$/torob_scraper.py" afterDir="false" />
     </list>
@@ -248,7 +246,15 @@
       <option name="project" value="LOCAL" />
       <updated>1751633497355</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="Cleared TODO!&#10;function get_filtered_users removed complexity&#10;extract it to couples of functions of filtering">
+      <option name="closed" value="true" />
+      <created>1751788314576</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1751788314576</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -275,6 +281,7 @@
     <MESSAGE value="in War !!! stopped for while" />
     <MESSAGE value="added some readme" />
     <MESSAGE value="added .env for security" />
-    <option name="LAST_COMMIT_MESSAGE" value="added .env for security" />
+    <MESSAGE value="Cleared TODO!&#10;function get_filtered_users removed complexity&#10;extract it to couples of functions of filtering" />
+    <option name="LAST_COMMIT_MESSAGE" value="Cleared TODO!&#10;function get_filtered_users removed complexity&#10;extract it to couples of functions of filtering" />
   </component>
 </project>

@@ -7,7 +7,7 @@ import requests
 from requests.exceptions import HTTPError, RequestException
 #can be a class
 import random
-from data_base import TorobDb, TorobScrapUser
+from data_base import TorobDb
 
 
 
@@ -46,7 +46,7 @@ class TorobScraper:
         price = int(price)
         return price
 
-    def scrap_lowest_price_torop(self, url, ):
+    def scrap_lowest_price_torop(self):
         """Get torop page check the lowest price in recommend of torop and top 5 then returns the lowest price"""
         user_agents = [
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -63,7 +63,7 @@ class TorobScraper:
         session = requests.Session()
         session.headers.update(headers)
         try:
-            response = session.get(url, timeout=10)
+            response = session.get(self.url, timeout=10)
             response.raise_for_status()
         except HTTPError as http_err:
             if response.status_code == 490:
@@ -98,15 +98,15 @@ class TorobScraper:
             else:
                 return price_torop_recommend
 
-    def the_good_offer(self, url ,max_retries=11, retry_count=0):
+    def the_good_offer(self ,max_retries=11, retry_count=0):
         if max_retries == retry_count:
-            logging.warning(f"Max retries reached for URL: {url}")
+            logging.warning(f"Max retries reached for URL: {self.url}")
             return None
         try:
-            best_price = self.scrap_lowest_price_torop(url)
+            best_price = self.scrap_lowest_price_torop()
             if best_price is None:
                 time.sleep(2)
-                return self.the_good_offer(url, max_retries, retry_count + 1)
+                return self.the_good_offer(max_retries, retry_count + 1)
             return best_price
         except Exception as e:
             logging.error(f"Scraping error: {e}")
@@ -122,7 +122,8 @@ class TorobScraper:
         added = 0
         if items:
             for item in items:
-                best_price = self.the_good_offer(item.torob_url)
+                self.url = item.torob_url
+                best_price = self.the_good_offer()
                 if best_price:
                     try:
                         self.db.add_check(item.item_id, float(best_price))
@@ -138,17 +139,23 @@ class TorobScraper:
         print('database is emty')
         return False
 
+    def scrap_all_users_items(self):
+        users = self.db.get_users_with_items()
+        if users:
+            for user in users:
+                self.scrap_user_items(user)
+
 
 
 def main():
     torob_scraper = TorobScraper()
-    torob_scraper.url = "https://torob.com/p/f53c80e9-230e-47a6-83ec-37bc376a3d15/microsoft-surface-laptop-6-ultra-5-135h-16-256-int-135-inch/"
-    torob_scraper.my_price = 9999999999
-    good_offer = torob_scraper.the_good_offer()
-
-    if good_offer:
-        print(good_offer)
-
+    # torob_scraper.url = "https://torob.com/p/0ac4bc23-fe13-491d-b404-33cc95b9a2df/%D9%85%DB%8C%D8%B2-%D9%86%D8%A7%D9%87%D8%A7%D8%B1-%D8%AE%D9%88%D8%B1%DB%8C-4%D9%86%D9%81%D8%B1%D9%87-%DA%86%D9%88%D8%A8%DB%8C-%DA%A9%D9%85%D8%AC%D8%A7-%D8%AC%D8%AF%DB%8C%D8%AF/"
+    # torob_scraper.my_price = 9999999999
+    # good_offer = torob_scraper.the_good_offer()
+    #
+    # if good_offer:
+    #     print(good_offer)
+    torob_scraper.scrap_all_users_items()
 
 if __name__ == "__main__":
     main()

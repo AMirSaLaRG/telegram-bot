@@ -636,7 +636,7 @@ class UserDatabase:
         finally:
             session.close()
 
-    def get_all_users(self) -> List[User]:
+    def get_all_users(self) -> Optional[list[Type[User]]]:
         """
         Retrieves all users from the database, ordered by their last online time in descending order.
 
@@ -1696,6 +1696,7 @@ class TorobDb:
         Base.metadata.create_all(self.engine)  # Creates all tables defined by Base
         self.Session = sessionmaker(bind=self.engine)  # Creates a session factory
 
+
     def add_item(self, user_id: int, preferred_price: float, torob_url: str, name: Optional[str]) -> bool:
         """
         Adds a new item to be tracked on Torob to the database.
@@ -1715,7 +1716,7 @@ class TorobDb:
                     user_id=user_id,
                     name_of_item=name,
                     user_preferred_price=preferred_price,
-                    tag=name, # Assuming 'tag' is a column not defined, or intended to be 'name_of_item'
+                    # tag=name, # Assuming 'tag' is a column not defined, or intended to be 'name_of_item'
                     torob_url=torob_url,
                 )
                 session.add(new_torob)
@@ -2001,3 +2002,12 @@ class TorobDb:
             except Exception as e:
                 print(f"Failed to get latest check time for item {item_id}: {e}")
                 return None
+
+    def get_users_with_items(self):
+        with self.Session() as session:
+            try:
+                user_ids = session.query(TorobScrapUser.user_id).distinct().all()
+                return [user_id[0] for user_id in user_ids]
+            except Exception as e:
+                print(f'get_all_user_id_of_oweners: {e}')
+                return []

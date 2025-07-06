@@ -15,7 +15,6 @@ from telegram_conversations import Profile, Calculator, TorobConversation
 
 from data_base import GoldPriceDatabase, UserDatabase, iran_cities_fa, ChatDatabase, TorobDb
 from telegram_chat_handler import UserMessage
-import json
 import os
 from datetime import datetime, timedelta
 from functools import wraps
@@ -33,9 +32,6 @@ os.makedirs("profiles", exist_ok=True)
 user_message = UserMessage()
 
 
-# anonymous_chat.start_command = 'anom_chat'
-# anonymous_msg.start_command = 'anom_message'
-#
 
 
 # ___________________conversations_________________________________
@@ -386,6 +382,110 @@ async def edit_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 #                             inline keys
 # ___________________________________________________________________________________________
 
+async def advance_filter_lvl1_buttons(query, context:ContextTypes.DEFAULT_TYPE, filter_name):
+    """
+    handles advance filter inline buttons
+    """
+
+    if filter_name == "dis":
+        await distance_filter_handler(query, context)
+    if filter_name == 'last_online':
+        await last_online_filter_handler(query, context)
+    if filter_name == 'gender':
+        await gender_filter_handler(query, context)
+    if filter_name == 'age':
+        await age_filter_handler(query, context)
+    if filter_name == 'cities':
+        await cities_filter_handler(query, context)
+    if filter_name == 'search':
+        await search_filters_handler(query, context)
+
+async def advance_filter_lvl2_buttons(query, context:ContextTypes.DEFAULT_TYPE):
+    """
+    handles advance filter inline buttons
+    :return: functioning button
+    """
+
+    if 'user_filter' not in context.user_data:
+        context.user_data['user_filter'] = {}
+    if query.data.startswith('A_F_D: dis_filter:'):
+        get_dis_filter(query, context)
+    if query.data.startswith("A_F_D: last_online_filter:"):
+        get_last_online_filter(query, context)
+    if query.data.startswith("A_F_D: gender: done"):
+        get_gender_filter(query, context)
+    await update_advance_search(query, context)
+
+async def gender_filter_buttons(query, context:ContextTypes.DEFAULT_TYPE):
+    if 'user_filter' not in context.user_data:
+        context.user_data['user_filter'] = {}
+    if "gender_filter" not in context.user_data:
+        context.user_data['gender_filter'] = []
+    gender_filter = context.user_data['gender_filter']
+    action = query.data.split(":")[1].strip().lower()
+    if action in ["male", "female"]:
+        # Toggle selection
+        if action in gender_filter:
+            gender_filter.remove(action)
+        else:
+            gender_filter.append(action)
+        # Update the message with new buttons
+        await gender_filter_handler(query, context)
+
+async def random_search_gender_filter_buttons(query, context:ContextTypes.DEFAULT_TYPE):
+    if 'user_filter' not in context.user_data:
+        context.user_data['user_filter'] = {}
+    if "gender_filter" not in context.user_data:
+        context.user_data['gender_filter'] = []
+    gender_filter = context.user_data['gender_filter']
+    action = query.data.split(":")[1].strip().lower()
+    if action in ["male", "female"]:
+        # Toggle selection
+        if action in gender_filter:
+            gender_filter.remove(action)
+        else:
+            gender_filter.append(action)
+
+        # Update the message with new buttons
+        await random_chat_gender_done(query, context)
+
+async def age_filter_buttons(query, context:ContextTypes.DEFAULT_TYPE):
+    if 'user_filter' not in context.user_data:
+        context.user_data['user_filter'] = {}
+    if "age_filter" not in context.user_data['user_filter']:
+        context.user_data['user_filter']['age_filter'] = []
+    age_filter = context.user_data['user_filter']['age_filter']
+    # using call back to get filter
+    action = int(query.data.split(':')[1].strip())
+    if action in age_filter:
+        age_filter.remove(action)
+    else:
+        age_filter.append(action)
+    await age_filter_handler(query, context)
+
+async def city_filter_buttons(query, context:ContextTypes.DEFAULT_TYPE):
+    if 'user_filter' not in context.user_data:
+        context.user_data['user_filter'] = {}
+    if "city_filter" not in context.user_data['user_filter']:
+        context.user_data['city_filter'] = []
+    city_filter = context.user_data['user_filter']['city_filter']
+    action = query.data.split(":")[1].strip().lower()
+    # Toggle selection
+    if action == "all":
+        if len(city_filter) == len(iran_cities_fa):
+            city_filter.clear()
+        else:
+            city_filter.clear()
+            for city in iran_cities_fa:
+                city_filter.append(city)
+    elif action in city_filter:
+        city_filter.remove(action)
+    else:
+        city_filter.append(action)
+    # Update the message with new buttons
+    await cities_filter_handler(query, context)
+
+
 async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Handles all inline button callbacks.
@@ -401,109 +501,30 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data['user_filter'] = {}
         user_filter = context.user_data['user_filter']
         filter_name = query.data.split(':')[1].strip().lower()
-        if filter_name == "dis":
-            await distance_filter_handler(query, context)
-        if filter_name == 'last_online':
-            await last_online_filter_handler(query, context)
-        if filter_name == 'gender':
-            await gender_filter_handler(query, context)
-        if filter_name == 'age':
-            await age_filter_handler(query, context)
-        if filter_name == 'cities':
-            await cities_filter_handler(query, context)
-        if filter_name == 'search':
-            await search_filters_handler(query, context)
+        await advance_filter_lvl1_buttons(query, context, filter_name)
 
 
     elif query.data.startswith('A_F_D'):
-        await interact(query, context)
-        if 'user_filter' not in context.user_data:
-            context.user_data['user_filter'] = {}
-        if query.data.startswith('A_F_D: dis_filter:'):
-            get_dis_filter(query, context)
-        if query.data.startswith("A_F_D: last_online_filter:"):
-            get_last_online_filter(query, context)
-        if query.data.startswith("A_F_D: gender: done"):
-            get_gender_filter(query, context)
-        await update_advance_search(query, context)
+        await interact(update, context)
+        await advance_filter_lvl2_buttons(query, context)
 
     # this is get of gender filter
     elif query.data.startswith("gender:"):
-        if 'user_filter' not in context.user_data:
-            context.user_data['user_filter'] = {}
-        if "gender_filter" not in context.user_data:
-            context.user_data['gender_filter'] = []
-        gender_filter = context.user_data['gender_filter']
-        action = query.data.split(":")[1].strip().lower()
-        if action in ["male", "female"]:
-            # Toggle selection
-            if action in gender_filter:
-                gender_filter.remove(action)
-            else:
-                gender_filter.append(action)
-
-            # Update the message with new buttons
-            await gender_filter_handler(query, context)
+        await gender_filter_buttons(query, context)
     elif query.data.startswith("random gender:"):
-        if 'user_filter' not in context.user_data:
-            context.user_data['user_filter'] = {}
-        if "gender_filter" not in context.user_data:
-            context.user_data['gender_filter'] = []
-        gender_filter = context.user_data['gender_filter']
-        action = query.data.split(":")[1].strip().lower()
-        if action in ["male", "female"]:
-            # Toggle selection
-            if action in gender_filter:
-                gender_filter.remove(action)
-            else:
-                gender_filter.append(action)
-
-            # Update the message with new buttons
-            await random_chat_gender_done(query, context)
+        await random_search_gender_filter_buttons(query, context)
     elif query.data.startswith("random_chat: gender: done"):
         await user_message.handle_random_chat(update, context)
     elif query.data.startswith(user_message.button_start_with_command):
         await interact(update, context)
-
         await user_message.buttons_set(update, context)
-
     # this is get of age filter
     elif query.data.startswith("age_filter:"):
-        if 'user_filter' not in context.user_data:
-            context.user_data['user_filter'] = {}
-        if "age_filter" not in context.user_data['user_filter']:
-            context.user_data['user_filter']['age_filter'] = []
-        age_filter = context.user_data['user_filter']['age_filter']
-        # using call back to get filter
-        action = int(query.data.split(':')[1].strip())
-        if action in age_filter:
-            age_filter.remove(action)
-        else:
-            age_filter.append(action)
-        await age_filter_handler(query, context)
+        await age_filter_buttons(query, context)
 
     # this is get of city filter
     elif query.data.startswith("city_filter:"):
-        if 'user_filter' not in context.user_data:
-            context.user_data['user_filter'] = {}
-        if "city_filter" not in context.user_data['user_filter']:
-            context.user_data['city_filter'] = []
-        city_filter = context.user_data['user_filter']['city_filter']
-        action = query.data.split(":")[1].strip().lower()
-        # Toggle selection
-        if action == "all":
-            if len(city_filter) == len(iran_cities_fa):
-                city_filter.clear()
-            else:
-                city_filter.clear()
-                for city in iran_cities_fa:
-                    city_filter.append(city)
-        elif action in city_filter:
-            city_filter.remove(action)
-        else:
-            city_filter.append(action)
-        # Update the message with new buttons
-        await cities_filter_handler(query, context)
+        await city_filter_buttons(query, context)
 
     elif query.data.startswith('torob:'):
         action = query.data.split(':')[1].strip().lower()

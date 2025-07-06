@@ -969,6 +969,7 @@ class TorobConversation:
         self.url = the_url  # Store the URL temporarily
 
         # Attempt to add the item to the database
+        print(self.price, self.url, self.name)
         if self.db.add_item(user_id, self.price, self.url, self.name):
             await update.message.reply_text(f'{self.name}: highest price {self.price}\n'
                                             f'with ur provided url added\n\n/start')

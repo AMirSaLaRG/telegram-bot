@@ -1,6 +1,6 @@
 import time
 
-
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Text, select, inspect, ForeignKey, \
     Index, Boolean, text
 from sqlalchemy.exc import SQLAlchemyError

@@ -4,10 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35578467-47ec-4149-be7c-60947fca684a" name="Changes" comment="added message folder with en.py file &#10;and moved main.py conver .py and chathan .py&#10;strings inside it">
+    <list default="true" id="35578467-47ec-4149-be7c-60947fca684a" name="Changes" comment="applied some word changes">
+      <change afterPath="$PROJECT_DIR$/tests/test_data_base.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_telegram_chat_handler.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dolar_gold_price_ir.py" beforeDir="false" afterPath="$PROJECT_DIR$/dolar_gold_price_ir.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/message/en.py" beforeDir="false" afterPath="$PROJECT_DIR$/message/en.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_base.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_base.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -48,27 +49,29 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.a simple chat from scratch.executor&quot;: &quot;Run&quot;,
-    &quot;Python.chat_test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.data-base.executor&quot;: &quot;Run&quot;,
-    &quot;Python.data_base.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dolar_gold_price_ir.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;Python.simple chat.executor&quot;: &quot;Run&quot;,
-    &quot;Python.telegram_chat_handler.executor&quot;: &quot;Run&quot;,
-    &quot;Python.telegram_conversation.executor&quot;: &quot;Run&quot;,
-    &quot;Python.telegram_conversations.executor&quot;: &quot;Run&quot;,
-    &quot;Python.torob_scraper.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/portfolio&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python tests.Python tests in test_data_base.py.executor": "Run",
+    "Python tests.Python tests in test_telegram_chat_handler.py.executor": "Run",
+    "Python.a simple chat from scratch.executor": "Run",
+    "Python.chat_test.executor": "Run",
+    "Python.data-base.executor": "Run",
+    "Python.data_base.executor": "Run",
+    "Python.dolar_gold_price_ir.executor": "Run",
+    "Python.main.executor": "Run",
+    "Python.simple chat.executor": "Run",
+    "Python.telegram_chat_handler.executor": "Run",
+    "Python.telegram_conversation.executor": "Run",
+    "Python.telegram_conversations.executor": "Run",
+    "Python.torob_scraper.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "master",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "D:/portfolio",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\telegram bot project\profiles" />
@@ -284,7 +287,15 @@
       <option name="project" value="LOCAL" />
       <updated>1751875566662</updated>
     </task>
-    <option name="localTasksCounter" value="21" />
+    <task id="LOCAL-00021" summary="applied some word changes">
+      <option name="closed" value="true" />
+      <created>1751889973857</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1751889973857</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -316,6 +327,7 @@
     <MESSAGE value="button function got extract &#10;to buttons for being easy and less complex" />
     <MESSAGE value="break down reply_message&#10;reduced complexity &#10;easy read&#10;in telegram_chat_handler.py" />
     <MESSAGE value="added message folder with en.py file &#10;and moved main.py conver .py and chathan .py&#10;strings inside it" />
-    <option name="LAST_COMMIT_MESSAGE" value="added message folder with en.py file &#10;and moved main.py conver .py and chathan .py&#10;strings inside it" />
+    <MESSAGE value="applied some word changes" />
+    <option name="LAST_COMMIT_MESSAGE" value="applied some word changes" />
   </component>
 </project>

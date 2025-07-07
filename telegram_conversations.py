@@ -16,6 +16,7 @@ from telegram_chat_handler import UserMessage
 
 # Initialize DB instances
 user_db = UserDatabase()
+from message.en import Messages
 
 
 
@@ -84,7 +85,7 @@ class Profile:
         """
         context.user_data['user_id'] = update.effective_user.id
         await update.message.reply_text(
-            "Lets create your profile.\n First send me your photo",
+            Messages.PROFILE_START,
             reply_markup=ReplyKeyboardRemove()  # Removes the custom keyboard
         )
         return self.PHOTO
@@ -103,7 +104,7 @@ class Profile:
         photo_file = await update.message.photo[-1].get_file()
         context.user_data['profile_photo'] = photo_file.file_id
 
-        await update.message.reply_text("Great!! \n now send me your name")
+        await update.message.reply_text(Messages.PROFILE_PHOTO_RECEIVED)
         return self.NAME
 
     async def handle_name(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -112,7 +113,7 @@ class Profile:
         """
         context.user_data['name'] = update.message.text
 
-        await update.message.reply_text("What's your age?")
+        await update.message.reply_text(Messages.PROFILE_ASK_AGE)
         return self.AGE
 
     async def handle_age(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -124,22 +125,20 @@ class Profile:
             age = int(update.message.text)
             if age < 13 or age > 120:
                 await update.message.reply_text(
-                    "⚠️ Please enter a valid age between 13-120."
-                    "\n\nHow old are you?"
+                    Messages.PROFILE_INVALID_AGE
                 )
                 return self.AGE  # Stay in AGE state
             context.user_data['age'] = age
         except ValueError:  # If input is not a valid number
             await update.message.reply_text(
-                "❌ That doesn't look like a valid age."
-                "\n\nPlease enter your age as a number (e.g. 25):"
+                Messages.PROFILE_AGE_NOT_NUMBER
             )
             return self.AGE  # Stay in AGE state
 
         # Create gender selection keyboard
         reply_keyboard = [["Male"], ["Female"], ["Other"]]
         await update.message.reply_text(
-            "Select your gender:",
+            Messages.PROFILE_ASK_GENDER,
             reply_markup=ReplyKeyboardMarkup(
                 reply_keyboard,
                 one_time_keyboard=True,  # Keyboard disappears after one use
@@ -156,7 +155,7 @@ class Profile:
         context.user_data['gender'] = update.message.text
 
         await update.message.reply_text(
-            "Tell me something about yourself (max 200 characters):",
+            Messages.PROFILE_ASK_ABOUT,
             reply_markup=ReplyKeyboardRemove()  # Removes the custom keyboard
         )
         return self.ABOUT
@@ -167,7 +166,7 @@ class Profile:
         stores the text, and prompts for location with a "Share Location" button.
         """
         if len(update.message.text) > 200:
-            await update.message.reply_text("Please keep it under 200 characters!")
+            await update.message.reply_text(Messages.PROFILE_ABOUT_TOO_LONG)
             return self.ABOUT  # Stay in ABOUT state
 
         context.user_data['about'] = update.message.text
@@ -175,7 +174,7 @@ class Profile:
         # Request location with a button that triggers location sharing
         reply_keyboard = [[KeyboardButton("Share Location", request_location=True)]]
         await update.message.reply_text(
-            "Finally, share your location:",
+            Messages.PROFILE_ASK_LOCATION,
             reply_markup=ReplyKeyboardMarkup(
                 reply_keyboard,
                 one_time_keyboard=True,
@@ -225,16 +224,23 @@ class Profile:
             last_online = f'{time_dif.days} days ago'
 
         # Construct the profile display text
-        text = (
-            f"\n\n\n\n🏷 Name: {profile.name if profile.name else "Not sat yet"}\n"
-            f"🔢 Age: {profile.age if profile.age else "Not sat yet"}\n"
-            f"👤 Gender: {profile.gender if profile.gender else "Not sat yet"}\n"
-            f"📝 About: {profile.about if profile.about else "Not sat yet"}\n"
-            f"🕰 online: {last_online if profile.last_online else '"Long time ago"'}"
-            f"\n\nuser_id: /chaT_{profile.generated_id}"
-            "\n\n\n"
+        name_display = profile.name if profile.name else "Not set yet"
+        age_display = profile.age if profile.age else "Not set yet"
+        gender_display = profile.gender if profile.gender else "Not set yet"
+        about_display = profile.about if profile.about else "Not set yet"
+        online_display = last_online if profile.last_online else "Long time ago"
+        generated_id_display = profile.generated_id  # Assuming this is always set if profile exists
 
+        text = Messages.PROFILE_DISPLAY.format(
+            name=name_display,
+            age=age_display,
+            gender=gender_display,
+            about=about_display,
+            last_online=online_display,
+            generated_id=generated_id_display
         )
+
+
 
         # Define inline keyboard buttons for profile actions
         keyboard = [
@@ -441,7 +447,7 @@ class Profile:
         context.user_data['request_from_id'] = target_id  # Store target ID in user_data
         context.user_data['user_id'] = update.effective_user.id  # Ensure current user_id is in context
         user_id = update.effective_user.id
-        await context.bot.send_message(user_id, text='Plz send Your msg')
+        await context.bot.send_message(user_id, text=Messages.DIRECT_MSG_PROMPT)
         return self.DIRECT_TEXT  # Move to the state for direct message text input
 
     async def handle_direct_msg(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -459,7 +465,7 @@ class Profile:
             return ConversationHandler.END  # End conversation if no message text
         if len(msg) > 250:
             # Maybe send a warning message and stay in the state
-            await update.message.reply_text("Message is too long. Please keep it under 250 characters.")
+            await update.message.reply_text(Messages.DIRECT_MSG_TOO_LONG)
             return self.DIRECT_TEXT
 
         chat_db = ChatDatabase()  # Instance of ChatDatabase
@@ -476,15 +482,15 @@ class Profile:
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             # Notify the sender that their request has been sent
-            await update.message.reply_text("Your message request has been sent. The recipient will be notified.")
+            await update.message.reply_text(Messages.DIRECT_MSG_SENT)
             # Notify the recipient with the message request and action buttons
             await context.bot.send_message(target_id,
-                                           text=f"User /chaT_{user_id} wants to send you a message. Do you want to accept it?",
+                                           text=Messages.DIRECT_MSG_REQUEST.format(user_id=user_id),
                                            reply_markup=reply_markup)
             return ConversationHandler.END  # End conversation
         else:
             # Handle case where message could not be added (e.g., DB error)
-            await update.message.reply_text("There was an issue sending your message request. Please try again.")
+            await update.message.reply_text(Messages.DIRECT_MSG_ERROR)
             return ConversationHandler.END
 
     async def chat_request_accepted(self, update: Update, context: ContextTypes.DEFAULT_TYPE, target_id: int):
@@ -505,13 +511,13 @@ class Profile:
         query = update.callback_query  # The callback query that triggered this action
 
         if msgs:
-            await query.edit_message_text(f'Accepted: msgs from /chaT_{target_id}')  # Edit original button message
+            await query.edit_message_text(Messages.DIRECT_MSG_ACCEPTED.format(target_id=target_id))  # Edit original button message
             for msg in msgs:
                 await context.bot.send_message(user_id,
                                                text=f"/chaT_{target_id}: {msg}")  # Send each message to the accepting user
-            await context.bot.send_message(target_id, text=f'/chaT_{user_id}:Received your Messages')  # Notify sender
+            await context.bot.send_message(target_id, text=Messages.DIRECT_MSG_RECEIVED.format(user_id=user_id))  # Notify sender
         else:
-            await query.edit_message_text(f'No messages to retrieve from /chaT_{target_id}')  # No messages found
+            await query.edit_message_text(Messages.DIRECT_MSG_NO_MSGS.format(target_id=target_id))  # No messages found
 
         # Consider ending the conversation or offering next steps here
 
@@ -531,12 +537,11 @@ class Profile:
 
         # Attempt to clear requested messages from the database
         if message_db.clear_msg_requests_from_map(user_id, target_id):
-            await query.edit_message_text(f'Declined: msgs from /chaT_{target_id}')  # Edit original button message
+            await query.edit_message_text(Messages.DIRECT_MSG_DECLINED.format(target_id=target_id))  # Edit original button message
             await context.bot.send_message(target_id,
-                                           text=f'/chaT_{user_id} declined ur direct messages')  # Notify sender
+                                           text=Messages.DIRECT_MSG_DECLINE_NOTIFY.format(user_id=user_id))  # Notify sender
         else:
-            await query.edit_message_text(
-                f'Failed to decline or no messages to clear from /chaT_{target_id}')  # Error or no messages
+            await query.edit_message_text(Messages.DIRECT_MSG_FAILED_DECLINE.format(target_id=target_id))  # Error or no messages
 
     def get_all_handlers(self) -> list:
         """
@@ -589,10 +594,10 @@ class Calculator:
         """
         # Checks if update is a message or a callback query to reply appropriately
         if update.message:
-            await update.message.reply_text('Calculator stopped')
+            await update.message.reply_text(Messages.CALCULATOR_STOPPED)
         elif update.callback_query:
             await update.callback_query.answer()  # Answer the callback query to remove loading indicator
-            await update.callback_query.edit_message_text('Calculator stopped')  # Edit message to confirm cancellation
+            await update.callback_query.edit_message_text(Messages.CALCULATOR_STOPPED)  # Edit message to confirm cancellation
         return ConversationHandler.END
 
     async def start_calculation(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -614,7 +619,7 @@ class Calculator:
         # Send message with item options
         await context.bot.send_message(
             chat_id=message.chat.id,
-            text="Let's calculate it. \nFirst what item we will calculate",
+            text=Messages.CALCULATOR_START,
             reply_markup=reply_markup
         )
         return self.ITEM  # Move to the ITEM state
@@ -630,12 +635,12 @@ class Calculator:
 
         # Validate selected item
         if not item == '18kr':
-            await query.edit_message_text("This item is not in our list plz Enter another:")
+            await query.edit_message_text(Messages.CALCULATOR_INVALID_ITEM)
             return self.ITEM  # Stay in ITEM state
 
         context.user_data['calculate_item'] = item  # Store selected item
 
-        await query.edit_message_text(f"OK! How much of {context.user_data['calculate_item']}:\n (gold: gram)")
+        await query.edit_message_text(Messages.CALCULATOR_ASK_AMOUNT.format(item=item))
         return self.AMOUNT  # Move to the AMOUNT state
 
     async def handle_amount(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -652,7 +657,7 @@ class Calculator:
         else:
             context.user_data['amount'] = update.message.text  # Store amount as text (can be converted to float later)
 
-            await update.message.reply_text("Plz send contraction fee percentage: (1 to 100)")
+            await update.message.reply_text(Messages.CALCULATOR_ASK_CONSTRUCTION_FEE)
             return self.CONST_FEE  # Move to the CONST_FEE state
 
     async def handle_const_fee(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -671,7 +676,7 @@ class Calculator:
                 return self.CONST_FEE  # Stay in CONST_FEE state
             context.user_data['const_fee'] = update.message.text  # Store as text
 
-            await update.message.reply_text("Plz send shop fee percentage: (1 to 100)")
+            await update.message.reply_text(Messages.CALCULATOR_ASK_SHOP_FEE)
             return self.SHOP_FEE  # Move to the SHOP_FEE state
 
     async def handle_shop_fee(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -690,7 +695,7 @@ class Calculator:
                 return self.CONST_FEE  # Should be SHOP_FEE (typo in original code), staying in current state
             context.user_data['shop_fee'] = update.message.text  # Store as text
 
-            await update.message.reply_text("Plz send text percentage: (1 to 100)")
+            await update.message.reply_text(Messages.CALCULATOR_ASK_TEXT_FEE)
             return self.TEXT  # Move to the TEXT state
 
     async def handle_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -701,11 +706,11 @@ class Calculator:
         try:
             text_fee = float(update.message.text)  # Corrected variable name for clarity
         except ValueError:  # If input is not a valid number
-            await update.message.reply_text("Plz send text percentage: (1 to 100)")
+            await update.message.reply_text(Messages.CALCULATOR_ASK_TEXT_FEE)
             return self.TEXT  # Stay in TEXT state
         else:
             if not 1 <= int(text_fee) <= 100:  # Check if percentage is within range
-                await update.message.reply_text("Plz send text percentage: (1 to 100)")
+                await update.message.reply_text(Messages.CALCULATOR_ASK_TEXT_FEE)
                 return self.TEXT  # Stay in TEXT state
             context.user_data['text'] = update.message.text  # Store as text
 
@@ -718,11 +723,19 @@ class Calculator:
         Displays the summary of the calculated price based on user inputs.
         """
         # Construct the result text from stored user data
-        text = (f"item : {context.user_data["calculate_item"]} "
-                f"\n amount: {context.user_data['amount']}"
-                f"\n construction fee: {context.user_data['const_fee']}%"
-                f"\n shop fee: {context.user_data['shop_fee']}%"
-                f"\n text: {context.user_data['text']}%")
+        display_item = context.user_data["calculate_item"]
+        display_amount = context.user_data['amount']
+        display_const_fee = context.user_data['const_fee']
+        display_shop_fee = context.user_data['shop_fee']
+        display_text_fee = context.user_data['text']
+
+        text = Messages.CALCULATOR_RESULT.format(
+            item = display_item,
+            amount= display_amount,
+            const_fee = display_const_fee,
+            shop_fee = display_shop_fee,
+            text_fee = display_text_fee
+        )
 
         await update.message.reply_text(text)
 
@@ -829,9 +842,9 @@ class TorobConversation:
         """
         if update.callback_query:
             await update.callback_query.answer()  # Acknowledge the callback query
-            await update.callback_query.edit_message_text('Operation cancelled')
+            await update.callback_query.edit_message_text(Messages.OPERATION_CANCELLED)
         elif update.message:
-            await update.message.reply_text('Operation cancelled')
+            await update.message.reply_text(Messages.OPERATION_CANCELLED)
         return ConversationHandler.END  # End the conversation
 
     async def _send_fallback_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, text: str):
@@ -861,7 +874,7 @@ class TorobConversation:
             return ConversationHandler.END
         await update.callback_query.answer()  # Acknowledge the callback query
         await update.callback_query.edit_message_text(
-            f'Lets add new item to your torob list \n What is name of Item (less that 150)',
+            Messages.TOROB_ADD_START,
         )
         return self.NAME  # Move to the NAME state
 
@@ -871,15 +884,15 @@ class TorobConversation:
         Validates length and prompts for the preferred price.
         """
         if not update.message or not update.message.text:
-            await self._send_fallback_message(update, context, "Please send a text message")
+            await self._send_fallback_message(update, context, Messages.TEXT_INPUT_REQUIRED)
             return self.NAME  # Stay in NAME state
 
         if len(update.message.text) > 150:  # Validate name length
-            await update.message.reply_text('Please enter a string with less than 150 characters!')
+            await update.message.reply_text(Messages.TOROB_INVALID_NAME_LENGTH)
             return self.NAME  # Stay in NAME state
 
         self.name = update.message.text  # Store the name temporarily
-        await update.message.reply_text(f"Plz enter highest price that ur interest in {self.name}")
+        await update.message.reply_text(Messages.TOROB_ASK_PRICE.format(name=self.name))
         return self.PRICE  # Move to the PRICE state
 
     async def handle_price(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -891,19 +904,17 @@ class TorobConversation:
             price = float(update.message.text)
             if price <= 0:  # Price must be positive
                 await update.message.reply_text(
-                    "❌ Price must be greater than 0."
-                    "\n\nPlease enter the maximum price you're willing to pay:"
+                    Messages.TOROB_PRICE_TOO_LOW
                 )
                 return self.PRICE  # Stay in PRICE state
             self.price = price  # Store the price temporarily
         except ValueError:  # If input is not a valid number
             await update.message.reply_text(
-                "❌ Please enter a valid price (numbers only)."
-                "\n\nExample: 1250000"
+                Messages.TOROB_INVALID_PRICE
             )
             return self.PRICE  # Stay in PRICE state
         else:  # If price is valid
-            await update.message.reply_text(f'plz gimme the url from torob that is for {self.name}')
+            await update.message.reply_text(Messages.TOROB_ASK_URL.format(name=self.name))
             return self.URL  # Move to the URL state
 
     def is_torob_url(self, url_string: str) -> bool:
@@ -936,7 +947,7 @@ class TorobConversation:
         the_url = update.message.text
 
         if not self.is_torob_url(the_url):  # Validate if it's a valid Torob URL
-            await update.message.reply_text('plz send a torob url ')
+            await update.message.reply_text(Messages.TOROB_INVALID_URL)
             return self.URL  # Stay in URL state
 
         self.url = the_url  # Store the URL temporarily
@@ -944,8 +955,7 @@ class TorobConversation:
         # Attempt to add the item to the database
         print(self.price, self.url, self.name)
         if self.db.add_item(user_id, self.price, self.url, self.name):
-            await update.message.reply_text(f'{self.name}: highest price {self.price}\n'
-                                            f'with ur provided url added\n\n/start')
+            await update.message.reply_text(Messages.TOROB_ADD_SUCCESS.format(name=self.name, price=self.price))
             # Clear temporary stored data
             self.price = None
             self.url = None
@@ -953,7 +963,7 @@ class TorobConversation:
             return ConversationHandler.END  # End the conversation
         else:  # If item could not be added (e.g., DB error)
             self.url = None  # Clear URL, might be invalid
-            await update.message.reply_text('Failed to add item. Please ensure the URL is valid and try again.')
+            await update.message.reply_text(Messages.TOROB_ADD_FAILED)
             return self.URL  # Stay in URL state
 
     async def start_delete_item(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -971,13 +981,13 @@ class TorobConversation:
         if not self.db.check_ownership(user_id, item_id):
             await update.callback_query.answer()
             await update.callback_query.edit_message_text(
-                f'This item does not belong to you. Please enter a valid item ID.'
+                Messages.TOROB_NOT_OWNER
             )
             return ConversationHandler.END  # End if not owner
 
         await update.callback_query.answer()  # Acknowledge callback
         await update.callback_query.edit_message_text(
-            f'Confirm delete with any word \n\nfor cancel type: /cancel'
+            Messages.TOROB_DELETE_PROMPT
         )
         return self.DELETE  # Move to the DELETE state for confirmation
 
@@ -1005,13 +1015,13 @@ class TorobConversation:
         if not self.db.check_ownership(user_id, item_id):
             await update.callback_query.answer()
             await update.callback_query.edit_message_text(
-                f'This item does not belong to you. Please enter a valid item ID.'
+                Messages.TOROB_NOT_OWNER
             )
             return ConversationHandler.END
 
         await update.callback_query.answer()
         await update.callback_query.edit_message_text(
-            f'Please enter new price'
+            Messages.TOROB_ASK_NEW_PRICE
         )
         return self.EDIT_PRICE  # Move to the EDIT_PRICE state
 
@@ -1045,13 +1055,13 @@ class TorobConversation:
         if not self.db.check_ownership(user_id, item_id):
             await update.callback_query.answer()
             await update.callback_query.edit_message_text(
-                f'This item does not belong to you. Please enter a valid item ID.'
+                Messages.TOROB_NOT_OWNER
             )
             return ConversationHandler.END
 
         await update.callback_query.answer()
         await update.callback_query.edit_message_text(
-            f'Please enter new URL'
+            Messages.TOROB_ASK_NEW_URL
         )
         return self.EDIT_URL  # Move to the EDIT_URL state
 
@@ -1072,7 +1082,7 @@ class TorobConversation:
             await self.show_item_edit_options(update, context)  # Show updated options
             return ConversationHandler.END  # End the conversation
         else:  # If update failed
-            await update.message.reply_text('Failed to update URL. Please try again with a valid Torob URL.')
+            await update.message.reply_text(Messages.TOROB_URL_UPDATE_FAILED)
             return self.EDIT_URL  # Stay in EDIT_URL state
 
     async def start_edit_name(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1089,13 +1099,13 @@ class TorobConversation:
         if not self.db.check_ownership(user_id, item_id):
             await update.callback_query.answer()
             await update.callback_query.edit_message_text(
-                f'This item does not belong to you. Please enter a valid item ID.'
+                Messages.TOROB_NOT_OWNER
             )
             return ConversationHandler.END
 
         await update.callback_query.answer()
         await update.callback_query.edit_message_text(
-            f'Please enter new name'
+            Messages.TOROB_ASK_NEW_NAME
         )
         return self.EDIT_NAME  # Move to the EDIT_NAME state
 
@@ -1107,7 +1117,7 @@ class TorobConversation:
         item_id = context.user_data.get('editing_item_id', "")
 
         if not update.message or not update.message.text:
-            await self._send_fallback_message(update, context, "Please send a text message")
+            await self._send_fallback_message(update, context, Messages.TEXT_INPUT_REQUIRED)
             return self.EDIT_NAME  # Stay in EDIT_NAME state
 
         if len(update.message.text) > 150:  # Validate name length
@@ -1118,7 +1128,7 @@ class TorobConversation:
             await self.show_item_edit_options(update, context)  # Show updated options
             return ConversationHandler.END  # End the conversation
         else:
-            await update.message.reply_text('Failed to update name. Please try again.')
+            await update.message.reply_text(Messages.TOROB_NAME_UPDATE_FAILED)
             return self.EDIT_NAME  # Stay in EDIT_NAME state
 
     async def show_item_edit_options(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1143,31 +1153,35 @@ class TorobConversation:
 
             # Check if the update is from a message or callback_query to reply appropriately
             if hasattr(update, 'message'):
+                name= item_data.name_of_item
+                price= item_data.user_preferred_price
+                url = item_data.torob_url
                 await update.message.reply_text(
-                    f"✅ Item updated successfully!\n\n"
-                    f"Item: {item_data.name_of_item}\n"
-                    f"Current Highest Price: {item_data.user_preferred_price}\n\n"
-                    f"Current URL: {item_data.torob_url}\n\n"
-                    f"What would you like to edit next?",
+                    Messages.TOROB_UPDATE_SUCCESS.format(
+                        name=name,
+                        price=price,
+                        url=url
+                    ),
                     reply_markup=reply_markup
                 )
             else:  # Assuming it's a callback query
+                name = item_data.name_of_item
+                price = item_data.user_preferred_price
+                url = item_data.torob_url
                 await update.callback_query.edit_message_text(
-                    f"✅ Item updated successfully!\n\n"
-                    f"Item: {item_data.name_of_item}\n"
-                    f"Current URL: {item_data.torob_url}\n\n"  # Original text was missing price, added for consistency
-                    f"Current Highest Price: {item_data.user_preferred_price}\n\n"
-                    f"What would you like to edit next?",
+                    Messages.TOROB_UPDATE_SUCCESS.format(
+                        name=name,
+                        price=price,
+                        url=url
+                    ),
                     reply_markup=reply_markup
                 )
         else:  # If the item no longer exists (presumably deleted)
             if hasattr(update, 'message'):
-                await update.message.reply_text(
-                    f"✅ Item Deleted successfully!\n\n/start")  # Notify deletion and suggest /start
+                await update.message.reply_text(Messages.TOROB_DELETE_SUCCESS)  # Notify deletion and suggest /start
 
             else:  # Assuming it's a callback query
-                await update.callback_query.edit_message_text(
-                    f"✅ Item Deleted successfully!\n\n/start")  # Notify deletion and suggest /start
+                await update.callback_query.edit_message_text(Messages.TOROB_DELETE_SUCCESS)  # Notify deletion and suggest /start
 
     def get_all_handlers(self) -> list:
         """

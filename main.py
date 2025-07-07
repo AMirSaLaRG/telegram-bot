@@ -18,11 +18,15 @@ from telegram_chat_handler import UserMessage
 import os
 from datetime import datetime, timedelta
 from functools import wraps
+from message.en import Messages
+
+
+
 
 
 
 load_dotenv()
-divider = '〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️'
+divider = Messages.DIVIDER
 
 os.makedirs("profiles", exist_ok=True)
 
@@ -115,36 +119,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     await interact(update, context)
     user_db.get_user_data(update.effective_user.id, context.user_data)
-    if context.user_data['name']:
-        keyboard = [
-            [KeyboardButton("ChaT")],
-            [
-                KeyboardButton("Torob price check"),
-                KeyboardButton("Gold & Dollar"),
 
-            ],
-            [
-                KeyboardButton('/profile')
-            ]
+    profile_button = Messages.PROFILE_BUTTON if context.user_data['name'] else Messages.CREATE_PROFILE_BUTTON
+    keyboard = [
+        [KeyboardButton(Messages.CHAT_BUTTON)],
+        [
+            KeyboardButton(Messages.TOROB_BUTTON),
+            KeyboardButton(Messages.GOLD_DOLLAR_BUTTON),
+        ],
+        [KeyboardButton(profile_button)]
+    ]
 
-        ]
-    else:
-        keyboard = [
-            [KeyboardButton("ChaT")],
-            [
-                KeyboardButton("Torob price check"),
-                KeyboardButton("Gold & Dollar"),
-
-            ],
-            [
-                KeyboardButton(f'/{profile.create_commend}')
-            ]
-
-        ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=f'start',
+        text=Messages.START_MESSAGE,
         reply_markup=reply_markup
     )
 
@@ -160,19 +149,19 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     await interact(update, context)
     keyboard = [
-        [KeyboardButton("Random chat")],
+        [KeyboardButton(Messages.RANDOM_CHAT_BUTTON)],
         [
             KeyboardButton(f'/{user_message.command_create_anon_chat}'),
             KeyboardButton(f'/{user_message.command_create_anon_msg}')
         ],
-        [KeyboardButton('Advance Search')],
+        [KeyboardButton(Messages.ADVANCE_SEARCH_BUTTON)],
         [KeyboardButton('/start')]
     ]
 
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text='What you looking for?',
+        text=Messages.WHAT_YOU_LOOKING_FOR,
         reply_markup=reply_markup,
     )
 
@@ -184,27 +173,23 @@ ContextTypes.DEFAULT_TYPE):
     Presents inline buttons for various filtering options (Distance, Last Online, Gender, Age, Cities).
     """
     await interact(update, context)
-
-    user_filter = {}
     keyboard = [
         [
-            InlineKeyboardButton("Distance", callback_data='A_F: Dis'),
-            InlineKeyboardButton('last Online', callback_data='A_F: last_online')
+            InlineKeyboardButton(Messages.DISTANCE_FILTER, callback_data='A_F: Dis'),
+            InlineKeyboardButton(Messages.LAST_ONLINE_FILTER, callback_data='A_F: last_online')
         ],
-
         [
-            InlineKeyboardButton('Gender', callback_data='A_F: Gender'),
-            InlineKeyboardButton('Age', callback_data='A_F: Age')
+            InlineKeyboardButton(Messages.GENDER_FILTER, callback_data='A_F: Gender'),
+            InlineKeyboardButton(Messages.AGE_FILTER, callback_data='A_F: Age')
         ],
-
-        [InlineKeyboardButton('Cities', callback_data='A_F: Cities')],
-
-        [InlineKeyboardButton('Done', callback_data='A_F: Search')]
+        [InlineKeyboardButton(Messages.CITIES_FILTER, callback_data='A_F: Cities')],
+        [InlineKeyboardButton(Messages.SEARCH_BUTTON, callback_data='A_F: Search')]
     ]
+
     reply_markup = InlineKeyboardMarkup(keyboard)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="advance searched:",
+        text=Messages.ADVANCE_SEARCH_TITLE,
         reply_markup=reply_markup
     )
 
@@ -217,22 +202,22 @@ ContextTypes.DEFAULT_TYPE):
     await interact(update, context)
     if "gender_filter" not in context.user_data:
         context.user_data['gender_filter'] = []
+
     gender_filter = context.user_data['gender_filter']
     keyboard = [
-
         [
-            InlineKeyboardButton(f"{'✓ ' if 'male' in gender_filter else ''}Male", callback_data="random gender: male"),
-            InlineKeyboardButton(f"{'✓ ' if 'female' in gender_filter else ''}Female",
+            InlineKeyboardButton(f"{'✓ ' if 'male' in gender_filter else ''}{Messages.MALE_OPTION}",
+                                 callback_data="random gender: male"),
+            InlineKeyboardButton(f"{'✓ ' if 'female' in gender_filter else ''}{Messages.FEMALE_OPTION}",
                                  callback_data="random gender: female"),
         ],
-        [
-            InlineKeyboardButton('Done', callback_data="random_chat: gender: done"),
-        ],
+        [InlineKeyboardButton(Messages.DONE_BUTTON, callback_data="random_chat: gender: done")],
     ]
+
     reply_markup = InlineKeyboardMarkup(keyboard)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="random_chat mikhai",
+        text=Messages.RANDOM_CHAT_PROMPT,
         reply_markup=reply_markup,
     )
 
@@ -244,16 +229,20 @@ async def show_profile_request(update: Update, context: ContextTypes.DEFAULT_TYP
     """
     user_id = update.effective_user.id
     target_id_parts = update.message.text.split('_', 1)
+
     if len(target_id_parts) < 2:
-        await update.message.reply_text('invalid format. use/chaT_<somthing>')
+        await update.message.reply_text(Messages.INVALID_FORMAT.format(command="chaT"))
         return
+
     command, target_id_generated = target_id_parts
     if not target_id_generated:
-        await update.message.reply_text('invalid item. Could not find this item')
+        await update.message.reply_text(Messages.INVALID_ITEM)
         return
+
     if not user_db.get_user_id_from_generated_id(target_id_generated):
-        await update.message.reply_text('This user is not registered!')
+        await update.message.reply_text(Messages.USER_NOT_REGISTERED)
         return
+
     target_id = user_db.get_user_id_from_generated_id(target_id_generated)
     await profile.show_target_profile(update, context, target_id)
 
@@ -271,26 +260,25 @@ async def gold_dollar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await interact(update, context)
     user_id = update.effective_chat.id
     checking_msg = await context.bot.send_message(user_id, text='Checking site .... wait')
+
     try:
         latest_price = gold_db.get_latest_update()
         if not latest_price:
             raise Exception("Could not fetch prices")
 
-        keyboard = [
-            [
-                InlineKeyboardButton(f'calculator', callback_data=f'{calculator.calculate_command}'),
-            ]
-        ]
+        keyboard = [[InlineKeyboardButton(Messages.CALCULATOR_BUTTON, callback_data=f'{calculator.calculate_command}')]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await context.bot.edit_message_text(
             chat_id=user_id,
             message_id=checking_msg.message_id,
-            text=f'Updated @ {latest_price.time_check_ir.strftime('%Y-%m-%d %H:%M')}\n'
-                 f'gold 18k 1gr Iran= {latest_price.gold_18k_ir:,} Rial\n'
-                 f'dollar Iran = {latest_price.dollar_ir_rial:,} Rial\n'
-                 f'gold 18k 1gr international = ${latest_price.gold_18k_international_dollar}\n'
-                 f'gold 18k 1gr international into ir = {latest_price.gold_18k_international_rial:,} Rial\n',
+            text=Messages.GOLD_PRICE_UPDATE.format(
+                time=latest_price.time_check_ir.strftime('%Y-%m-%d %H:%M'),
+                gold_18k_ir=latest_price.gold_18k_ir,
+                dollar_ir_rial=latest_price.dollar_ir_rial,
+                gold_18k_international_dollar=latest_price.gold_18k_international_dollar,
+                gold_18k_international_rial=latest_price.gold_18k_international_rial
+            ),
             reply_markup=reply_markup
         )
     except Exception as e:
@@ -298,9 +286,7 @@ async def gold_dollar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.edit_message_text(
             chat_id=user_id,
             message_id=checking_msg.message_id,
-            text="⚠️ Sorry, I couldn't fetch the latest prices right now.\n\n"
-                 "Please try again in a few minutes."
-        )
+            text=Messages.PRICE_FETCH_ERROR)
 
 
 # ___________________________________________________________________________________________
@@ -315,16 +301,11 @@ async def torob(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await interact(update, context)
 
     keyboard = [
-        [
-            InlineKeyboardButton(f'Check My Items/edit', callback_data=f'torob: check'),
-        ],
-        [
-            InlineKeyboardButton("Addd New items", callback_data=torob_conversation.query_add_pattern),
-        ],
-
+        [InlineKeyboardButton(Messages.CHECK_ITEMS_BUTTON, callback_data='torob: check')],
+        [InlineKeyboardButton(Messages.ADD_NEW_ITEMS_BUTTON, callback_data=torob_conversation.query_add_pattern)],
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
 
+    reply_markup = InlineKeyboardMarkup(keyboard)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="Torob Scraper: ",
@@ -339,21 +320,26 @@ async def edit_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     user_id = update.effective_user.id
     item_id_parts = update.message.text.split('_', 1)
+
     if len(item_id_parts) < 2:
-        await update.message.reply_text('invalid format. use/item_<somthing>')
+        await update.message.reply_text(Messages.INVALID_FORMAT.format(command="item"))
         return
+
     try:
         command, item_id = item_id_parts
         item_data = torob_db.get_item_by_id(int(item_id))
     except ValueError:
-        await update.message.reply_text('invalid format. use/item_<somthing>')
+        await update.message.reply_text(Messages.INVALID_FORMAT.format(command="item"))
         return
+
     if not item_data:
-        await update.message.reply_text('invalid item. Could not find this item')
+        await update.message.reply_text(Messages.INVALID_ITEM)
         return
+
     if not torob_db.check_ownership(user_id, int(item_id)):
-        await update.message.reply_text('You are now owner of this item / plz insert a valid code')
+        await update.message.reply_text(Messages.NOT_OWNER)
         return
+
     context.user_data['editing_item_id'] = int(item_id)
     keyboard = [
         [
@@ -361,21 +347,20 @@ async def edit_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton('Edit URL', callback_data=f'{torob_conversation.edit_url_pattern}'),
             InlineKeyboardButton('Edit Name', callback_data=f'{torob_conversation.edit_name_pattern}')
         ],
-        [
-            InlineKeyboardButton('delete', callback_data=f'{torob_conversation.delete_item_pattern}')
-        ],
-        [
-            InlineKeyboardButton('home', callback_data='item_edit:home')
-        ]
+        [InlineKeyboardButton('delete', callback_data=f'{torob_conversation.delete_item_pattern}')],
+        [InlineKeyboardButton('home', callback_data='item_edit:home')]
     ]
+
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await context.bot.send_message(user_id,
-                                   text=f"✅ Item On Edit Mode!\n\n"
-                                        f"Item: {item_data.name_of_item}\n"
-                                        f"Current Highest Price: {item_data.user_preferred_price}\n\n"
-                                        f"Current URL: {item_data.torob_url}\n\n"
-                                        f"What would you like to edit?",
-                                   reply_markup=reply_markup)
+    await context.bot.send_message(
+        user_id,
+        text=Messages.ITEM_ON_EDIT_MODE.format(
+            name=item_data.name_of_item,
+            price=item_data.user_preferred_price,
+            url=item_data.torob_url
+        ),
+        reply_markup=reply_markup
+    )
 
 
 # ___________________________________________________________________________________________
@@ -421,15 +406,15 @@ async def gender_filter_buttons(query, context:ContextTypes.DEFAULT_TYPE):
         context.user_data['user_filter'] = {}
     if "gender_filter" not in context.user_data:
         context.user_data['gender_filter'] = []
+
     gender_filter = context.user_data['gender_filter']
     action = query.data.split(":")[1].strip().lower()
+
     if action in ["male", "female"]:
-        # Toggle selection
         if action in gender_filter:
             gender_filter.remove(action)
         else:
             gender_filter.append(action)
-        # Update the message with new buttons
         await gender_filter_handler(query, context)
 
 async def random_search_gender_filter_buttons(query, context:ContextTypes.DEFAULT_TYPE):
@@ -437,16 +422,15 @@ async def random_search_gender_filter_buttons(query, context:ContextTypes.DEFAUL
         context.user_data['user_filter'] = {}
     if "gender_filter" not in context.user_data:
         context.user_data['gender_filter'] = []
+
     gender_filter = context.user_data['gender_filter']
     action = query.data.split(":")[1].strip().lower()
+
     if action in ["male", "female"]:
-        # Toggle selection
         if action in gender_filter:
             gender_filter.remove(action)
         else:
             gender_filter.append(action)
-
-        # Update the message with new buttons
         await random_chat_gender_done(query, context)
 
 async def age_filter_buttons(query, context:ContextTypes.DEFAULT_TYPE):
@@ -454,9 +438,10 @@ async def age_filter_buttons(query, context:ContextTypes.DEFAULT_TYPE):
         context.user_data['user_filter'] = {}
     if "age_filter" not in context.user_data['user_filter']:
         context.user_data['user_filter']['age_filter'] = []
+
     age_filter = context.user_data['user_filter']['age_filter']
-    # using call back to get filter
     action = int(query.data.split(':')[1].strip())
+
     if action in age_filter:
         age_filter.remove(action)
     else:
@@ -468,9 +453,10 @@ async def city_filter_buttons(query, context:ContextTypes.DEFAULT_TYPE):
         context.user_data['user_filter'] = {}
     if "city_filter" not in context.user_data['user_filter']:
         context.user_data['city_filter'] = []
+
     city_filter = context.user_data['user_filter']['city_filter']
     action = query.data.split(":")[1].strip().lower()
-    # Toggle selection
+
     if action == "all":
         if len(city_filter) == len(iran_cities_fa):
             city_filter.clear()
@@ -482,7 +468,6 @@ async def city_filter_buttons(query, context:ContextTypes.DEFAULT_TYPE):
         city_filter.remove(action)
     else:
         city_filter.append(action)
-    # Update the message with new buttons
     await cities_filter_handler(query, context)
 
 
@@ -493,63 +478,41 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     await interact(update, context)
     query = update.callback_query
-
     await query.answer()
 
     if query.data.startswith('A_F:'):
         if 'user_filter' not in context.user_data:
             context.user_data['user_filter'] = {}
-        user_filter = context.user_data['user_filter']
         filter_name = query.data.split(':')[1].strip().lower()
         await advance_filter_lvl1_buttons(query, context, filter_name)
-
     elif query.data.startswith('A_F_D'):
         await interact(update, context)
         await advance_filter_lvl2_buttons(query, context)
-
-    # this is get of gender filter
     elif query.data.startswith("gender:"):
         await gender_filter_buttons(query, context)
-
     elif query.data.startswith("random gender:"):
         await random_search_gender_filter_buttons(query, context)
-
     elif query.data.startswith("random_chat: gender: done"):
         await user_message.handle_random_chat(update, context)
-
     elif query.data.startswith(user_message.button_start_with_command):
         await interact(update, context)
         await user_message.buttons_set(update, context)
-
-    # this is get of age filter
     elif query.data.startswith("age_filter:"):
         await age_filter_buttons(query, context)
-
-    # this is get of city filter
     elif query.data.startswith("city_filter:"):
         await city_filter_buttons(query, context)
-
     elif query.data.startswith('torob:'):
         action = query.data.split(':')[1].strip().lower()
         if action == "check":
             await check_torob_list(query, context)
-
-
-
     elif query.data == f'{calculator.calculate_command}':
         await query.answer()
-        # Get the conversation handler
         conv_handler = calculator.get_calculated_price_conversation_handler()
-        # Start the conversation manually
         await conv_handler.trigger(update, context)
         await query.delete_message()
-
     elif query.data == 'page_before':
-        # Decrement current_page by 1 to go to the previous page
         await search_filters_handler(query, context, current_page=context.user_data.get('current_page', 1) - 1)
-
     elif query.data == 'page_next':
-        # Increment current_page by 1 to go to the next page
         await search_filters_handler(query, context, current_page=context.user_data.get('current_page', 1) + 1)
 
     await profile.buttons(update, context)
@@ -567,23 +530,20 @@ async def distance_filter_handler(query, context):
     """
     keyboard = [
         [
-            InlineKeyboardButton('5km', callback_data='A_F_D: dis_filter: 5km'),
-            InlineKeyboardButton('10km', callback_data='A_F_D: dis_filter: 10km'),
+            InlineKeyboardButton(Messages.DISTANCE_5KM, callback_data='A_F_D: dis_filter: 5km'),
+            InlineKeyboardButton(Messages.DISTANCE_10KM, callback_data='A_F_D: dis_filter: 10km'),
         ],
         [
-            InlineKeyboardButton('15km', callback_data='A_F_D: dis_filter: 15km'),
-            InlineKeyboardButton('20km', callback_data='A_F_D: dis_filter: 20km'),
+            InlineKeyboardButton(Messages.DISTANCE_15KM, callback_data='A_F_D: dis_filter: 15km'),
+            InlineKeyboardButton(Messages.DISTANCE_20KM, callback_data='A_F_D: dis_filter: 20km'),
         ],
         [
-            InlineKeyboardButton('25km', callback_data='A_F_D: dis_filter: 25km'),
-            InlineKeyboardButton('30km', callback_data='A_F_D: dis_filter: 30km'),
+            InlineKeyboardButton(Messages.DISTANCE_25KM, callback_data='A_F_D: dis_filter: 25km'),
+            InlineKeyboardButton(Messages.DISTANCE_30KM, callback_data='A_F_D: dis_filter: 30km'),
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.edit_message_text(
-        'Chose',
-        reply_markup=reply_markup
-    )
+    await query.edit_message_text(Messages.CHOOSE_PROMPT, reply_markup=reply_markup)
 
 
 def get_dis_filter(query, context):
@@ -600,23 +560,20 @@ async def last_online_filter_handler(query, context):
     """
     keyboard = [
         [
-            InlineKeyboardButton('15min', callback_data='A_F_D: last_online_filter: 15min'),
-            InlineKeyboardButton('30min', callback_data='A_F_D: last_online_filter: 30min'),
+            InlineKeyboardButton(Messages.TIME_15MIN, callback_data='A_F_D: last_online_filter: 15min'),
+            InlineKeyboardButton(Messages.TIME_30MIN, callback_data='A_F_D: last_online_filter: 30min'),
         ],
         [
-            InlineKeyboardButton('1hr', callback_data='A_F_D: last_online_filter: 1hr'),
-            InlineKeyboardButton('3hr', callback_data='A_F_D: last_online_filter: 3hr'),
+            InlineKeyboardButton(Messages.TIME_1HR, callback_data='A_F_D: last_online_filter: 1hr'),
+            InlineKeyboardButton(Messages.TIME_3HR, callback_data='A_F_D: last_online_filter: 3hr'),
         ],
         [
-            InlineKeyboardButton('1day', callback_data='A_F_D: last_online_filter: 1day'),
-            InlineKeyboardButton('1week', callback_data='A_F_D: last_online_filter: 1week'),
+            InlineKeyboardButton(Messages.TIME_1DAY, callback_data='A_F_D: last_online_filter: 1day'),
+            InlineKeyboardButton(Messages.TIME_1WEEK, callback_data='A_F_D: last_online_filter: 1week'),
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.edit_message_text(
-        'Chose',
-        reply_markup=reply_markup
-    )
+    await query.edit_message_text(Messages.CHOOSE_PROMPT, reply_markup=reply_markup)
 
 
 def get_last_online_filter(query, context):
@@ -645,20 +602,21 @@ async def gender_filter_handler(query, context):
     """
     if "gender_filter" not in context.user_data:
         context.user_data['gender_filter'] = []
+
     gender_filter = context.user_data['gender_filter']
     keyboard = [
-
         [
-            InlineKeyboardButton(f"{'✓ ' if 'male' in gender_filter else ''}Male", callback_data="gender: male"),
-            InlineKeyboardButton(f"{'✓ ' if 'female' in gender_filter else ''}Female", callback_data="gender: female"),
+            InlineKeyboardButton(f"{'✓ ' if 'male' in gender_filter else ''}{Messages.MALE_OPTION}",
+                                 callback_data="gender: male"),
+            InlineKeyboardButton(f"{'✓ ' if 'female' in gender_filter else ''}{Messages.FEMALE_OPTION}",
+                                 callback_data="gender: female"),
         ],
-        [
-            InlineKeyboardButton('Done', callback_data="A_F_D: gender: done"),
-        ],
+        [InlineKeyboardButton(Messages.DONE_BUTTON, callback_data="A_F_D: gender: done")],
     ]
+
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(
-        text="Chose gender:",
+        text=Messages.CHOOSE_GENDER,
         reply_markup=reply_markup,
     )
 
@@ -669,21 +627,21 @@ async def random_chat_gender_done(query, context):
     """
     if "gender_filter" not in context.user_data:
         context.user_data['gender_filter'] = []
+
     gender_filter = context.user_data['gender_filter']
     keyboard = [
-
         [
-            InlineKeyboardButton(f"{'✓ ' if 'male' in gender_filter else ''}Male", callback_data="random gender: male"),
-            InlineKeyboardButton(f"{'✓ ' if 'female' in gender_filter else ''}Female",
+            InlineKeyboardButton(f"{'✓ ' if 'male' in gender_filter else ''}{Messages.MALE_OPTION}",
+                                 callback_data="random gender: male"),
+            InlineKeyboardButton(f"{'✓ ' if 'female' in gender_filter else ''}{Messages.FEMALE_OPTION}",
                                  callback_data="random gender: female"),
         ],
-        [
-            InlineKeyboardButton('Done', callback_data="random_chat: gender: done"),
-        ],
+        [InlineKeyboardButton(Messages.DONE_BUTTON, callback_data="random_chat: gender: done")],
     ]
+
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(
-        text="Chose gender:",
+        text=Messages.CHOOSE_GENDER,
         reply_markup=reply_markup,
     )
 
@@ -695,7 +653,6 @@ def get_gender_filter(query, context):
     """
     context.user_data['user_filter']['gender_filter'] = context.user_data['gender_filter']
 
-
 async def age_filter_handler(query, context, i=None):
     """
     Displays inline keyboard for age filtering in advanced search.
@@ -706,54 +663,46 @@ async def age_filter_handler(query, context, i=None):
         context.user_data['user_filter'] = {}
     if "age_filter" not in context.user_data['user_filter']:
         context.user_data['user_filter']['age_filter'] = []
+
     if len(context.user_data['user_filter']['age_filter']) > 2:
         context.user_data['user_filter']['age_filter'].sort()
         a = context.user_data['user_filter']['age_filter'][0]
         b = context.user_data['user_filter']['age_filter'][-1]
         context.user_data['user_filter']['age_filter'].clear()
         context.user_data['user_filter']['age_filter'] = [a, b]
+
     age_filter = context.user_data['user_filter']['age_filter']
-    # --------------->here
+
     if len(age_filter) == 2:
         keyboard = [
                        [
                            InlineKeyboardButton(
-                               f'{'✓ ' if (8 * i + n) + 1 in range(age_filter[0], age_filter[1] + 1) else ''}{(8 * i + n) + 1}',
+                               f"{'✓ ' if (8 * i + n) + 1 in range(age_filter[0], age_filter[1] + 1) else ''}{(8 * i + n) + 1}",
                                callback_data=f'age_filter: {(8 * i + n) + 1}') for n in range(8)
                        ] for i in range(1, 13)
-                   ] + [
-                       [
-                           InlineKeyboardButton('Done', callback_data="A_F_D: age: done"),
-                       ],
-                   ]
+                   ] + [[InlineKeyboardButton(Messages.DONE_BUTTON, callback_data="A_F_D: age: done")]]
     else:
         keyboard = [
                        [
-                           InlineKeyboardButton(f'{'✓ ' if (8 * i + n) + 1 in age_filter else ''}{(8 * i + n) + 1}',
+                           InlineKeyboardButton(f"{'✓ ' if (8 * i + n) + 1 in age_filter else ''}{(8 * i + n) + 1}",
                                                 callback_data=f'age_filter: {(8 * i + n) + 1}') for n in range(8)
                        ] for i in range(1, 13)
-                   ] + [
-                       [
-                           InlineKeyboardButton('Done', callback_data="A_F_D: age: done"),
-                       ],
-                   ]
+                   ] + [[InlineKeyboardButton(Messages.DONE_BUTTON, callback_data="A_F_D: age: done")]]
+
     if len(context.user_data['user_filter']['age_filter']) == 2:
         context.user_data['user_filter']['age_filter'].sort()
-        text = f'from: {context.user_data['user_filter']['age_filter'][0]} to: {context.user_data['user_filter']['age_filter'][1]}'
+        text = f'from: {context.user_data["user_filter"]["age_filter"][0]} to: {context.user_data["user_filter"]["age_filter"][1]}'
     elif len(context.user_data['user_filter']['age_filter']) == 1:
-        text = f'-{context.user_data['user_filter']["age_filter"][0]}-'
+        text = f'-{context.user_data["user_filter"]["age_filter"][0]}-'
     else:
-        text = "plz chose starting age:"
+        text = Messages.CHOOSE_STARTING_AGE
+
     reply_markup = InlineKeyboardMarkup(keyboard)
     try:
-        await query.edit_message_text(
-            text=text,
-            reply_markup=reply_markup
-        )
+        await query.edit_message_text(text=text, reply_markup=reply_markup)
     except BadRequest as e:
         if "Message is not modified" not in str(e):
-            raise  # Re-raise if it's a different error
-    # get of this part is in buttons functions
+            raise
 
 
 async def cities_filter_handler(query, context):
@@ -763,25 +712,23 @@ async def cities_filter_handler(query, context):
     """
     if "city_filter" not in context.user_data['user_filter']:
         context.user_data['user_filter']['city_filter'] = []
+
     city_filter = context.user_data['user_filter']['city_filter']
     keyboard = [
                    [
-                       InlineKeyboardButton(f'{'✓ ' if city in city_filter else ""}{city}',
+                       InlineKeyboardButton(f"{'✓ ' if city in city_filter else ''}{city}",
                                             callback_data=f'city_filter: {city}') for city
                        in iran_cities_fa[i * 4: (i * 4) + 4]
                    ] for i in range(10)
-
                ] + [
                    [
-                       InlineKeyboardButton('ALL', callback_data="city_filter: all"),
-                       InlineKeyboardButton('Done', callback_data="A_F_D: city: done"),
+                       InlineKeyboardButton(Messages.ALL_BUTTON, callback_data="city_filter: all"),
+                       InlineKeyboardButton(Messages.DONE_BUTTON, callback_data="A_F_D: city: done"),
                    ],
                ]
+
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.edit_message_text(
-        'Chose',
-        reply_markup=reply_markup
-    )
+    await query.edit_message_text(Messages.CHOOSE_PROMPT, reply_markup=reply_markup)
 
 
 async def search_filters_handler(query, context, current_page=1):
@@ -812,28 +759,24 @@ async def search_filters_handler(query, context, current_page=1):
         """
     user_id = query.from_user.id
     generated_id = context.user_data.get('generated_id')
+
     if not generated_id:
         user_db.add_or_update_user(user_id, context.user_data)
 
     await interact(query, context)
     selected_users = user_db.get_filtered_users(context.user_data)
-    # reseting filter
     context.user_data['user_filter'] = {}
 
     all_pages = []
     page = ''
     num_show_page = 10
-    # Store current page in user_data to persist across callbacks
     context.user_data['current_page'] = current_page
 
-    # Calculate start and end indices for pagination
     start_index = (current_page - 1) * num_show_page
     end_index = start_index + num_show_page
-
     paginated_users = selected_users[start_index:end_index]
 
     if not paginated_users and selected_users:
-        # If no users on this page but there are other pages, go to first page
         context.user_data['current_page'] = 1
         start_index = 0
         end_index = num_show_page
@@ -843,8 +786,9 @@ async def search_filters_handler(query, context, current_page=1):
         name = data['user'].name
         generated_id = data['user'].generated_id
         distance = int(data['distance'])
+
         if data['is_online']:
-            last_online = 'Online'
+            last_online = Messages.ONLINE_ICON
         else:
             if int(data["mins_ago"]) <= 60:
                 last_online = f'{int(data["mins_ago"])} mins ago'
@@ -858,34 +802,35 @@ async def search_filters_handler(query, context, current_page=1):
         gender = data['user'].gender.lower()
         city = data['user'].city
         age = data['user'].age
-        user_id = data['user'].user_id
 
-
-
-        note = f'\nName:{"👨🏻‍🦱" if gender == 'male' else '👩🏻'} {name}\nAge: {age} Years old\nLast Online: {last_online}\ncity: {city}\nDistance: {distance}km away\n\nuser_id: /chaT_{generated_id}\n\n{divider}\n'
+        note = Messages.PROFILE_NOTE.format(
+            gender_icon=Messages.MALE_ICON if gender == 'male' else Messages.FEMALE_ICON,
+            name=name,
+            age=age,
+            last_online=last_online,
+            city=city,
+            distance=distance,
+            generated_id=generated_id,
+            divider=divider
+        )
         page += note
-    all_pages.append(page)
 
+    all_pages.append(page)
     total_pages = math.ceil(len(selected_users) / num_show_page)
 
     keyboard_buttons = []
     if total_pages > 1:
         if current_page > 1:
-            keyboard_buttons.append(InlineKeyboardButton('Back', callback_data='page_before'))
+            keyboard_buttons.append(InlineKeyboardButton(Messages.BACK_BUTTON, callback_data='page_before'))
         if current_page < total_pages:
-            keyboard_buttons.append(InlineKeyboardButton('Next', callback_data='page_next'))
+            keyboard_buttons.append(InlineKeyboardButton(Messages.NEXT_BUTTON, callback_data='page_next'))
 
     reply_markup = InlineKeyboardMarkup([keyboard_buttons]) if keyboard_buttons else None
 
-    if paginated_users:  # Use paginated_users to check if there are results for the current page
-        await query.edit_message_text(
-            text=page,
-            reply_markup=reply_markup
-        )
+    if paginated_users:
+        await query.edit_message_text(text=page, reply_markup=reply_markup)
     else:
-        await query.edit_message_text(
-            text='Could not find any profile for this filter\n\n/start'
-        )
+        await query.edit_message_text(text=Messages.NO_PROFILES_FOUND)
 
 
 async def update_advance_search(query, context: ContextTypes.DEFAULT_TYPE):
@@ -894,10 +839,8 @@ async def update_advance_search(query, context: ContextTypes.DEFAULT_TYPE):
     Reflects selections for distance, last online, gender, age, and cities on the buttons.
     """
     filter_data = context.user_data['user_filter']
-    if "dis_filter" in filter_data:
-        dis = f": {filter_data['dis_filter']}km"
-    else:
-        dis = ""
+
+    dis = f": {filter_data['dis_filter']}km" if "dis_filter" in filter_data else ""
 
     if "last_online_filter" in filter_data:
         reverse_dict = {v: k for k, v in dict_last_online.items()}
@@ -906,9 +849,7 @@ async def update_advance_search(query, context: ContextTypes.DEFAULT_TYPE):
         last_online = ""
 
     if "gender_filter" in filter_data:
-        gender = ""
-        for g in filter_data["gender_filter"]:
-            gender = f'{gender}{g}, '
+        gender = ", ".join(filter_data["gender_filter"])
     else:
         gender = ""
 
@@ -918,33 +859,28 @@ async def update_advance_search(query, context: ContextTypes.DEFAULT_TYPE):
         elif len(filter_data['age_filter']) == 2:
             age = f": {filter_data['age_filter'][0]} to {filter_data['age_filter'][1]}"
         else:
-            age = []
+            age = ""
     else:
         age = ""
 
-    if "city_filter" in filter_data:
-        num_cities = f": {len(filter_data['city_filter'])}"
-    else:
-        num_cities = ""
+    num_cities = f": {len(filter_data['city_filter'])}" if "city_filter" in filter_data else ""
 
     keyboard = [
         [
-            InlineKeyboardButton(f"Distance{dis}", callback_data='A_F: Dis'),
-            InlineKeyboardButton(f'last Online {last_online}', callback_data='A_F: last_online')
+            InlineKeyboardButton(f"{Messages.DISTANCE_FILTER}{dis}", callback_data='A_F: Dis'),
+            InlineKeyboardButton(f"{Messages.LAST_ONLINE_FILTER}{last_online}", callback_data='A_F: last_online')
         ],
-
         [
-            InlineKeyboardButton(f'{gender if gender else "Gender"}', callback_data='A_F: Gender'),
-            InlineKeyboardButton(f'Age{age}', callback_data='A_F: Age')
+            InlineKeyboardButton(f"{gender if gender else Messages.GENDER_FILTER}", callback_data='A_F: Gender'),
+            InlineKeyboardButton(f"{Messages.AGE_FILTER}{age}", callback_data='A_F: Age')
         ],
-
-        [InlineKeyboardButton(f'Cities{num_cities}', callback_data='A_F: Cities')],
-
-        [InlineKeyboardButton('Search', callback_data='A_F: Search')]
+        [InlineKeyboardButton(f"{Messages.CITIES_FILTER}{num_cities}", callback_data='A_F: Cities')],
+        [InlineKeyboardButton(Messages.SEARCH_BUTTON, callback_data='A_F: Search')]
     ]
+
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(
-        text="advance searched:",
+        text=Messages.ADVANCE_SEARCH_TITLE,
         reply_markup=reply_markup
     )
 
@@ -964,33 +900,44 @@ async def check_torob_list(query, context: ContextTypes.DEFAULT_TYPE):
     user_items = torob_db.get_user_items(user_id)
     final_note = ""
     keyboard = [
-        [InlineKeyboardButton('Add Item', callback_data=torob_conversation.query_add_pattern)]
+        [InlineKeyboardButton(Messages.ADD_ITEM_BUTTON, callback_data=torob_conversation.query_add_pattern)]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
+
     if user_items:
         for item in user_items:
             name = item.name_of_item
             latest_price = torob_db.get_latest_price(item.item_id)
-            signal_price = '✅' if latest_price and latest_price <= item.user_preferred_price else '❌'
+            signal_price = Messages.PRICE_OK_ICON if latest_price and latest_price <= item.user_preferred_price else Messages.PRICE_HIGH_ICON
             latest_check = torob_db.get_latest_check(item.item_id)
             item_id = item.item_id
-            if latest_check:
-                latest_check_format = latest_check.strftime("%Y/%m/%d: %H")
+
             if latest_check and latest_price:
-                item_note = f"{signal_price}{name} @{latest_check}: with price of {latest_price}\n\nedit /item_{item_id}\n\n{divider}"
-                final_note += item_note
+                item_note = Messages.ITEM_CHECKED_FORMAT.format(
+                    signal=signal_price,
+                    name=name,
+                    latest_check=latest_check.strftime("%Y/%m/%d: %H"),
+                    latest_price=latest_price,
+                    item_id=item_id,
+                    divider=divider
+                )
             else:
-                item_note = f"\n{signal_price}{name} is not yet Checked plz wait\n\nedit /item_{item_id}\n\n{divider}\n"
-                final_note += item_note
+                item_note = Messages.ITEM_UNCHECKED_FORMAT.format(
+                    signal=signal_price,
+                    name=name,
+                    item_id=item_id,
+                    divider=divider
+                )
+            final_note += item_note
+
     if final_note:
         await query.edit_message_text(
             text=final_note,
             reply_markup=reply_markup
-
         )
     else:
         await query.edit_message_text(
-            text="there is noting to show plz add some \n\n /start",
+            text=Messages.NOTHING_TO_SHOW,
             reply_markup=reply_markup
         )
 
@@ -1005,13 +952,13 @@ if __name__ == "__main__":
 
     # Create Handlers for various commands and message types.
     start_handler = CommandHandler("start", start)
-    chat_handler = MessageHandler(filters.Regex(r"^ChaT$"), chat)
-    advance_search_handler = MessageHandler(filters.Regex(r"^Advance Search"), advance_search)
-    random_chat_handler = MessageHandler(filters.Regex(r"^Random chat$"), random_chat)
-    gold_dollar_handler = MessageHandler(filters.Regex(r"^Gold & Dollar$"), gold_dollar)
-    torob_handler = MessageHandler(filters.Regex(r"^Torob price check$"), torob)
-    torob_edit_handler = MessageHandler(filters.Regex(r'^/item_'), edit_command)
-    show_profile_handler = MessageHandler(filters.Regex(r'^/chaT_'), show_profile_request)
+    chat_handler = MessageHandler(filters.Regex(Messages.CHAT_REGEX), chat)
+    advance_search_handler = MessageHandler(filters.Regex(Messages.ADVANCE_SEARCH_REGEX), advance_search)
+    random_chat_handler = MessageHandler(filters.Regex(Messages.RANDOM_CHAT_REGEX), random_chat)
+    gold_dollar_handler = MessageHandler(filters.Regex(Messages.GOLD_DOLLAR_REGEX), gold_dollar)
+    torob_handler = MessageHandler(filters.Regex(Messages.TOROB_REGEX), torob)
+    torob_edit_handler = MessageHandler(filters.Regex(Messages.ITEM_EDIT_REGEX), edit_command)
+    show_profile_handler = MessageHandler(filters.Regex(Messages.CHAT_PROFILE_REGEX), show_profile_request)
     my_profile = CommandHandler("profile", profile.show_my_profile)
     # Inline button handler
     buttons_handler = CallbackQueryHandler(buttons)
@@ -1025,19 +972,14 @@ if __name__ == "__main__":
     application.add_handler(gold_dollar_handler)
     application.add_handler(torob_handler)
     application.add_handler(torob_edit_handler)
-    # These conversations have their handlers defined within their respective classes (e.g., telegram_conversation.py)
-    application.add_handler(calculator.get_calculated_price_conversation_handler())
 
+    application.add_handler(calculator.get_calculated_price_conversation_handler())
     application.add_handlers(profile.get_all_handlers())
     application.add_handlers(torob_conversation.get_all_handlers())
-
     application.add_handler(my_profile)
     application.add_handlers(user_message.message_handlers())
-
-    # Add the generic inline button handler.
     application.add_handler(buttons_handler)
 
-    # Run the bot, starting the polling for updates.
     application.run_polling()
 
 # _______________________________________________________________________________

@@ -68,7 +68,18 @@ class Messages:
     PROFILE_NOTE = "\nName:{gender_icon} {name}\nAge: {age} Years old\nLast Online: {last_online}\ncity: {city}\nDistance: {distance}km away\n\nuser_id: /chaT_{generated_id}\n\n{divider}\n"
 
     # Gold price display
-    GOLD_PRICE_UPDATE = "Updated @ {time}\ngold 18k 1gr Iran= {gold_18k_ir:,} Rial\ndollar Iran = {dollar_ir_rial:,} Rial\ngold 18k 1gr international = ${gold_18k_international_dollar}\ngold 18k 1gr international into ir = {gold_18k_international_rial:,} Rial\n"
+    GOLD_PRICE_UPDATE = ("""✨💰 *GOLD PRICE UPDATE* 💰✨
+    ___⏰ Updated @ {time}
+    
+    🇮🇷 *Iran Gold*
+    🟡 18K 1g = {gold_18k_ir:,} Rial
+    💵 Dollar = {dollar_ir_rial:,} Rial
+    
+    🌍 *International Gold*
+    🟡 18K 1g = ${gold_18k_international_dollar}
+    ➡️ Rial Equivalent = {gold_18k_international_rial:,} Rial
+    
+    📊 _Live Market Rates_""")
 
     # Torob item display
     TOROB_ITEM_NOTE = "{signal}{name} @{latest_check}: with price of {latest_price}\n\nedit /item_{item_id}\n\n{divider}"

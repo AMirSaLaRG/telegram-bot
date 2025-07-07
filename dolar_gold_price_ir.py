@@ -103,11 +103,11 @@ class CheckSitePrice:
                 if price_dollar_rial:
                     # Convert USD gold price to Rial using the provided exchange rate
                     int_gold_rial = float(price_usd_18k_gold) * float(price_dollar_rial.replace(',', ''))
-                else:
-                    # If no exchange rate is provided, ask the user
-                    price_dollar_rial = input("plz insert price of dollar in Rial")
-                    int_gold_rial = float(price_usd_18k_gold) * float(price_dollar_rial.replace(',', ''))
-                    print(f"International 18K Gold (Rial): {int_gold_rial}")
+                # else:
+                #     # If no exchange rate is provided, ask the user
+                #     price_dollar_rial = input("plz insert price of dollar in Rial")
+                #     int_gold_rial = float(price_usd_18k_gold) * float(price_dollar_rial.replace(',', ''))
+                #     print(f"International 18K Gold (Rial): {int_gold_rial}")
                 return price_usd_18k_gold, int_gold_rial, datetime.now()
         return None, None, None
 

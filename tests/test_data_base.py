@@ -1,11 +1,13 @@
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, clear_mappers
-import sys
-import os
+import os, sys
+print('RUNNING TEST FILE:', os.path.abspath(__file__))
+print("PYTHONPATH:", sys.path)
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from data_base import Base, User, GoldDollarRial
-
+from bot.db.database import User, Base, GoldDollarRial
+print("User imported from:", User.__module__, "Dict:", dir(User))
+print("User columns:", [c.name for c in User.__table__.columns])
 
 @pytest.fixture(scope="function")
 def session():
@@ -41,7 +43,7 @@ def test_create_user(session):
 
 def test_update_user(session):
 
-    user = User(generated_id="to_update")
+    user = User(generated_id="abc123")
     session.add(user)
     session.commit()
     user_in_db = session.query(User).filter_by(generated_id="to_update").first()

@@ -4,11 +4,23 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35578467-47ec-4149-be7c-60947fca684a" name="Changes" comment="applied some word changes">
-      <change afterPath="$PROJECT_DIR$/tests/test_data_base.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_telegram_chat_handler.py" afterDir="false" />
+    <list default="true" id="35578467-47ec-4149-be7c-60947fca684a" name="Changes" comment="added some test &#10;got 4 failed in data base">
+      <change afterPath="$PROJECT_DIR$/bot/handlers/filter.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/bot/handlers/gold_dollar_report.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/bot/handlers/intraction.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/bot/handlers/profile.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/bot/handlers/start.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/bot/handlers/torob_interact.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_base.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_base.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/db/database.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dolar_gold_price_ir.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/service/dolar_gold_price_ir.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/message/en.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/utils/en.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/telegram_chat_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/telegram_chat_handler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/telegram_conversations.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/telegram_conversations.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_data_base.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_data_base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_telegram_chat_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_telegram_chat_handler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/torob_scraper.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/service/torob_scraper.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -44,42 +56,44 @@
   &quot;associatedIndex&quot;: 8
 }</component>
   <component name="ProjectId" id="2wJjrJXVegdJESUmCOSIoCcMp1C" />
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python tests.Python tests in test_data_base.py.executor": "Run",
-    "Python tests.Python tests in test_telegram_chat_handler.py.executor": "Run",
-    "Python.a simple chat from scratch.executor": "Run",
-    "Python.chat_test.executor": "Run",
-    "Python.data-base.executor": "Run",
-    "Python.data_base.executor": "Run",
-    "Python.dolar_gold_price_ir.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.simple chat.executor": "Run",
-    "Python.telegram_chat_handler.executor": "Run",
-    "Python.telegram_conversation.executor": "Run",
-    "Python.telegram_conversations.executor": "Run",
-    "Python.torob_scraper.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "master",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "D:/portfolio",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python tests.Python tests in test_data_base.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in test_telegram_chat_handler.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python.a simple chat from scratch.executor&quot;: &quot;Run&quot;,
+    &quot;Python.chat_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.data-base.executor&quot;: &quot;Run&quot;,
+    &quot;Python.data_base.executor&quot;: &quot;Run&quot;,
+    &quot;Python.dolar_gold_price_ir.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.python -m venv venv.executor&quot;: &quot;Run&quot;,
+    &quot;Python.simple chat.executor&quot;: &quot;Run&quot;,
+    &quot;Python.telegram_chat_handler.executor&quot;: &quot;Run&quot;,
+    &quot;Python.telegram_conversation.executor&quot;: &quot;Run&quot;,
+    &quot;Python.telegram_conversations.executor&quot;: &quot;Run&quot;,
+    &quot;Python.torob_scraper.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/portfolio&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\telegram bot project\profiles" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="D:\telegram bot project" />
-      <recent name="D:\telegram bot project\scraping torob site" />
-      <recent name="D:\telegram bot project\some practices" />
+      <recent name="D:\telegram bot project\bot\db" />
+      <recent name="D:\telegram bot project\bot\utils" />
+      <recent name="D:\telegram bot project\bot\handlers" />
+      <recent name="D:\telegram bot project\bot\service" />
+      <recent name="D:\telegram bot project\bot" />
     </key>
   </component>
   <component name="RunManager">
@@ -96,7 +110,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
+      <option name="SCRIPT_NAME" value="D:\telegram bot project\bot\main.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -105,16 +119,39 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="python -m venv venv" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="telegram bot project" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="venv" />
+      <option name="PARAMETERS" value="venv" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="true" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <recent_temporary>
       <list>
         <item itemvalue="Python.main" />
+        <item itemvalue="Python.python -m venv venv" />
       </list>
     </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-f78a9d071105-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.26574.90" />
+        <option value="bundled-python-sdk-4c141bd692a7-e2d783800521-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-251.26927.90" />
       </set>
     </attachedChunks>
   </component>
@@ -295,7 +332,15 @@
       <option name="project" value="LOCAL" />
       <updated>1751889973857</updated>
     </task>
-    <option name="localTasksCounter" value="22" />
+    <task id="LOCAL-00022" summary="added some test &#10;got 4 failed in data base">
+      <option name="closed" value="true" />
+      <created>1751893391949</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1751893391949</updated>
+    </task>
+    <option name="localTasksCounter" value="23" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -328,6 +373,7 @@
     <MESSAGE value="break down reply_message&#10;reduced complexity &#10;easy read&#10;in telegram_chat_handler.py" />
     <MESSAGE value="added message folder with en.py file &#10;and moved main.py conver .py and chathan .py&#10;strings inside it" />
     <MESSAGE value="applied some word changes" />
-    <option name="LAST_COMMIT_MESSAGE" value="applied some word changes" />
+    <MESSAGE value="added some test &#10;got 4 failed in data base" />
+    <option name="LAST_COMMIT_MESSAGE" value="added some test &#10;got 4 failed in data base" />
   </component>
 </project>

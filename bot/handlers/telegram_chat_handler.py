@@ -1,15 +1,15 @@
 import datetime
 import logging
-from datetime import timedelta
 from typing import Optional
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, Message
-from telegram.ext import ContextTypes, MessageHandler, filters,CallbackQueryHandler,CommandHandler, filters
+from telegram.ext import ContextTypes, MessageHandler, CallbackQueryHandler,CommandHandler, filters
 import time
-from data_base import ChatDatabase, UserDatabase
+from bot.db.database import ChatDatabase, UserDatabase
 from random import choice
 import asyncio
-from message.en import Messages
+from bot.utils.en import Messages
+from bot.handlers.intraction import track_user_interaction
 
 # a leave and a goffy name option
 # kasaii ke online ya 15 min online boodan beheshoon ye request bere hatman nabayad link dashte bashan
@@ -223,109 +223,6 @@ class UserMessage:
                 reply_markup=InlineKeyboardMarkup(retry_keyboard)
             )
 
-
-        #
-        #
-        # name = "👤" # Default anonymous name
-        # # Check if the user is in an active chat
-        # if not self.db.get_partner_id(user_id):
-        #     await update.message.reply_text("⚠️ You're not doing anything. Do somthing /start")
-        #     return
-        #
-        # partner_id = self.db.get_partner_id(user_id)
-        # message = update.message
-        #
-        # reply_to_id = None
-        # msg_name = context.user_data.get('msg_name', "") # Get custom message name from user data
-        #
-        # if msg_name:
-        #     name = msg_name
-        #
-        # try:
-        #     send_msg = None
-        #
-        #     # Handling replies to specific messages
-        #     if message.reply_to_message:
-        #         reply_msg_id = message.reply_to_message.message_id
-        #
-        #         # Retrieve the corresponding message ID in the partner's chat
-        #         reply_to_id = self.db.get_msg_id_by_robot_msg(reply_msg_id)
-        #         if not reply_to_id:
-        #             reply_to_id = self.db.get_msg_id_by_user_msg(reply_msg_id)
-        #
-        #     # Handle different message types
-        #     if message.text:
-        #         send_msg = await context.bot.send_message(partner_id, f"{name}: {message.text}",
-        #                                                   reply_to_message_id=reply_to_id)
-        #     elif message.photo:
-        #         send_msg = await context.bot.send_photo(partner_id, photo=message.photo[-1].file_id,
-        #                                                 caption=f"{name}: {message.caption}" if message.caption else None,
-        #                                                 reply_to_message_id=reply_to_id,
-        #                                                 has_spoiler=self.db.get_user_session(user_id).secret_chat, # Apply spoiler for secret chat
-        #                                                 protect_content=self.db.get_user_session(user_id).secret_chat) # Protect content for secret chat
-        #     elif message.video:
-        #         send_msg = await context.bot.send_video(
-        #             partner_id,
-        #             video=update.message.video.file_id,
-        #             caption=f"{name}: {update.message.caption}" if update.message.caption else None,
-        #             reply_to_message_id=reply_to_id,
-        #             has_spoiler=self.db.get_user_session(user_id).secret_chat,
-        #             protect_content=self.db.get_user_session(user_id).secret_chat,
-        #             supports_streaming=self.db.get_user_session(user_id).secret_chat
-        #
-        #         )
-        #
-        #     elif message.audio:
-        #         send_msg = await context.bot.send_audio(
-        #             partner_id,
-        #             audio=update.message.audio.file_id,
-        #             caption=f"{name}: {update.message.caption}" if message.caption else None,
-        #             reply_to_message_id=reply_to_id,
-        #             has_spoiler=self.db.get_user_session(user_id).secret_chat,
-        #             protect_content=self.db.get_user_session(user_id).secret_chat,
-        #         )
-        #
-        #     elif message.document:
-        #         send_msg = await context.bot.send_document(
-        #             partner_id,
-        #             document=update.message.document.file_id,
-        #             caption=f"{name}: {update.message.caption}" if message.caption else None,
-        #             reply_to_message_id=reply_to_id,
-        #             has_spoiler=self.db.get_user_session(user_id).secret_chat,
-        #             protect_content=self.db.get_user_session(user_id).secret_chat,
-        #         )
-        #
-        #     elif update.message.sticker:  # Stickers
-        #
-        #         send_msg = await context.bot.send_sticker(
-        #             partner_id,
-        #             sticker=update.message.sticker.file_id,
-        #             reply_to_message_id=reply_to_id
-        #         )
-        #     elif update.message.voice:  # Voice messages
-        #
-        #         send_msg = await context.bot.send_voice(
-        #             partner_id,
-        #             voice=update.message.voice.file_id,
-        #             reply_to_message_id=reply_to_id,
-        #             protect_content=self.db.get_user_session(user_id).secret_chat,
-        #         )
-        #
-        #     # Map original message ID to the sent message ID for future reference (e.g., editing)
-        #     if send_msg and hasattr(send_msg, "message_id"):
-        #         self.db.map_message(message.message_id, send_msg.message_id, user_id, partner_id, msg_txt=message.text)
-        #     # If partner has left the chat (or invalid state), notify user and leave chat
-        #     if not self.db.get_partner_id(partner_id) and not self.db.get_partner_id(partner_id) == user_id:
-        #         await self.leave_chat(update, context)
-        #         await context.bot.send_message(user_id, text=f'Message sent to {partner_id}')
-        #
-        #     # Clear custom message name after sending if it was used
-        #     user_saved_name = context.user_data.get('msg_name', "")
-        #     if user_saved_name == name:
-        #         context.user_data['msg_name'] = ''
-        #
-        # except Exception as e:
-        #     print(f"Error sending message message reply: {e}")
 
     async def handle_edit(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
@@ -666,6 +563,14 @@ class UserMessage:
         partner_found = False
         partner_id = None
 
+        keyboard = [
+            [
+                KeyboardButton(f'/{self.leave_command}'),
+                KeyboardButton(f'/{self.secret_command}'),
+            ]
+        ]
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
         while not partner_found:
             # Check for timeout
             if (datetime.datetime.now() - start_time).seconds > search_timeout:
@@ -702,15 +607,16 @@ class UserMessage:
         if partner_id and self.db.set_partnership(user_id, partner_id):
 
             # Update searching message for the user who initiated the search
-            await context.bot.edit_message_text(
-                chat_id=user_id,
-                message_id=searching_msg.message_id,
-                text=Messages.CONNECTED
+            await context.bot.send_message(
+                user_id,
+                text=Messages.CONNECTED,
+                reply_markup=reply_markup
             )
             # Notify the found partner
             await context.bot.send_message(
                 partner_id,
-                text=Messages.CONNECTED
+                text=Messages.CONNECTED,
+                reply_markup=reply_markup
             )
 
             # Cleanup: set random chat status to False for both partners
@@ -755,6 +661,7 @@ class UserMessage:
             await context.bot.send_message(user_id,
                                            text=Messages.INVALID_USER)
 
+    @track_user_interaction
     async def buttons_set(self, update:Update, context:ContextTypes.DEFAULT_TYPE):
         """
         Handles callback queries from inline keyboard buttons, dispatching to specific handlers.
@@ -762,6 +669,10 @@ class UserMessage:
         """
         query = update.callback_query
         await query.answer() # Acknowledge the callback query
+
+        if query.data.startswith("random_chat: gender: done"):
+            await self.handle_random_chat(update, context)
+
         if query.data.startswith(self.button_start_with_command):
             # Parse action and target ID from callback data
             action = query.data.split(':')[1].strip().lower()
@@ -800,12 +711,67 @@ class UserMessage:
         await context.bot.send_message(user_id, text=f'/chaT_{target_id} got denied')
         await context.bot.send_message(target_id, text=f'/chaT_{user_id} did not accept your chat request')
 
+    @track_user_interaction
+    async def random_chat(self, update: Update, context:
+    ContextTypes.DEFAULT_TYPE):
+        """
+        Initiates the random chat setup, specifically for gender filtering.
+        """
+        if "gender_filter" not in context.user_data:
+            #mael and female
+            context.user_data['gender_filter'] = []
+
+        gender_filter = context.user_data['gender_filter']
+        keyboard = [
+            [
+                InlineKeyboardButton(f"{'✓ ' if 'male' in gender_filter else ''}{Messages.MALE_OPTION}",
+                                     callback_data="random gender: male"),
+                InlineKeyboardButton(f"{'✓ ' if 'female' in gender_filter else ''}{Messages.FEMALE_OPTION}",
+                                     callback_data="random gender: female"),
+            ],
+            [InlineKeyboardButton(Messages.DONE_BUTTON, callback_data="random_chat: gender: done")],
+        ]
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=Messages.RANDOM_CHAT_PROMPT,
+            reply_markup=reply_markup,
+        )
+
+
+
+    @track_user_interaction
+    async def chat_initiator_buttom(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """
+        Handles the 'ChaT' button.
+        Displays options related to chat functionalities (random, anonymous, advanced search).
+        """
+        keyboard = [
+            [KeyboardButton(Messages.RANDOM_CHAT_BUTTON)],
+            [
+                KeyboardButton(f'/{self.command_create_anon_chat}'),
+                KeyboardButton(f'/{self.command_create_anon_msg}')
+            ],
+            [KeyboardButton(Messages.ADVANCE_SEARCH_BUTTON)],
+            [KeyboardButton('/start')]
+        ]
+
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=Messages.WHAT_YOU_LOOKING_FOR,
+            reply_markup=reply_markup,
+        )
+
     def message_handlers(self):
         """
         Returns a list of Telegram Bot API handlers for various commands and message types.
         These handlers link commands and message patterns to their corresponding asynchronous functions.
         """
         return [
+            MessageHandler(filters.Regex(Messages.RANDOM_CHAT_REGEX), self.random_chat),
+            MessageHandler(filters.Regex(Messages.CHAT_REGEX), self.chat_initiator_buttom),
             CommandHandler(f'{self.command_create_anon_chat}', self.create_anonymous_chat_link), # Handler for creating anonymous chat links
             CommandHandler(f'{self.command_create_anon_msg}', self.create_anonymous_msg_link), # Handler for creating anonymous message links
             CommandHandler(f"{self.secret_command}", self.secret_toggle), # Handler for toggling secret chat mode

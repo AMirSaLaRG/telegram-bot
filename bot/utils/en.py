@@ -79,7 +79,7 @@ class Messages:
     🟡 18K 1g = ${gold_18k_international_dollar}
     ➡️ Rial Equivalent = {gold_18k_international_rial:,} Rial
     
-    📊 _Live Market Rates_""")
+   """)
 
     # Torob item display
     TOROB_ITEM_NOTE = "{signal}{name} @{latest_check}: with price of {latest_price}\n\nedit /item_{item_id}\n\n{divider}"

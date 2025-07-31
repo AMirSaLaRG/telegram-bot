@@ -1,12 +1,12 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
-from telegram import Message, Update, User, Chat, PhotoSize, Video
+from telegram import Message, Update, PhotoSize, Video
 from telegram.ext import ContextTypes
 
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from telegram_chat_handler import UserMessage
+from bot.handlers.telegram_chat_handler import UserMessage
 
 
 

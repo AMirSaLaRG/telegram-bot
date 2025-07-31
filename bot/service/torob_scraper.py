@@ -1,13 +1,12 @@
 import logging
 import time
-from typing import Optional, List, Type
 
 from bs4 import BeautifulSoup
 import requests
 from requests.exceptions import HTTPError, RequestException
 #can be a class
 import random
-from data_base import TorobDb
+from bot.db.database import TorobDb
 
 
 

@@ -1,13 +1,12 @@
 import time
 
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Text, select, inspect, ForeignKey, \
     Index, Boolean, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from datetime import datetime, timedelta
 from math import radians, sin, cos, sqrt, atan2
-from dolar_gold_price_ir import CheckSitePrice
+from bot.service.dolar_gold_price_ir import CheckSitePrice
 from typing import Optional, Type, List
 from sqlalchemy.sql import func
 import os
@@ -36,7 +35,7 @@ def generate_secure_random_id(length=8):
 
     Args:
         length (int): The desired length of the generated ID. Defaults to 8.
-
+ghg
     Returns:
         str: A randomly generated ID string.
     """

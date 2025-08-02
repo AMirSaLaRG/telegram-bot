@@ -1,12 +1,13 @@
 import logging
-import math
+
+import telegram
 from dotenv import load_dotenv
 
 
 from telegram import (Update, ReplyKeyboardMarkup,
                       KeyboardButton, InlineKeyboardButton,
                       InlineKeyboardMarkup, )
-from telegram.error import BadRequest
+
 from telegram.ext import (filters, ContextTypes, CommandHandler,
                           ApplicationBuilder, MessageHandler, CallbackQueryHandler)
 
@@ -15,14 +16,21 @@ from bot.handlers.torob_interact import TorobInteract
 from bot.handlers.telegram_conversations import Calculator, TorobConversation
 from bot.handlers.profile import Profile
 from bot.handlers.filter import Filter
+from bot.handlers.relationship import RelationshipHandler
 
 from bot.db.database import GoldPriceDatabase, UserDatabase, iran_cities_fa, ChatDatabase, TorobDb
 from bot.handlers.telegram_chat_handler import UserMessage
 from bot.handlers.start import Start
+from bot.utils.messages import Messages
 import os
-from datetime import datetime
-from functools import wraps
-from bot.utils.en import Messages
+import warnings
+
+#the error per_message=True  i think that will be not issue not sure though
+from telegram.warnings import PTBUserWarning
+
+warnings.filterwarnings("ignore", category=PTBUserWarning, message=".*per_message=False.*")
+
+
 
 
 load_dotenv()
@@ -32,8 +40,6 @@ BOT_TOKEN = os.getenv('TELEGRAM_TOKEN')
 
 divider = Messages.DIVIDER
 
-#WHAT IS THIS TWO FOR
-os.makedirs("../profiles", exist_ok=True)
 
 # Ensure directory exists
 os.makedirs("../profiles", exist_ok=True)
@@ -45,6 +51,7 @@ start = Start()
 gold_dollar_report = GoldDollarReport()
 torob_interact = TorobInteract()
 bot_filter = Filter()
+rel = RelationshipHandler()
 # ___________________conversations_________________________________
 profile = Profile()
 calculator = Calculator()
@@ -70,16 +77,24 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     Routes to specific functions based on the callback data prefix.
     """
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
 
-    await bot_filter.buttons(update, context)
-    await user_message.buttons_set(update, context)
-    await torob_interact.button(update, context)
-    await gold_dollar_report.button(update, context)
-    await profile.buttons(update, context)
+        await bot_filter.buttons(update, context)
+        await user_message.buttons_set(update, context)
+        await profile.buttons(update, context)
+        await rel.buttons(update, context)
 
+        await torob_interact.button(update, context)
+        await gold_dollar_report.button(update, context)
+    except telegram.error.BadRequest as e:
+        if "Query is too old" in str(e):
+            # Query expired, ignore it
+            pass
+        else:
+            raise
 
-# _______________________________________________________________________________
+        # _______________________________________________________________________________
 # ________________________Robot run and handlers_________________________________
 # _______________________________________________________________________________
 
@@ -92,7 +107,7 @@ if __name__ == "__main__":
     advance_search_handler = bot_filter.advance_search_handler()
     gold_dollar_handler = gold_dollar_report.handler()
     torob_handlers = torob_interact.handlers()
-    my_profile = CommandHandler("profile", profile.show_my_profile)
+
     # Inline button handler
     buttons_handler = CallbackQueryHandler(buttons)
 
@@ -105,7 +120,6 @@ if __name__ == "__main__":
     application.add_handler(calculator.get_calculated_price_conversation_handler())
     application.add_handlers(profile.get_all_handlers())
     application.add_handlers(torob_conversation.get_all_handlers())
-    application.add_handler(my_profile)
     application.add_handlers(user_message.message_handlers())
     application.add_handler(buttons_handler)
 

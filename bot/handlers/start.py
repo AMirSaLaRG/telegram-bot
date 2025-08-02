@@ -1,8 +1,10 @@
 from telegram import Update, KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import ContextTypes, CommandHandler
 from bot.db.database import UserDatabase
-from bot.utils.en import Messages
+from bot.utils.messages import Messages
 from bot.handlers.intraction import track_user_interaction, interact
+
+
 
 class Start:
     def __init__(self):

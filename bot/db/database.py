@@ -1,8 +1,9 @@
 import time
+from os.path import realpath
 
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Text, select, inspect, ForeignKey, \
     Index, Boolean, text
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from datetime import datetime, timedelta
 from math import radians, sin, cos, sqrt, atan2
@@ -89,12 +90,55 @@ class User(Base):
     gender = Column(String(50), nullable=True)
     age = Column(Integer, nullable=True)
     city = Column(String(50), nullable=True)
-    last_online = Column(DateTime, default=datetime.now(), nullable=True)
+    last_online = Column(DateTime, default=datetime.now, nullable=True)
     profile_photo = Column(Text, nullable=True)
     about = Column(Text, default='No bio yet', nullable=True)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
-    registration_date = Column(DateTime, default=datetime.now(), nullable=True)
+    registration_date = Column(DateTime, default=datetime.now, nullable=True)
+
+    friends = relationship(
+        'User',
+        secondary='relationships',
+        primaryjoin='and_(User.user_id==Relationships.user_id, Relationships.friend==True)',
+        secondaryjoin='and_(User.user_id==Relationships.target_id, Relationships.friend==True)',
+        backref='friend_of',
+        viewonly=True    )
+
+    likes = relationship(
+        'User',
+        secondary='relationships',
+        primaryjoin='and_(User.user_id==Relationships.user_id, Relationships.like==True)',
+        secondaryjoin='and_(User.user_id==Relationships.target_id, Relationships.like==True)',
+        backref='liked_by',
+        viewonly=True    )
+
+    blocks = relationship(
+        'User',
+        secondary='relationships',
+        primaryjoin='and_(User.user_id==Relationships.user_id, Relationships.block==True)',
+        secondaryjoin='and_(User.user_id==Relationships.target_id, Relationships.block==True)',
+        backref='blocked_by',
+        viewonly=True    )
+
+    reports = relationship(
+        'User',
+        secondary='relationships',
+        primaryjoin='and_(User.user_id==Relationships.user_id, Relationships.report==True)',
+        secondaryjoin='and_(User.user_id==Relationships.target_id, Relationships.report==True)',
+        backref='reported_by',
+        viewonly=True    )
+
+
+class Relationships(Base):
+    __tablename__ = 'relationships'
+
+    user_id = Column(Integer, ForeignKey('users.user_id'), primary_key=True)
+    target_id = Column(Integer, ForeignKey('users.user_id'), primary_key=True)
+    like = Column(Boolean, default=False)
+    friend = Column(Boolean, default=False)
+    block = Column(Boolean, default=False)
+    report = Column(Boolean, default=False)
 
 
 # ___________________________________________________________________________________________
@@ -287,6 +331,158 @@ class Links(Base):
         Index('idx_link_active', 'link', 'active'),  # For quick lookup of active links
         Index('idx_owner_link', 'owner_id', 'link'),  # For finding links by owner
     )
+
+
+
+class RelationshipManger:
+    def __init__(self):
+        self.engine = create_engine(SQLALCHEMY_DATABASE_URI)
+        Base.metadata.create_all(self.engine)
+        self.Session = sessionmaker(bind=self.engine)
+
+    def _get_or_create_relationship(self,session, user_id: int, target_id: int) -> Relationships:
+        """Helper method to get or create a relationship record"""
+
+        the_relationship = session.query(Relationships).filter(
+            Relationships.user_id == user_id,  # Fixed filter syntax
+            Relationships.target_id == target_id
+        ).first()
+
+        if not the_relationship:
+            the_relationship = Relationships(
+                user_id=user_id,
+                target_id=target_id,
+                like=False,
+                friend=False,
+                block=False,
+                report=False
+            )
+            session.add(the_relationship)
+        return the_relationship
+
+
+    def block(self, user_id:int, target_id:int) -> bool:
+        with self.Session() as session:
+            try:
+                the_relationship = self._get_or_create_relationship(session, user_id, target_id)
+                the_relationship.like = False
+                the_relationship.friend = False
+                the_relationship.block = True
+
+                session.commit()
+                return True
+            except IntegrityError:
+                session.rollback()
+                print(f"Invalid user IDs: {user_id} or {target_id}")
+                return False
+            except SQLAlchemyError as e:
+                session.rollback()
+                print(f"Database error blocking user: {e}")
+                return False
+
+    def friend(self, user_id:int, target_id:int) -> bool:
+        with self.Session() as session:
+            try:
+                the_relationship = self._get_or_create_relationship(session, user_id, target_id)
+                the_relationship.friend = True
+
+                session.commit()
+                return True
+            except IntegrityError:
+                session.rollback()
+                print(f"Invalid user IDs: {user_id} or {target_id}")
+                return False
+            except SQLAlchemyError as e:
+                session.rollback()
+                print(f"Database error while friending user: {e}")
+                return False
+
+    def like(self, user_id:int, target_id:int) -> bool:
+        with self.Session() as session:
+            try:
+                the_relationship = self._get_or_create_relationship(session, user_id, target_id)
+                the_relationship.like = True
+
+                session.commit()
+                return True
+            except IntegrityError:
+                session.rollback()
+                print(f"Invalid user IDs: {user_id} or {target_id}")
+                return False
+            except SQLAlchemyError as e:
+                session.rollback()
+                print(f"Database error while liking user: {e}")
+                return False
+
+    def report(self, user_id:int, target_id:int) -> bool:
+        with self.Session() as session:
+            try:
+                the_relationship = self._get_or_create_relationship(session, user_id, target_id)
+
+                the_relationship.report = True
+
+                session.commit()
+                return True
+            except IntegrityError:
+                session.rollback()
+                print(f"Invalid user IDs: {user_id} or {target_id}")
+                return False
+            except SQLAlchemyError as e:
+                session.rollback()
+                print(f"Database error while reporting user: {e}")
+                return False
+
+    def get_relationship_status(self, user_id: int, target_id: int) -> dict:
+        """Get complete relationship status between two users"""
+        with self.Session() as session:
+            try:
+                rel = session.query(Relationships).filter(
+                    Relationships.user_id == user_id,
+                    Relationships.target_id == target_id
+                ).first()
+
+                if not rel:
+                    return {
+                        'like': False,
+                        'friend': False,
+                        'block': False,
+                        'report': False
+                    }
+
+                return {
+                    'like': rel.like,
+                    'friend': rel.friend,
+                    'block': rel.block,
+                    'report': rel.report
+                }
+            except SQLAlchemyError as e:
+                print(f"Error getting relationship status: {e}")
+                return {}
+
+    def get_user_relationships(self, user_id: int) -> dict:
+        """Get all relationship data for a user in both directions"""
+        with self.Session() as session:
+            try:
+                user = session.query(User).get(user_id)
+                if not user:
+                    return {}
+
+                # Initialize result structure
+                result = {
+                    'friends': user.friends,
+                    'friend_of': user.friend_of,
+                    'likes': user.likes,
+                    'liked_by': user.liked_by,
+                    'blocks': user.blocks,
+                    'blocked_by': user.blocked_by,
+                    "reports": user.reports,
+                    "reports_by": user.reported_by
+                }
+                return result
+
+            except SQLAlchemyError as e:
+                print(f"Error getting relationships: {e}")
+                return {}
 
 
 # ___________________________________________________________________________________________
@@ -664,7 +860,7 @@ class UserDatabase:
             query = select(User).where(User.last_online >= time_threshold).order_by(User.last_online.desc())
             return session.execute(query).scalars().all()
 
-    def get_users_location(self, user_id: int, max_km: float = 9999999.0) -> List[dict]:
+    def get_users_apply_system_sorting_by_db(self, user_id: int, max_km: float = 9999999.0) -> List[dict]:
         """
         Retrieves users located near the requesting user, filtering by maximum distance.
         Includes calculated distance, minutes since last online, and online status.
@@ -687,6 +883,7 @@ class UserDatabase:
 
             # 2. Get all users (or better: filter nearby users directly in SQL)
             # Exclude self and ensure other users have location data
+            #todo what the fuck ppl who dont have latitude long should be shown
             all_users = session.query(User).filter(
                 User.latitude.isnot(None),
                 User.longitude.isnot(None),
@@ -724,151 +921,6 @@ class UserDatabase:
                     x['distance']  # Then by distance
                 )
             )
-    def apply_dis_filter(self, user_filters, selected_users):
-        """
-        filters by distance
-        :param user_filters: the filters that saved inside user_data
-        :param selected_users: the users
-        :return: list of who passed the filter
-        """
-        dis_filter = user_filters.get('dis_filter', None)
-
-        if user_filters:
-            if dis_filter:
-                print("hello fucking world")
-                max_dis = float(user_filters['dis_filter'])
-                return [u for u in selected_users if u['distance'] <= max_dis]
-
-        return selected_users
-
-    def apply_last_online_filter(self, user_filters, selected_users):
-        """
-        filters by last_online
-        :param user_filters: the filters that saved inside user_data
-        :param selected_users: the users
-        :return: list of who passed the filter
-        """
-        last_online = user_filters.get('last_online_filter', None)
-        if user_filters:
-            if last_online:
-                max_mins = int(user_filters['last_online_filter'])
-                return [u for u in selected_users if u['mins_ago'] <= max_mins]
-
-        return selected_users
-
-    def apply_gender_filter(self, user_filters, selected_users):
-        """
-        filters by gender
-        :param user_filters: the filters that saved inside user_data
-        :param selected_users: the users
-        :return: list of who passed the filter
-        """
-        gender_filter = user_filters.get('gender_filter', None)
-
-        if user_filters:
-            if gender_filter:
-                gender_filter = [g.lower() for g in user_filters['gender_filter']]
-                return [
-                    u for u in selected_users
-                    if u['user'].gender and u['user'].gender.lower() in gender_filter
-                ]
-
-        return selected_users
-
-    def apply_age_filter(self, user_filters, selected_users):
-        """
-        filters by age
-        :param user_filters: the filters that saved inside user_data
-        :param selected_users: the users
-        :return: list of who passed the filter
-        """
-        age_filter = user_filters.get('age_filter', None)
-        if user_filters:
-            if age_filter:
-                age_filter = user_filters['age_filter']
-                if len(age_filter) == 2:  # Age range [min, max]
-                    min_age, max_age = age_filter
-                    return [
-                        u for u in selected_users
-                        if u['user'].age is not None and min_age <= u['user'].age <= max_age
-                    ]
-                elif len(age_filter) == 1:  # Exact age
-                    return [
-                        u for u in selected_users
-                        if u['user'].age is not None and u['user'].age == age_filter[0]
-                    ]
-
-        return selected_users
-
-    def apply_city_filter(self, user_filters, selected_users):
-        """
-        filters by city
-        :param user_filters: the filters that saved inside user_data
-        :param selected_users: the users
-        :return: list of who passed the filter
-        """
-        city_filter = user_filters.get('city_filter', None)
-        if user_filters:
-            if city_filter:
-                city_filter = user_filters['city_filter']
-                return [
-                    u for u in selected_users
-                    if u['user'].city and u['user'].city in city_filter
-                ]
-
-        return selected_users
-
-    def get_filtered_users(self, user_data: dict) -> List[dict]:
-        """
-        Returns a list of filtered users based on various criteria provided in `user_data`.
-        The criteria can include distance, last online time, gender, age, and city.
-
-        Args:
-            user_data (dict): A dictionary containing user_id and 'user_filter' criteria.
-                - 'user_id' (int): The ID of the requesting user.
-                - 'user_filter' (dict, optional): Dictionary of filter criteria:
-                    - 'dis_filter' (float, optional): Max distance in km.
-                    - 'last_online_filter' (int, optional): Max minutes since last online.
-                    - 'gender_filter' (list[str], optional): List of genders to include (e.g., ["male", "female"]).
-                    - 'age_filter' (list[int], optional): [min_age, max_age] or [exact_age].
-                    - 'city_filter' (list[str], optional): List of cities to include.
-
-        Returns:
-            List[dict]: Each dictionary contains user data with 'user' object,
-                        'distance', 'mins_ago', and 'is_online' status.
-                        Returns an empty list if no users match the criteria or on error.
-        """
-        try:
-            # Validate input: user_data must be a dictionary
-            if not isinstance(user_data, dict):
-                raise ValueError("user_data must be a dictionary")
-
-            user_id = int(user_data.get('user_id', ""))
-            if not user_id:
-                raise ValueError("user_id is required")
-            else:
-                # Update/create the requesting user's record (e.g., update last_online, location)
-                self.add_or_update_user(user_id, user_data)
-                # Retrieve the full user data for the requesting user (important for location)
-                self.get_user_data(user_id, user_data)
-
-            # Get an initial set of users with location data and basic online status
-            selected_users = self.get_users_location(int(user_id))
-            if not selected_users:
-                return []
-
-            user_filters = user_data.get('user_filter', {})
-            selected_users = self.apply_dis_filter(user_filters, selected_users)
-            selected_users = self.apply_last_online_filter(user_filters, selected_users)
-            selected_users = self.apply_gender_filter(user_filters, selected_users)
-            selected_users = self.apply_age_filter(user_filters, selected_users)
-            selected_users = self.apply_city_filter(user_filters, selected_users)
-
-            return selected_users
-
-        except FileExistsError as e:
-            print(f"Error in get_filtered_users: {str(e)}")
-            return []
 
     @staticmethod
     def _calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:

@@ -5,7 +5,9 @@ import logging
 from bot.handlers.telegram_conversations import Calculator
 from bot.db.database import GoldPriceDatabase
 from bot.handlers.intraction import track_user_interaction
-from bot.utils.en import Messages
+from bot.utils.messages import Messages
+
+
 
 
 class GoldDollarReport:

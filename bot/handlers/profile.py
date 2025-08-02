@@ -6,16 +6,12 @@ from telegram.ext import ContextTypes, MessageHandler, filters, ConversationHand
     CallbackQueryHandler
 
 from bot.handlers.telegram_chat_handler import UserMessage
-from bot.utils.en import Messages
+from bot.utils.messages import Messages
 from bot.db.database import UserDatabase, ChatDatabase
+from bot.handlers.relationship import RelationshipHandler
 
 
 
-
-class ProfileHandler:
-    def __init__(self):
-        self.user_db = UserDatabase()
-        self.profile = Profile()
 
 
 
@@ -42,6 +38,7 @@ class Profile:
         self.msg_req_command = 'the_msg_req_ask'
         self.my_profile_key_starter = 'my_Profile_command_starter'
         self.user_db = UserDatabase()
+        self.rel = RelationshipHandler()
 
     def get_profile_create_conversation_handler(self):
         """
@@ -253,8 +250,8 @@ class Profile:
                 InlineKeyboardButton('Update Location', callback_data=f'{self.my_profile_key_starter}: update location')
             ],
             [
-                InlineKeyboardButton('Who liked', callback_data=f'{self.my_profile_key_starter}: liked'),
-                InlineKeyboardButton('Friends', callback_data=f"{self.my_profile_key_starter}: friends")
+                InlineKeyboardButton('Who liked', callback_data=f'{self.rel.rel_inspect_pattern}: {self.rel.like_pattern}'),
+                InlineKeyboardButton('Friends', callback_data=f"{self.rel.rel_inspect_pattern}: {self.rel.friend_pattern}")
             ]
         ]
 
@@ -345,13 +342,13 @@ class Profile:
                                      callback_data=f"{self.button_starter_command} chat_request:{target_id}"),
             ],
             [
-                InlineKeyboardButton('Like', callback_data=f"{self.button_starter_command} like:{target_id}"),
+                InlineKeyboardButton('Like', callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.like_pattern}:{target_id}"),
                 InlineKeyboardButton('ADD Friend',
-                                     callback_data=f"{self.button_starter_command} add_friend:{target_id}"),
+                                     callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.friend_pattern}:{target_id}"),
             ],
             [
-                InlineKeyboardButton('Block', callback_data=f"{self.button_starter_command} block:{target_id}"),
-                InlineKeyboardButton('Report', callback_data=f"{self.button_starter_command} report:{target_id}"),
+                InlineKeyboardButton('Block', callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.block_pattern}:{target_id}"),
+                InlineKeyboardButton('Report', callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.report_pattern}:{target_id}"),
             ]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -422,21 +419,14 @@ class Profile:
             target_id = query.data.split(':')[2].strip().lower()  # Target ID from callback data
             if action == 'chat_request':
                 await message_handler.chat_request(update, context, target_id)
-            elif action == 'like':
-                pass  # Placeholder for like functionality
-            elif action == 'add_friend':
-                pass  # Placeholder for add friend functionality
-            elif action == 'block':
-                pass  # Placeholder for block functionality
-            elif action == 'report':
-                pass  # Placeholder for report functionality
+
         elif query.data.startswith(self.msg_req_command):
             action = query.data.split(':')[1].strip().lower()
             target_id = query.data.split(':')[2].strip().lower()
             if action == 'accept':
-                await self.chat_request_accepted(update, context, target_id)
+                await self.chat_request_accepted(update, context, int(target_id))
             elif action == 'decline':
-                await self.chat_reqeust_declined(update, context, target_id)
+                await self.chat_reqeust_declined(update, context, int(target_id))
         # Handle buttons specific to 'My Profile' edit options
         elif query.data.startswith(self.my_profile_key_starter):
             action = query.data.split(':')[1].strip().lower()
@@ -556,6 +546,9 @@ class Profile:
         """
         user_id = update.effective_user.id
         target_id_parts = update.message.text.split('_', 1)
+        if self.user_db.get_user_generated_id(user_id) == target_id_parts[1]:
+            await self.show_my_profile(update, context)
+            return
 
         if len(target_id_parts) < 2:
             await update.message.reply_text(Messages.INVALID_FORMAT.format(command="chaT"))
@@ -585,5 +578,6 @@ class Profile:
         return [
             self.get_profile_create_conversation_handler(),
             self.direct_msg_conversation_handler(),
-            self.show_profile_handler()
+            self.show_profile_handler(),
+            CommandHandler("profile", self.show_my_profile)
         ]

@@ -13,8 +13,7 @@ from bot.handlers.telegram_chat_handler import UserMessage
 
 # Initialize DB instances
 user_db = UserDatabase()
-from bot.utils.en import Messages
-
+from bot.utils.messages import Messages
 
 
 

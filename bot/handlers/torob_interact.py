@@ -2,7 +2,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, MessageHandler, filters
 
 from bot.handlers.intraction import track_user_interaction
-from bot.utils.en import Messages
+from bot.utils.messages import Messages
 from bot.handlers.telegram_conversations import TorobConversation
 from bot.db.database import TorobDb
 

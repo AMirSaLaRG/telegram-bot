@@ -1,4 +1,5 @@
 import math
+from typing import List
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import BadRequest
@@ -6,14 +7,16 @@ from telegram.ext import ContextTypes, MessageHandler, filters
 
 from bot.db.database import iran_cities_fa
 from bot.handlers.intraction import track_user_interaction
-from bot.utils.en import Messages
+from bot.utils.messages import Messages
 from bot.db.database import UserDatabase
+from bot.handlers.show_cases import ShowCases
 
 
 
 class Filter:
     def __init__(self):
         self.user_db = UserDatabase()
+        self.show_cases = ShowCases()
 
     @track_user_interaction
     async def advance_search(self, update: Update, context:
@@ -376,7 +379,144 @@ class Filter:
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(Messages.CHOOSE_PROMPT, reply_markup=reply_markup)
 
-    async def search_filters_handler(self, query, context, current_page=1):
+    def apply_dis_filter(self, user_filters, selected_users):
+        """
+        filters by distance
+        :param user_filters: the filters that saved inside user_data
+        :param selected_users: the users
+        :return: list of who passed the filter
+        """
+        dis_filter = user_filters.get('dis_filter', None)
+
+        if user_filters:
+            if dis_filter:
+                print("hello fucking world")
+                max_dis = float(user_filters['dis_filter'])
+                return [u for u in selected_users if u['distance'] <= max_dis]
+
+        return selected_users
+
+    def apply_last_online_filter(self, user_filters, selected_users):
+        """
+        filters by last_online
+        :param user_filters: the filters that saved inside user_data
+        :param selected_users: the users
+        :return: list of who passed the filter
+        """
+        last_online = user_filters.get('last_online_filter', None)
+        if user_filters:
+            if last_online:
+                max_mins = int(user_filters['last_online_filter'])
+                return [u for u in selected_users if u['mins_ago'] <= max_mins]
+
+        return selected_users
+
+    def apply_gender_filter(self, user_filters, selected_users):
+        """
+        filters by gender
+        :param user_filters: the filters that saved inside user_data
+        :param selected_users: the users
+        :return: list of who passed the filter
+        """
+        gender_filter = user_filters.get('gender_filter', None)
+
+        if user_filters:
+            if gender_filter:
+                gender_filter = [g.lower() for g in user_filters['gender_filter']]
+                return [
+                    u for u in selected_users
+                    if u['user'].gender and u['user'].gender.lower() in gender_filter
+                ]
+
+        return selected_users
+
+    def apply_age_filter(self, user_filters, selected_users):
+        """
+        filters by age
+        :param user_filters: the filters that saved inside user_data
+        :param selected_users: the users
+        :return: list of who passed the filter
+        """
+        age_filter = user_filters.get('age_filter', None)
+        if user_filters:
+            if age_filter:
+                age_filter = user_filters['age_filter']
+                if len(age_filter) == 2:  # Age range [min, max]
+                    min_age, max_age = age_filter
+                    return [
+                        u for u in selected_users
+                        if u['user'].age is not None and min_age <= u['user'].age <= max_age
+                    ]
+                elif len(age_filter) == 1:  # Exact age
+                    return [
+                        u for u in selected_users
+                        if u['user'].age is not None and u['user'].age == age_filter[0]
+                    ]
+
+        return selected_users
+
+
+
+    def apply_city_filter(self, user_filters, selected_users) :
+        """
+        filters by city
+        :param user_filters: the filters that saved inside user_data
+        :param selected_users: the users
+        :return: list of who passed the filter
+        """
+        city_filter = user_filters.get('city_filter', None)
+        if user_filters:
+            if city_filter:
+                city_filter = user_filters['city_filter']
+                return [
+                    u for u in selected_users
+                    if u['user'].city and u['user'].city in city_filter
+                ]
+
+        return selected_users
+
+    def get_filtered_users(self, user_data: dict) -> List[dict]:
+        """
+        Returns a list of filtered users based on various criteria provided in `user_data`.
+        The criteria can include distance, last online time, gender, age, and city.
+
+        Args:
+            user_data (dict): A dictionary containing user_id and 'user_filter' criteria.
+                - 'user_id' (int): The ID of the requesting user.
+                - 'user_filter' (dict, optional): Dictionary of filter criteria:
+                    - 'dis_filter' (float, optional): Max distance in km.
+                    - 'last_online_filter' (int, optional): Max minutes since last online.
+                    - 'gender_filter' (list[str], optional): List of genders to include (e.g., ["male", "female"]).
+                    - 'age_filter' (list[int], optional): [min_age, max_age] or [exact_age].
+                    - 'city_filter' (list[str], optional): List of cities to include.
+
+        Returns:
+            List[dict]: Each dictionary contains user data with 'user' object,
+                        'distance', 'mins_ago', and 'is_online' status.
+                        Returns an empty list if no users match the criteria or on error.
+        """
+        try:
+            user_id = int(user_data.get('user_id', ""))
+            self.user_db.add_or_update_user(user_id, user_data)
+            self.user_db.get_user_data(user_id, user_data)
+
+            user_filters = user_data.get('user_filter', {})
+            selected_users = self.user_db.get_users_apply_system_sorting_by_db(int(user_id))
+            if not selected_users:
+                return []
+
+            selected_users = self.apply_dis_filter(user_filters, selected_users)
+            selected_users = self.apply_last_online_filter(user_filters, selected_users)
+            selected_users = self.apply_gender_filter(user_filters, selected_users)
+            selected_users = self.apply_age_filter(user_filters, selected_users)
+            selected_users = self.apply_city_filter(user_filters, selected_users)
+
+            return selected_users
+        except Exception as e:
+            print(f'in applying filter Error : {e}')
+            return []
+
+    async def search_filters_handler(self, query, context):
         """
             Handles user search requests by applying filters and displaying matching profiles.
 
@@ -407,74 +547,17 @@ class Filter:
 
         if not generated_id:
             self.user_db.add_or_update_user(user_id, context.user_data)
+        user_data = getattr(context, 'user_data', {})
 
-        selected_users = self.user_db.get_filtered_users(context.user_data)
+
+
+        selected_users = self.get_filtered_users(user_data)
+        #reset user filter
         context.user_data['user_filter'] = {}
 
-        all_pages = []
-        page = ''
-        num_show_page = 10
-        context.user_data['current_page'] = current_page
 
-        start_index = (current_page - 1) * num_show_page
-        end_index = start_index + num_show_page
-        paginated_users = selected_users[start_index:end_index]
 
-        if not paginated_users and selected_users:
-            context.user_data['current_page'] = 1
-            start_index = 0
-            end_index = num_show_page
-            paginated_users = selected_users[start_index:end_index]
-
-        for data in paginated_users:
-            name = data['user'].name
-            generated_id = data['user'].generated_id
-            distance = int(data['distance'])
-
-            if data['is_online']:
-                last_online = Messages.ONLINE_ICON
-            else:
-                if int(data["mins_ago"]) <= 60:
-                    last_online = f'{int(data["mins_ago"])} mins ago'
-                elif int(data["mins_ago"]) <= 1440:
-                    last_online = f'{int(int(data["mins_ago"]) / 60)} hr ago'
-                elif int(data["mins_ago"]) <= 10080:
-                    last_online = f'{int(int(data["mins_ago"]) / 1440)} day ago'
-                else:
-                    last_online = "long time ago"
-
-            gender = data['user'].gender.lower()
-            city = data['user'].city
-            age = data['user'].age
-
-            note = Messages.PROFILE_NOTE.format(
-                gender_icon=Messages.MALE_ICON if gender == 'male' else Messages.FEMALE_ICON,
-                name=name,
-                age=age,
-                last_online=last_online,
-                city=city,
-                distance=distance,
-                generated_id=generated_id,
-                divider=Messages.DIVIDER
-            )
-            page += note
-
-        all_pages.append(page)
-        total_pages = math.ceil(len(selected_users) / num_show_page)
-
-        keyboard_buttons = []
-        if total_pages > 1:
-            if current_page > 1:
-                keyboard_buttons.append(InlineKeyboardButton(Messages.BACK_BUTTON, callback_data='page_before'))
-            if current_page < total_pages:
-                keyboard_buttons.append(InlineKeyboardButton(Messages.NEXT_BUTTON, callback_data='page_next'))
-
-        reply_markup = InlineKeyboardMarkup([keyboard_buttons]) if keyboard_buttons else None
-
-        if paginated_users:
-            await query.edit_message_text(text=page, reply_markup=reply_markup)
-        else:
-            await query.edit_message_text(text=Messages.NO_PROFILES_FOUND)
+        await self.show_cases.show_selected_users(query, context, selected_users)
 
     async def update_advance_search(self, query, context: ContextTypes.DEFAULT_TYPE):
         """

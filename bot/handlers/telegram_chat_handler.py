@@ -8,7 +8,7 @@ import time
 from bot.db.database import ChatDatabase, UserDatabase
 from random import choice
 import asyncio
-from bot.utils.en import Messages
+from bot.utils.messages import Messages
 from bot.handlers.intraction import track_user_interaction
 
 # a leave and a goffy name option
@@ -636,6 +636,7 @@ class UserMessage:
         Sends a chat request to a specific user (target_id).
         Allows the target user to accept or deny the chat.
         """
+        print(target_id)
         user_id = update.effective_user.id
         # Check if the requesting user is already in an active chat
         if self.db.get_partner_id(user_id):

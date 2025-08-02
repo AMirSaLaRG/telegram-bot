@@ -1,5 +1,16 @@
-# message_en.py
+
+
 class Messages:
+
+    #Patterns
+    REL_STARTER_PATTERN = "rel to rel"
+    REL_INSPECT_PATTERN = 'rel what what'
+    LIKE_PATTERN = 'it like it'
+    FRIEND_PATTERN = 'it add it'
+    BLOCK_PATTERN = 'it block it'
+    REPORT_PATTERN = 'it report it'
+
+
     # General messages
     START_MESSAGE = "start"
     WHAT_YOU_LOOKING_FOR = "What you looking for?"
@@ -238,3 +249,4 @@ class Messages:
     # Common messages
     OPERATION_CANCELLED = "Operation cancelled"
     TEXT_INPUT_REQUIRED = "Please send a text message"
+

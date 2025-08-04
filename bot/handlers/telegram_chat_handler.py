@@ -5,7 +5,7 @@ from typing import Optional
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, Message
 from telegram.ext import ContextTypes, MessageHandler, CallbackQueryHandler,CommandHandler, filters
 import time
-from bot.db.database import ChatDatabase, UserDatabase
+from bot.db.database import ChatDatabase, UserDatabase, RelationshipManager
 from random import choice
 import asyncio
 from bot.utils.messages import Messages
@@ -36,6 +36,7 @@ class UserMessage:
         self.accept_chat_button_command = Messages.ACCEPT_CMD
         self.deny_chat_button_command = Messages.DENY_CMD
         self.db = ChatDatabase()
+        self.db_rel = RelationshipManager()
         self.user_db = UserDatabase()
 
     def _get_reply_to_id(self, message: Message) -> Optional[int]:
@@ -538,6 +539,7 @@ class UserMessage:
         Initiates a search for a random chat partner based on user gender preferences.
         Establishes a chat connection if a suitable partner is found within a timeout period.
         """
+        #todo check the realtionship table and dont connect block pplz
         user_id = update.effective_user.id
         user_data = context.user_data
 
@@ -636,12 +638,18 @@ class UserMessage:
         Sends a chat request to a specific user (target_id).
         Allows the target user to accept or deny the chat.
         """
-        print(target_id)
+
         user_id = update.effective_user.id
+        if self.db_rel.is_block(target_id, user_id):
+            await context.bot.send_message(user_id,
+                                           text=Messages.BLOCKED_FROM_USER_WARNING)
+            return
+
         # Check if the requesting user is already in an active chat
         if self.db.get_partner_id(user_id):
             await context.bot.send_message(user_id,
                                            text=Messages.ACTIVE_CHAT_WARNING)
+
         # Check if the target user has an active session
         elif self.db.get_user_session(target_id):
             # Check if the target user is not already in an active chat

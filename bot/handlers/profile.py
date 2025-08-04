@@ -1,13 +1,14 @@
 from datetime import datetime, timedelta
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, \
-    ReplyKeyboardRemove
+    ReplyKeyboardRemove, InputMediaPhoto
+from telegram.error import BadRequest
 from telegram.ext import ContextTypes, MessageHandler, filters, ConversationHandler, CommandHandler, \
     CallbackQueryHandler
 
 from bot.handlers.telegram_chat_handler import UserMessage
 from bot.utils.messages import Messages
-from bot.db.database import UserDatabase, ChatDatabase
+from bot.db.database import UserDatabase, ChatDatabase, RelationshipManager
 from bot.handlers.relationship import RelationshipHandler
 
 
@@ -31,14 +32,17 @@ class Profile:
         command/button patterns for profile-related interactions.
         """
         self.PHOTO, self.NAME, self.AGE, self.GENDER, self.ABOUT, self.LOCATION = range(6)
+        self.EDIT_NAME, self.EDIT_ABOUT, self.EDIT_CITY, self.EDIT_PHOTO, self.EDIT_LOCATION = range(6, 11)
         self.create_commend = 'createprofile'
         self.button_starter_command = 'start_profile_buttons:'
-        self.DIRECT_TEXT = 1  # State for direct message input
+        self.DIRECT_TEXT = 12  # State for direct message input
         self.msg_request_pattern = 'user_wants_to_send_direct_msg'
         self.msg_req_command = 'the_msg_req_ask'
         self.my_profile_key_starter = 'my_Profile_command_starter'
         self.user_db = UserDatabase()
         self.rel = RelationshipHandler()
+        self.rel_db = RelationshipManager()
+
 
     def get_profile_create_conversation_handler(self):
         """
@@ -201,6 +205,25 @@ class Profile:
 
         return ConversationHandler.END  # End the conversation
 
+    def _self_profile_keyboard(self, user_id):
+        all_rels = self.rel_db.get_user_relationships(user_id)
+        if all_rels:
+            num_friends = len(all_rels['friends'])
+            num_likes = len(all_rels['likes'])
+        else:
+            num_friends = ""
+            num_likes = ""
+        return [
+            [
+                InlineKeyboardButton('Edit', callback_data=f'{self.my_profile_key_starter}: edit'),
+                InlineKeyboardButton('Update Photo', callback_data=f'{Messages.PROFILE_EDIT_PATTERN}: {Messages.PHOTO_PATTERN}')
+            ],
+            [
+                InlineKeyboardButton(f'( {num_likes} ) likes', callback_data=f'{self.rel.rel_inspect_pattern}: {self.rel.like_pattern}'),
+                InlineKeyboardButton(f'( {num_friends} ) Friends', callback_data=f"{self.rel.rel_inspect_pattern}: {self.rel.friend_pattern}")
+            ]
+        ]
+
     async def show_my_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Displays the current user's profile information, including photo, name, age,
@@ -244,16 +267,7 @@ class Profile:
 
 
         # Define inline keyboard buttons for profile actions
-        keyboard = [
-            [
-                InlineKeyboardButton('Edit', callback_data=f'{self.my_profile_key_starter}: edit'),
-                InlineKeyboardButton('Update Location', callback_data=f'{self.my_profile_key_starter}: update location')
-            ],
-            [
-                InlineKeyboardButton('Who liked', callback_data=f'{self.rel.rel_inspect_pattern}: {self.rel.like_pattern}'),
-                InlineKeyboardButton('Friends', callback_data=f"{self.rel.rel_inspect_pattern}: {self.rel.friend_pattern}")
-            ]
-        ]
+        keyboard = self._self_profile_keyboard(user_id)
 
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -269,6 +283,7 @@ class Profile:
 
 
 
+
     async def show_my_profile_edit_mode(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Switches the 'My Profile' view to an edit mode, presenting buttons for
@@ -279,13 +294,13 @@ class Profile:
         # Define inline keyboard buttons for specific edit actions
         keyboard = [
             [
-                InlineKeyboardButton('Edit Name', callback_data='edit'),
-                InlineKeyboardButton('Edit About', callback_data='update location')
+                InlineKeyboardButton('Edit Name', callback_data=f'{Messages.PROFILE_EDIT_PATTERN}:{Messages.NAME_PATTERN}'),
+                InlineKeyboardButton('Edit About', callback_data=f'{Messages.PROFILE_EDIT_PATTERN}:{Messages.ABOUT_PATTERN}')
                 # Mislabeled, should be specific action
             ],
             [
-                InlineKeyboardButton('Edit City', callback_data='liked'),  # Mislabeled
-                InlineKeyboardButton('Edit Photo', callback_data="friends")  # Mislabeled
+                InlineKeyboardButton('Edit City', callback_data=f'{Messages.PROFILE_EDIT_PATTERN}:{Messages.CITY_PATTERN}'),  # Mislabeled
+                InlineKeyboardButton('Edit Location', callback_data=f"{Messages.PROFILE_EDIT_PATTERN}:{Messages.LOCATION_PATTER}")
             ]
         ]
 
@@ -297,7 +312,39 @@ class Profile:
             reply_markup=reply_markup
         )
 
-    async def show_target_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE, target_id: int):
+    def _target_profile_keyboard(self, user_id, target_id):
+        return [
+            [
+                InlineKeyboardButton('Direct MSG', callback_data=f"{self.msg_request_pattern}: {target_id}"),
+                InlineKeyboardButton('Chat Request',
+                                     callback_data=f"{self.button_starter_command} chat_request:{target_id}"),
+            ],
+            [
+                InlineKeyboardButton('Like', callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.like_pattern}:{target_id}")
+                if not self.rel_db.is_liked(user_id=user_id, target_id=target_id) else
+                InlineKeyboardButton('Liked <3', callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.unlike_pattern}:{target_id}"),
+
+
+                InlineKeyboardButton('ADD Friend',
+                                     callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.friend_pattern}:{target_id}")
+                if not self.rel_db.is_friend(user_id=user_id, target_id=target_id) else
+                InlineKeyboardButton('Added as Friend', callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.unfriend_pattern}:{target_id}")
+            ],
+
+
+
+            [
+                InlineKeyboardButton('unblock', callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.block_pattern}:{target_id}")
+                if not self.rel_db.is_block(user_id=user_id, target_id=target_id) else
+                InlineKeyboardButton('block', callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.unblock_pattern}:{target_id}"),
+
+                InlineKeyboardButton('Report', callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.report_pattern}:{target_id}")
+                if not self.rel_db.is_report(user_id=user_id, target_id=target_id) else
+                InlineKeyboardButton('Reported', callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.report_pattern}:{target_id}"),
+            ]
+        ]
+
+    async def show_target_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE, target_id: int, is_callback=False):
         """
         Displays the profile information of a target user (not the current user).
         Includes options to send direct messages, chat requests, like, add friend, block, or report.
@@ -310,6 +357,7 @@ class Profile:
         self.load_profile(update, context)  # Ensure current user's data is loaded
 
         profile = self.user_db.get_user_information(target_id)  # Retrieve target user's profile from DB
+        user_id = update.effective_user.id
 
         # Calculate and format last online status for the target user
         time_dif = datetime.now() - profile.last_online
@@ -335,35 +383,57 @@ class Profile:
         )
 
         # Define inline keyboard buttons for interacting with the target user
-        keyboard = [
-            [
-                InlineKeyboardButton('Direct MSG', callback_data=f"{self.msg_request_pattern}: {target_id}"),
-                InlineKeyboardButton('Chat Request',
-                                     callback_data=f"{self.button_starter_command} chat_request:{target_id}"),
-            ],
-            [
-                InlineKeyboardButton('Like', callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.like_pattern}:{target_id}"),
-                InlineKeyboardButton('ADD Friend',
-                                     callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.friend_pattern}:{target_id}"),
-            ],
-            [
-                InlineKeyboardButton('Block', callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.block_pattern}:{target_id}"),
-                InlineKeyboardButton('Report', callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.report_pattern}:{target_id}"),
-            ]
-        ]
+        keyboard = self._target_profile_keyboard(user_id, target_id)
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         # Send photo with caption or just text if no photo exists for the target profile
-        if profile.profile_photo:
-            await update.message.reply_photo(
-                photo=profile.profile_photo,
-                caption=text,
-                reply_markup=reply_markup
+        print(is_callback)
+        if is_callback:
 
-            )
+            # Handle callback query case
+            query = update.callback_query
+            await query.answer()
+
+            try:
+                if profile.profile_photo:
+                    await query.edit_message_media(
+                        media=InputMediaPhoto(profile.profile_photo, caption=text),
+                        reply_markup=reply_markup
+                    )
+                else:
+                    await query.edit_message_text(
+                        text=text,
+                        reply_markup=reply_markup
+                    )
+            except Exception as e:
+                print(f"Error editing message: {e}")
+                # Fallback to sending new message if edit fails
+                if profile.profile_photo:
+                    await context.bot.send_photo(
+                        chat_id=query.message.chat_id,
+                        photo=profile.profile_photo,
+                        caption=text,
+                        reply_markup=reply_markup
+                    )
+                else:
+                    await context.bot.send_message(
+                        chat_id=query.message.chat_id,
+                        text=text,
+                        reply_markup=reply_markup
+                    )
         else:
-            await update.message.reply_text(text,
-                                            reply_markup=reply_markup)
+            # Handle regular message case
+            if profile.profile_photo:
+                await update.message.reply_photo(
+                    photo=profile.profile_photo,
+                    caption=text,
+                    reply_markup=reply_markup
+                )
+            else:
+                await update.message.reply_text(
+                    text=text,
+                    reply_markup=reply_markup
+                )
 
     def load_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
@@ -410,13 +480,13 @@ class Profile:
         (e.g., chat requests, direct messages, likes, blocks).
         Routes the actions based on the callback data pattern.
         """
-        message_handler = UserMessage()  # Instance of UserMessage for chat-related actions
+        user_id = update.effective_user.id
+        message_handler = UserMessage()
         query = update.callback_query
 
-        # Handle buttons starting with my_profile_key_starter (e.g., 'edit', 'update location')
         if query.data.startswith(self.button_starter_command):
             action = query.data.split(':')[1].strip().lower()
-            target_id = query.data.split(':')[2].strip().lower()  # Target ID from callback data
+            target_id = query.data.split(':')[2].strip().lower()
             if action == 'chat_request':
                 await message_handler.chat_request(update, context, target_id)
 
@@ -427,11 +497,174 @@ class Profile:
                 await self.chat_request_accepted(update, context, int(target_id))
             elif action == 'decline':
                 await self.chat_reqeust_declined(update, context, int(target_id))
-        # Handle buttons specific to 'My Profile' edit options
+
         elif query.data.startswith(self.my_profile_key_starter):
             action = query.data.split(':')[1].strip().lower()
             if action == 'edit':
                 await self.show_my_profile_edit_mode(update, context)
+
+        if query.data.startswith(self.rel.rel_starter_pattern):
+            action = query.data.split(':')[1].strip().lower()
+            target_id = int(query.data.split(':')[2].strip().lower())
+
+            if action == Messages.LIKE_PATTERN:
+                self.rel.liking_handler(update, context, target_id)
+            if action == Messages.FRIEND_PATTERN:
+                self.rel.add_friend_handler(update, context, target_id)
+            if action == Messages.BLOCK_PATTERN:
+                self.rel.block_handler(update, context, target_id)
+            if action == Messages.REPORT_PATTERN:
+                self.rel.report_handler(update, context, target_id)
+            if action == Messages.UNLIKE_PATTERN:
+                self.rel.unliking_handler(update, context, target_id)
+            if action == Messages.UNFRIEND_PATTERN:
+                self.rel.unadd_friend_handler(update, context, target_id)
+            if action == Messages.UNBLOCK_PATTERN:
+                self.rel.unblock_handler(update, context, target_id)
+
+            try:
+                new_keyboard= self._target_profile_keyboard(user_id, target_id)
+                await query.edit_message_reply_markup(
+                    reply_markup=InlineKeyboardMarkup(new_keyboard)
+                )
+            except BadRequest as e:
+                print(f'noe changes {e}')
+
+
+
+    async def handle_edit_button_click(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        action = query.data.split(':')[1].strip().lower()
+
+        await query.answer()
+
+        try:
+            if action == Messages.NAME_PATTERN:
+                await context.bot.send_message(
+                    chat_id=update.effective_user.id,
+                    text="Please enter your new name:"
+                )
+                return self.EDIT_NAME
+            elif action == Messages.ABOUT_PATTERN:
+                await context.bot.send_message(
+                    chat_id=update.effective_user.id,
+                    text="Please enter your new bio/about text:"
+                )
+                return self.EDIT_ABOUT
+            elif action == Messages.CITY_PATTERN:
+                await context.bot.send_message(
+                    chat_id=update.effective_user.id,
+                    text="Please enter your new city:"
+                )
+                return self.EDIT_CITY
+            elif action == Messages.PHOTO_PATTERN:
+                await context.bot.send_message(
+                    chat_id=update.effective_user.id,
+                    text="Please send your new profile photo:",
+
+                )
+                return self.EDIT_PHOTO
+            elif action == Messages.LOCATION_PATTER:
+
+                await context.bot.send_message(
+                    chat_id=update.effective_user.id,
+                    text='Please send your location',
+
+
+                )
+
+                return self.EDIT_LOCATION
+        except Exception as e:
+            print(f"Error handling edit button: {e}")
+            await context.bot.send_message(
+                chat_id=update.effective_user.id,
+                text="Something went wrong. Please try again."
+            )
+            return ConversationHandler.END
+
+    async def handle_edit_name_input(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        # Reuse your existing name validation logic
+        new_name = update.message.text
+
+
+        # Update in database
+        context.user_data['name'] = new_name
+        self.user_db.add_or_update_user(update.effective_user.id, context.user_data)
+        await update.message.reply_text(f"Name updated to: {new_name}")
+        await self.show_my_profile(update, context)
+        return ConversationHandler.END
+
+    async def handle_edit_about_input(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        # Reuse your existing about validation logic
+        new_about = update.message.text
+        if len(new_about) > 200:  # Reuse your length check
+            await update.message.reply_text("Bio is too long, please shorten it")
+            return self.EDIT_ABOUT
+
+        # Update in database
+        context.user_data['about'] = new_about
+        self.user_db.add_or_update_user(update.effective_user.id, context.user_data)
+        await update.message.reply_text("Bio updated successfully!")
+        await self.show_my_profile(update, context)
+        return ConversationHandler.END
+
+    async def handle_edit_city_input(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        new_city = update.message.text
+        # Add any city validation if needed
+
+        # Update in database - adjust field name if you use 'location' instead
+        context.user_data['city'] = new_city
+        self.user_db.add_or_update_user(update.effective_user.id, context.user_data)
+        await update.message.reply_text(f"City updated to: {new_city}")
+        await self.show_my_profile(update, context)
+        return ConversationHandler.END
+
+    async def handle_edit_location_input(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        location = update.message.location
+        context.user_data['location'] = (location.latitude, location.longitude)
+        context.user_data['latitude'] = context.user_data['location'][0]
+        context.user_data['longitude'] = context.user_data['location'][1]
+        self.user_db.add_or_update_user(update.effective_user.id, context.user_data)
+        await update.message.reply_text(f"City updated to: new location")
+        await self.show_my_profile(update, context)
+        return ConversationHandler.END
+
+    async def handle_edit_photo_input(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not update.message.photo:
+            await update.message.reply_text("Please send a valid photo")
+            return self.EDIT_PHOTO
+
+        # Get highest resolution photo
+        photo_file = await update.message.photo[-1].get_file()
+        photo_id = photo_file.file_id
+
+        # Update in database
+        context.user_data['profile_photo'] = photo_id
+        self.user_db.add_or_update_user(update.effective_user.id, context.user_data)
+        await update.message.reply_text("Profile photo updated!")
+        await self.show_my_profile(update, context)
+        return ConversationHandler.END
+
+    async def cancel_edit(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text('Profile editing cancelled')
+        return ConversationHandler.END
+
+    def get_profile_edit_conversation_handler(self):
+        return ConversationHandler(
+            entry_points=[CallbackQueryHandler(
+                self.handle_edit_button_click,
+                pattern=f'^{Messages.PROFILE_EDIT_PATTERN}'
+            )],
+            states={
+                self.EDIT_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_edit_name_input)],
+                self.EDIT_ABOUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_edit_about_input)],
+                self.EDIT_CITY: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_edit_city_input)],
+                self.EDIT_PHOTO: [MessageHandler(filters.PHOTO, self.handle_edit_photo_input)],
+                self.EDIT_LOCATION: [MessageHandler(filters.LOCATION, self.handle_edit_location_input)]
+            },
+            fallbacks=[CommandHandler('cancel', self.cancel_edit)],
+            allow_reentry=True
+        )
 
     async def start_msg_request(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
@@ -439,10 +672,15 @@ class Profile:
         Stores the target user's ID and prompts the user to send their message.
         """
         query = update.callback_query
+        user_id = update.effective_user.id
         target_id = query.data.split(':')[1].strip()  # Extract target_id from callback data
+        if self.rel_db.is_block(target_id, user_id):
+            await context.bot.send_message(user_id,
+                                           text=Messages.BLOCKED_FROM_USER_WARNING)
+            return
         context.user_data['request_from_id'] = target_id  # Store target ID in user_data
         context.user_data['user_id'] = update.effective_user.id  # Ensure current user_id is in context
-        user_id = update.effective_user.id
+
         await context.bot.send_message(user_id, text=Messages.DIRECT_MSG_PROMPT)
         return self.DIRECT_TEXT  # Move to the state for direct message text input
 
@@ -579,5 +817,6 @@ class Profile:
             self.get_profile_create_conversation_handler(),
             self.direct_msg_conversation_handler(),
             self.show_profile_handler(),
-            CommandHandler("profile", self.show_my_profile)
+            CommandHandler("profile", self.show_my_profile),
+            self.get_profile_edit_conversation_handler()
         ]

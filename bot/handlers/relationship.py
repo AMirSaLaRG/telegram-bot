@@ -4,7 +4,7 @@ from telegram.ext import ContextTypes
 
 
 from bot.handlers.intraction import track_user_interaction
-from bot.db.database import RelationshipManger, UserDatabase
+from bot.db.database import RelationshipManager, UserDatabase
 from bot.handlers.show_cases import ShowCases
 
 
@@ -14,7 +14,7 @@ from bot.utils.messages import Messages
 
 class RelationshipHandler:
     def __init__(self):
-        self.rel_db = RelationshipManger()
+        self.rel_db = RelationshipManager()
         self.user_db = UserDatabase()
         self.show_case = ShowCases()
         self.rel_starter_pattern = Messages.REL_STARTER_PATTERN
@@ -23,6 +23,10 @@ class RelationshipHandler:
         self.friend_pattern = Messages.FRIEND_PATTERN
         self.block_pattern = Messages.BLOCK_PATTERN
         self.report_pattern = Messages.REPORT_PATTERN
+        self.unlike_pattern = Messages.UNLIKE_PATTERN
+        self.unfriend_pattern = Messages.UNFRIEND_PATTERN
+        self.unblock_pattern = Messages.UNBLOCK_PATTERN
+        # self.unreport_pattern = Messages.REPORT_PATTERN
 
     @track_user_interaction
     async def buttons(self, update:Update, context):
@@ -30,20 +34,21 @@ class RelationshipHandler:
         query = update.callback_query
         await query.answer()
 
-        if query.data.startswith(self.rel_starter_pattern):
-            action = query.data.split(':')[1].strip().lower()
-            target_id = int(query.data.split(':')[2].strip().lower())
+        # if query.data.startswith(self.rel_starter_pattern):
+        #     action = query.data.split(':')[1].strip().lower()
+        #     target_id = int(query.data.split(':')[2].strip().lower())
+        #
+        #     if action == Messages.LIKE_PATTERN:
+        #         self.liking_handler(update, context, target_id)
+        #     if action == Messages.FRIEND_PATTERN:
+        #         self.add_friend_handler(update, context, target_id)
+        #     if action == Messages.BLOCK_PATTERN:
+        #         self.block_handler(update, context, target_id)
+        #     if action == Messages.REPORT_PATTERN:
+        #         self.report_handler(update, context, target_id)
 
-            if action == self.like_pattern:
-                self.liking_handler(update, context, target_id)
-            if action == self.friend_pattern:
-                self.add_friend_handler(update, context, target_id)
-            if action == self.block_pattern:
-                self.block_handler(update, context, target_id)
-            if action == self.report_pattern:
-                self.report_handler(update, context, target_id)
 
-        elif query.data.startswith(self.rel_inspect_pattern):
+        if query.data.startswith(self.rel_inspect_pattern):
             action = query.data.split(':')[1].strip().lower()
             if action == self.like_pattern:
                 await self.show_ppl(query, context, self._ppl_i_liked(user_id))
@@ -69,6 +74,18 @@ class RelationshipHandler:
     def report_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE, target_id: int):
         user_id = update.effective_user.id
         self.rel_db.report(user_id, target_id)
+
+    def unliking_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE, target_id: int):
+        user_id = update.effective_user.id
+        self.rel_db.like(user_id, target_id, action=False)
+
+    def unadd_friend_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE, target_id: int):
+        user_id = update.effective_user.id
+        self.rel_db.friend(user_id, target_id, action=False)
+
+    def unblock_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE, target_id: int):
+        user_id = update.effective_user.id
+        self.rel_db.block(user_id, target_id, action=False)
 
 
     def _ppl_i_added(self, user_id:int):

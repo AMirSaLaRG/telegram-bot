@@ -9,6 +9,15 @@ class Messages:
     FRIEND_PATTERN = 'it add it'
     BLOCK_PATTERN = 'it block it'
     REPORT_PATTERN = 'it report it'
+    UNLIKE_PATTERN = 'it unlike it'
+    UNFRIEND_PATTERN = 'it unadd it'
+    UNBLOCK_PATTERN = 'it unblock it'
+    PROFILE_EDIT_PATTERN = "I EDIT ME"
+    NAME_PATTERN = 'namae'
+    ABOUT_PATTERN = "manan"
+    CITY_PATTERN =  'shahrmahr'
+    PHOTO_PATTERN = 'axmax'
+    LOCATION_PATTER= 'ja jo ja'
 
 
     # General messages
@@ -147,6 +156,7 @@ class Messages:
     RANDOM_CHAT_ERROR = "Couldn't start random chat search"
 
     # Request messages
+    BLOCKED_FROM_USER_WARNING = "You are Blocked by user"
     ACTIVE_CHAT_WARNING = "You are in active chat first leave chat"
     REQUEST_SENT = "you chat request for /chaT_{target_id} \n sent plz wait for answer"
     REQUEST_RECEIVED = "user: /chaT_{user_id} \nrequested to chat with you"

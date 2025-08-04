@@ -334,7 +334,7 @@ class Links(Base):
 
 
 
-class RelationshipManger:
+class RelationshipManager:
     def __init__(self):
         self.engine = create_engine(SQLALCHEMY_DATABASE_URI)
         Base.metadata.create_all(self.engine)
@@ -361,13 +361,13 @@ class RelationshipManger:
         return the_relationship
 
 
-    def block(self, user_id:int, target_id:int) -> bool:
+    def block(self, user_id:int, target_id:int, action=True) -> bool:
         with self.Session() as session:
             try:
                 the_relationship = self._get_or_create_relationship(session, user_id, target_id)
                 the_relationship.like = False
                 the_relationship.friend = False
-                the_relationship.block = True
+                the_relationship.block = action
 
                 session.commit()
                 return True
@@ -380,11 +380,11 @@ class RelationshipManger:
                 print(f"Database error blocking user: {e}")
                 return False
 
-    def friend(self, user_id:int, target_id:int) -> bool:
+    def friend(self, user_id:int, target_id:int, action=True) -> bool:
         with self.Session() as session:
             try:
                 the_relationship = self._get_or_create_relationship(session, user_id, target_id)
-                the_relationship.friend = True
+                the_relationship.friend = action
 
                 session.commit()
                 return True
@@ -397,11 +397,11 @@ class RelationshipManger:
                 print(f"Database error while friending user: {e}")
                 return False
 
-    def like(self, user_id:int, target_id:int) -> bool:
+    def like(self, user_id:int, target_id:int, action=True) -> bool:
         with self.Session() as session:
             try:
                 the_relationship = self._get_or_create_relationship(session, user_id, target_id)
-                the_relationship.like = True
+                the_relationship.like = action
 
                 session.commit()
                 return True
@@ -414,12 +414,12 @@ class RelationshipManger:
                 print(f"Database error while liking user: {e}")
                 return False
 
-    def report(self, user_id:int, target_id:int) -> bool:
+    def report(self, user_id:int, target_id:int, action=True) -> bool:
         with self.Session() as session:
             try:
                 the_relationship = self._get_or_create_relationship(session, user_id, target_id)
 
-                the_relationship.report = True
+                the_relationship.report = action
 
                 session.commit()
                 return True
@@ -460,7 +460,7 @@ class RelationshipManger:
                 return {}
 
     def get_user_relationships(self, user_id: int) -> dict:
-        """Get all relationship data for a user in both directions"""
+        """Get all relationship data for a user in both directions returns User objects"""
         with self.Session() as session:
             try:
                 user = session.query(User).get(user_id)
@@ -484,7 +484,62 @@ class RelationshipManger:
                 print(f"Error getting relationships: {e}")
                 return {}
 
+    def is_block(self, user_id, target_id):
+        try:
+            list_of_blocked = self.get_user_relationships(user_id)["blocks"]
+            list_of_blocked_id = [user.user_id for user in list_of_blocked]
+            if target_id in list_of_blocked_id:
 
+                return True
+            else:
+
+                return False
+        except Exception as e:
+            print(f'in is block Error: {e}')
+            return False
+
+    def is_report(self, user_id, target_id):
+        try:
+            list_of_reported = self.get_user_relationships(user_id)["reports"]
+            list_of_reported_id = [user.user_id for user in list_of_reported]
+            if target_id in list_of_reported_id:
+
+                return True
+            else:
+
+                return False
+        except Exception as e:
+
+            print(f'in is report Error: {e}')
+            return False
+
+    def is_friend(self, user_id, target_id):
+        try:
+            list_of_fiends = self.get_user_relationships(user_id)["friends"]
+            list_of_friends_id = [user.user_id for user in list_of_fiends]
+            if target_id in list_of_friends_id:
+
+                return True
+            else:
+
+                return False
+        except Exception as e:
+            print(f'in is report Error: {e}')
+            return False
+
+    def is_liked(self, user_id, target_id):
+        try:
+            list_of_likes = self.get_user_relationships(user_id)["likes"]
+            list_of_likes_id = [user.user_id for user in list_of_likes]
+            if target_id in list_of_likes_id:
+
+                return True
+            else:
+
+                return False
+        except Exception as e:
+            print(f'in is report Error: {e}')
+            return False
 # ___________________________________________________________________________________________
 # ____________________________Class of Gold & Dollar data base ______________________________
 # ___________________________________________________________________________________________

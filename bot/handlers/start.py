@@ -1,8 +1,10 @@
 from telegram import Update, KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import ContextTypes, CommandHandler
 from bot.db.database import UserDatabase
-from bot.utils.messages import Messages
 from bot.handlers.intraction import track_user_interaction, interact
+
+from bot.utils.messages_manager import messages as msg
+# messages = msg(language=context.user_data['lan'])
 
 
 
@@ -17,15 +19,16 @@ class Start:
         Handles the /start command.
         Initializes user session and displays the main keyboard based on user profile existence.
         """
-        print(update)
+        messages = msg()
+
         self.user_db.get_user_data(update.effective_user.id, context.user_data)
 
-        profile_button = Messages.PROFILE_BUTTON if context.user_data['name'] else Messages.CREATE_PROFILE_BUTTON
+        profile_button = messages.PROFILE_BUTTON if context.user_data['name'] else messages.CREATE_PROFILE_BUTTON
         keyboard = [
-            [KeyboardButton(Messages.CHAT_BUTTON)],
+            [KeyboardButton(messages.CHAT_BUTTON)],
             [
-                KeyboardButton(Messages.TOROB_BUTTON),
-                KeyboardButton(Messages.GOLD_DOLLAR_BUTTON),
+                KeyboardButton(messages.TOROB_BUTTON),
+                KeyboardButton(messages.GOLD_DOLLAR_BUTTON),
             ],
             [KeyboardButton(profile_button)]
         ]
@@ -33,7 +36,7 @@ class Start:
         reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text=Messages.START_MESSAGE,
+            text=messages.START_MESSAGE,
             reply_markup=reply_markup
         )
 

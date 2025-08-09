@@ -13,8 +13,10 @@ from bot.handlers.telegram_chat_handler import UserMessage
 
 # Initialize DB instances
 user_db = UserDatabase()
-from bot.utils.messages import Messages
+from bot.utils.messages_manager import messages as msg
+# messages = msg(language=context.user_data['lan'])
 
+from bot.handlers.intraction import track_user_interaction
 
 
 class Calculator:
@@ -55,12 +57,13 @@ class Calculator:
         """
         Cancels the current calculation conversation and sends a cancellation message.
         """
+        messages = msg(language=context.user_data['lan'])
         # Checks if update is a message or a callback query to reply appropriately
         if update.message:
-            await update.message.reply_text(Messages.CALCULATOR_STOPPED)
+            await update.message.reply_text(messages.CALCULATOR_STOPPED)
         elif update.callback_query:
             await update.callback_query.answer()  # Answer the callback query to remove loading indicator
-            await update.callback_query.edit_message_text(Messages.CALCULATOR_STOPPED)  # Edit message to confirm cancellation
+            await update.callback_query.edit_message_text(messages.CALCULATOR_STOPPED)  # Edit message to confirm cancellation
         return ConversationHandler.END
 
     async def start_calculation(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -82,7 +85,7 @@ class Calculator:
         # Send message with item options
         await context.bot.send_message(
             chat_id=message.chat.id,
-            text=Messages.CALCULATOR_START,
+            text=message.CALCULATOR_START,
             reply_markup=reply_markup
         )
         return self.ITEM  # Move to the ITEM state
@@ -92,18 +95,19 @@ class Calculator:
         Handles the selected item for calculation. Validates the item and
         prompts for the amount.
         """
+        messages = msg(language=context.user_data['lan'])
         query = update.callback_query
         await query.answer()  # Answer the callback query to remove loading indicator
         item = query.data
 
         # Validate selected item
         if not item == '18kr':
-            await query.edit_message_text(Messages.CALCULATOR_INVALID_ITEM)
+            await query.edit_message_text(messages.CALCULATOR_INVALID_ITEM)
             return self.ITEM  # Stay in ITEM state
 
         context.user_data['calculate_item'] = item  # Store selected item
 
-        await query.edit_message_text(Messages.CALCULATOR_ASK_AMOUNT.format(item=item))
+        await query.edit_message_text(messages.CALCULATOR_ASK_AMOUNT.format(item=item))
         return self.AMOUNT  # Move to the AMOUNT state
 
     async def handle_amount(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -111,6 +115,7 @@ class Calculator:
         Handles the amount input for the selected item. Validates if it's a number
         and prompts for the construction fee percentage.
         """
+        messages = msg(language=context.user_data['lan'])
         try:
             float(update.message.text)  # Attempt to convert input to float for validation
         except ValueError:  # If input is not a valid number
@@ -120,7 +125,7 @@ class Calculator:
         else:
             context.user_data['amount'] = update.message.text  # Store amount as text (can be converted to float later)
 
-            await update.message.reply_text(Messages.CALCULATOR_ASK_CONSTRUCTION_FEE)
+            await update.message.reply_text(messages.CALCULATOR_ASK_CONSTRUCTION_FEE)
             return self.CONST_FEE  # Move to the CONST_FEE state
 
     async def handle_const_fee(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -128,6 +133,7 @@ class Calculator:
         Handles the construction fee percentage input. Validates the percentage (1-100)
         and prompts for the shop fee percentage.
         """
+        messages = msg(language=context.user_data['lan'])
         try:
             const_fee = float(update.message.text)  # Attempt to convert input to float
         except ValueError:  # If input is not a valid number
@@ -139,7 +145,7 @@ class Calculator:
                 return self.CONST_FEE  # Stay in CONST_FEE state
             context.user_data['const_fee'] = update.message.text  # Store as text
 
-            await update.message.reply_text(Messages.CALCULATOR_ASK_SHOP_FEE)
+            await update.message.reply_text(messages.CALCULATOR_ASK_SHOP_FEE)
             return self.SHOP_FEE  # Move to the SHOP_FEE state
 
     async def handle_shop_fee(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -147,6 +153,7 @@ class Calculator:
         Handles the shop fee percentage input. Validates the percentage (1-100)
         and prompts for the text percentage.
         """
+        messages = msg(language=context.user_data['lan'])
         try:
             shop_fee = float(update.message.text)  # Attempt to convert input to float
         except ValueError:  # If input is not a valid number
@@ -158,7 +165,7 @@ class Calculator:
                 return self.CONST_FEE  # Should be SHOP_FEE (typo in original code), staying in current state
             context.user_data['shop_fee'] = update.message.text  # Store as text
 
-            await update.message.reply_text(Messages.CALCULATOR_ASK_TEXT_FEE)
+            await update.message.reply_text(messages.CALCULATOR_ASK_TEXT_FEE)
             return self.TEXT  # Move to the TEXT state
 
     async def handle_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -166,14 +173,15 @@ class Calculator:
         Handles the text percentage input. Validates the percentage (1-100)
         and then displays the calculated result.
         """
+        messages = msg(language=context.user_data['lan'])
         try:
             text_fee = float(update.message.text)  # Corrected variable name for clarity
         except ValueError:  # If input is not a valid number
-            await update.message.reply_text(Messages.CALCULATOR_ASK_TEXT_FEE)
+            await update.message.reply_text(messages.CALCULATOR_ASK_TEXT_FEE)
             return self.TEXT  # Stay in TEXT state
         else:
             if not 1 <= int(text_fee) <= 100:  # Check if percentage is within range
-                await update.message.reply_text(Messages.CALCULATOR_ASK_TEXT_FEE)
+                await update.message.reply_text(messages.CALCULATOR_ASK_TEXT_FEE)
                 return self.TEXT  # Stay in TEXT state
             context.user_data['text'] = update.message.text  # Store as text
 
@@ -185,6 +193,7 @@ class Calculator:
         """
         Displays the summary of the calculated price based on user inputs.
         """
+        messages = msg(language=context.user_data['lan'])
         # Construct the result text from stored user data
         display_item = context.user_data["calculate_item"]
         display_amount = context.user_data['amount']
@@ -192,7 +201,7 @@ class Calculator:
         display_shop_fee = context.user_data['shop_fee']
         display_text_fee = context.user_data['text']
 
-        text = Messages.CALCULATOR_RESULT.format(
+        text = messages.CALCULATOR_RESULT.format(
             item = display_item,
             amount= display_amount,
             const_fee = display_const_fee,
@@ -303,11 +312,12 @@ class TorobConversation:
         """
         Cancels the current Torob conversation (add/edit/delete) and sends a cancellation message.
         """
+        messages = msg(language=context.user_data['lan'])
         if update.callback_query:
             await update.callback_query.answer()  # Acknowledge the callback query
-            await update.callback_query.edit_message_text(Messages.OPERATION_CANCELLED)
+            await update.callback_query.edit_message_text(messages.OPERATION_CANCELLED)
         elif update.message:
-            await update.message.reply_text(Messages.OPERATION_CANCELLED)
+            await update.message.reply_text(messages.OPERATION_CANCELLED)
         return ConversationHandler.END  # End the conversation
 
     async def _send_fallback_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, text: str):
@@ -328,16 +338,17 @@ class TorobConversation:
                 )
         except Exception as e:
             print(f"⚠️ Failed to send fallback message: {e}")
-
+    @track_user_interaction
     async def start_add(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Starts the conversation to add a new Torob item. Prompts for the item's name.
         """
+        messages = msg(language=context.user_data['lan'])
         if not update.callback_query:  # Ensure it's triggered by a callback query
             return ConversationHandler.END
         await update.callback_query.answer()  # Acknowledge the callback query
         await update.callback_query.edit_message_text(
-            Messages.TOROB_ADD_START,
+            messages.TOROB_ADD_START,
         )
         return self.NAME  # Move to the NAME state
 
@@ -346,16 +357,17 @@ class TorobConversation:
         Handles the item name input during the add item conversation.
         Validates length and prompts for the preferred price.
         """
+        messages = msg(language=context.user_data['lan'])
         if not update.message or not update.message.text:
-            await self._send_fallback_message(update, context, Messages.TEXT_INPUT_REQUIRED)
+            await self._send_fallback_message(update, context, messages.TEXT_INPUT_REQUIRED)
             return self.NAME  # Stay in NAME state
 
         if len(update.message.text) > 150:  # Validate name length
-            await update.message.reply_text(Messages.TOROB_INVALID_NAME_LENGTH)
+            await update.message.reply_text(messages.TOROB_INVALID_NAME_LENGTH)
             return self.NAME  # Stay in NAME state
 
         self.name = update.message.text  # Store the name temporarily
-        await update.message.reply_text(Messages.TOROB_ASK_PRICE.format(name=self.name))
+        await update.message.reply_text(messages.TOROB_ASK_PRICE.format(name=self.name))
         return self.PRICE  # Move to the PRICE state
 
     async def handle_price(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -363,21 +375,22 @@ class TorobConversation:
         Handles the preferred price input during the add item conversation.
         Validates if it's a positive number and prompts for the Torob URL.
         """
+        messages = msg(language=context.user_data['lan'])
         try:
             price = float(update.message.text)
             if price <= 0:  # Price must be positive
                 await update.message.reply_text(
-                    Messages.TOROB_PRICE_TOO_LOW
+                    messages.TOROB_PRICE_TOO_LOW
                 )
                 return self.PRICE  # Stay in PRICE state
             self.price = price  # Store the price temporarily
         except ValueError:  # If input is not a valid number
             await update.message.reply_text(
-                Messages.TOROB_INVALID_PRICE
+                messages.TOROB_INVALID_PRICE
             )
             return self.PRICE  # Stay in PRICE state
         else:  # If price is valid
-            await update.message.reply_text(Messages.TOROB_ASK_URL.format(name=self.name))
+            await update.message.reply_text(messages.TOROB_ASK_URL.format(name=self.name))
             return self.URL  # Move to the URL state
 
     def is_torob_url(self, url_string: str) -> bool:
@@ -406,19 +419,19 @@ class TorobConversation:
         Handles the Torob URL input during the add item conversation.
         Validates the URL, adds the item to the database, and ends the conversation.
         """
+        messages = msg(language=context.user_data['lan'])
         user_id = update.effective_user.id
         the_url = update.message.text
 
         if not self.is_torob_url(the_url):  # Validate if it's a valid Torob URL
-            await update.message.reply_text(Messages.TOROB_INVALID_URL)
+            await update.message.reply_text(messages.TOROB_INVALID_URL)
             return self.URL  # Stay in URL state
 
         self.url = the_url  # Store the URL temporarily
 
         # Attempt to add the item to the database
-        print(self.price, self.url, self.name)
         if self.db.add_item(user_id, self.price, self.url, self.name):
-            await update.message.reply_text(Messages.TOROB_ADD_SUCCESS.format(name=self.name, price=self.price))
+            await update.message.reply_text(messages.TOROB_ADD_SUCCESS.format(name=self.name, price=self.price))
             # Clear temporary stored data
             self.price = None
             self.url = None
@@ -426,14 +439,15 @@ class TorobConversation:
             return ConversationHandler.END  # End the conversation
         else:  # If item could not be added (e.g., DB error)
             self.url = None  # Clear URL, might be invalid
-            await update.message.reply_text(Messages.TOROB_ADD_FAILED)
+            await update.message.reply_text(messages.TOROB_ADD_FAILED)
             return self.URL  # Stay in URL state
-
+    @track_user_interaction
     async def start_delete_item(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Starts the conversation for deleting a Torob item.
         Confirms user ownership and prompts for confirmation.
         """
+        messages = msg(language=context.user_data['lan'])
         item_id = context.user_data.get('editing_item_id', "")  # Get item ID from user_data
         user_id = update.effective_user.id
 
@@ -444,13 +458,13 @@ class TorobConversation:
         if not self.db.check_ownership(user_id, item_id):
             await update.callback_query.answer()
             await update.callback_query.edit_message_text(
-                Messages.TOROB_NOT_OWNER
+                messages.TOROB_NOT_OWNER
             )
             return ConversationHandler.END  # End if not owner
 
         await update.callback_query.answer()  # Acknowledge callback
         await update.callback_query.edit_message_text(
-            Messages.TOROB_DELETE_PROMPT
+            messages.TOROB_DELETE_PROMPT
         )
         return self.DELETE  # Move to the DELETE state for confirmation
 
@@ -463,12 +477,13 @@ class TorobConversation:
         self.db.delete_item(item_id)  # Delete the item from the database
         await self.show_item_edit_options(update, context)  # Show updated options (will indicate deletion)
         return ConversationHandler.END  # End the conversation
-
+    @track_user_interaction
     async def start_edit_price(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Starts the conversation for editing a Torob item's preferred price.
         Confirms user ownership and prompts for the new price.
         """
+        messages = msg(language=context.user_data['lan'])
         item_id = context.user_data.get('editing_item_id', "")
         user_id = update.effective_user.id
 
@@ -478,13 +493,13 @@ class TorobConversation:
         if not self.db.check_ownership(user_id, item_id):
             await update.callback_query.answer()
             await update.callback_query.edit_message_text(
-                Messages.TOROB_NOT_OWNER
+                messages.TOROB_NOT_OWNER
             )
             return ConversationHandler.END
 
         await update.callback_query.answer()
         await update.callback_query.edit_message_text(
-            Messages.TOROB_ASK_NEW_PRICE
+            messages.TOROB_ASK_NEW_PRICE
         )
         return self.EDIT_PRICE  # Move to the EDIT_PRICE state
 
@@ -503,12 +518,13 @@ class TorobConversation:
             self.db.update_preferred_price(item_id, price)  # Update price in DB
             await self.show_item_edit_options(update, context)  # Show updated options
             return ConversationHandler.END  # End the conversation
-
+    @track_user_interaction
     async def start_edit_url(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Starts the conversation for editing a Torob item's URL.
         Confirms user ownership and prompts for the new URL.
         """
+        messages = msg(language=context.user_data['lan'])
         item_id = context.user_data.get('editing_item_id', "")
         user_id = update.effective_user.id
 
@@ -518,13 +534,13 @@ class TorobConversation:
         if not self.db.check_ownership(user_id, item_id):
             await update.callback_query.answer()
             await update.callback_query.edit_message_text(
-                Messages.TOROB_NOT_OWNER
+                messages.TOROB_NOT_OWNER
             )
             return ConversationHandler.END
 
         await update.callback_query.answer()
         await update.callback_query.edit_message_text(
-            Messages.TOROB_ASK_NEW_URL
+            messages.TOROB_ASK_NEW_URL
         )
         return self.EDIT_URL  # Move to the EDIT_URL state
 
@@ -533,6 +549,7 @@ class TorobConversation:
         Handles the new URL input for editing a Torob item.
         Validates the URL, updates it in the DB, and shows updated item options.
         """
+        messages = msg(language=context.user_data['lan'])
         item_id = context.user_data.get('editing_item_id', "")
         user_id = update.effective_user.id  # user_id is not used here, but was in original for check_ownership
         the_url = update.message.text
@@ -545,14 +562,15 @@ class TorobConversation:
             await self.show_item_edit_options(update, context)  # Show updated options
             return ConversationHandler.END  # End the conversation
         else:  # If update failed
-            await update.message.reply_text(Messages.TOROB_URL_UPDATE_FAILED)
+            await update.message.reply_text(messages.TOROB_URL_UPDATE_FAILED)
             return self.EDIT_URL  # Stay in EDIT_URL state
-
+    @track_user_interaction
     async def start_edit_name(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Starts the conversation for editing a Torob item's name.
         Confirms user ownership and prompts for the new name.
         """
+        messages = msg(language=context.user_data['lan'])
         item_id = context.user_data.get('editing_item_id', "")
         user_id = update.effective_user.id
 
@@ -562,13 +580,13 @@ class TorobConversation:
         if not self.db.check_ownership(user_id, item_id):
             await update.callback_query.answer()
             await update.callback_query.edit_message_text(
-                Messages.TOROB_NOT_OWNER
+                messages.TOROB_NOT_OWNER
             )
             return ConversationHandler.END
 
         await update.callback_query.answer()
         await update.callback_query.edit_message_text(
-            Messages.TOROB_ASK_NEW_NAME
+            messages.TOROB_ASK_NEW_NAME
         )
         return self.EDIT_NAME  # Move to the EDIT_NAME state
 
@@ -577,10 +595,11 @@ class TorobConversation:
         Handles the new name input for editing a Torob item.
         Validates length, updates it in the DB, and shows updated item options.
         """
+        messages = msg(language=context.user_data['lan'])
         item_id = context.user_data.get('editing_item_id', "")
 
         if not update.message or not update.message.text:
-            await self._send_fallback_message(update, context, Messages.TEXT_INPUT_REQUIRED)
+            await self._send_fallback_message(update, context, messages.TEXT_INPUT_REQUIRED)
             return self.EDIT_NAME  # Stay in EDIT_NAME state
 
         if len(update.message.text) > 150:  # Validate name length
@@ -591,14 +610,15 @@ class TorobConversation:
             await self.show_item_edit_options(update, context)  # Show updated options
             return ConversationHandler.END  # End the conversation
         else:
-            await update.message.reply_text(Messages.TOROB_NAME_UPDATE_FAILED)
+            await update.message.reply_text(messages.TOROB_NAME_UPDATE_FAILED)
             return self.EDIT_NAME  # Stay in EDIT_NAME state
-
+    @track_user_interaction
     async def show_item_edit_options(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Displays the current details of an item after an edit operation (or deletion),
         along with inline buttons for further editing or deletion.
         """
+        messages = msg(language=context.user_data['lan'])
         item_id = context.user_data.get('editing_item_id', "")
         item_data = self.db.get_item_by_id(item_id)  # Retrieve the item data
 
@@ -620,7 +640,7 @@ class TorobConversation:
                 price= item_data.user_preferred_price
                 url = item_data.torob_url
                 await update.message.reply_text(
-                    Messages.TOROB_UPDATE_SUCCESS.format(
+                    messages.TOROB_UPDATE_SUCCESS.format(
                         name=name,
                         price=price,
                         url=url
@@ -632,7 +652,7 @@ class TorobConversation:
                 price = item_data.user_preferred_price
                 url = item_data.torob_url
                 await update.callback_query.edit_message_text(
-                    Messages.TOROB_UPDATE_SUCCESS.format(
+                    messages.TOROB_UPDATE_SUCCESS.format(
                         name=name,
                         price=price,
                         url=url
@@ -641,10 +661,10 @@ class TorobConversation:
                 )
         else:  # If the item no longer exists (presumably deleted)
             if hasattr(update, 'message'):
-                await update.message.reply_text(Messages.TOROB_DELETE_SUCCESS)  # Notify deletion and suggest /start
+                await update.message.reply_text(messages.TOROB_DELETE_SUCCESS)  # Notify deletion and suggest /start
 
             else:  # Assuming it's a callback query
-                await update.callback_query.edit_message_text(Messages.TOROB_DELETE_SUCCESS)  # Notify deletion and suggest /start
+                await update.callback_query.edit_message_text(messages.TOROB_DELETE_SUCCESS)  # Notify deletion and suggest /start
 
     def get_all_handlers(self) -> list:
         """

@@ -30,7 +30,6 @@ async def interact(update_query, context: ContextTypes.DEFAULT_TYPE):
         This handler activates for almost any user interaction.
         It ensures the user's session exists and updates their last_online status.
         """
-    print(update_query)
     try:
         if hasattr(update_query, 'effective_user'):
             user_id = update_query.effective_user.id
@@ -57,6 +56,7 @@ def track_user_interaction(func):
     """
     @wraps(func)
     async def wrapper(*args, **kwargs):
+
         # Determine if this is a class method or standalone function
         if len(args) >= 2 and isinstance(args[1], Update):
             # Class method case (self, update, context)
@@ -80,12 +80,12 @@ def track_user_interaction(func):
 
             if user:
                 user_id = user.id
-                print(user_id)
                 chat_db.create_user_session(user_id)
                 context.user_data['user_id'] = user_id
                 context.user_data['last_online'] = datetime.now()
                 user_db.add_or_update_user(user_id, context.user_data)
                 logger.debug(f"Tracked interaction for user {user_id}")
+            print(context.user_data)
         except Exception as e:
             logger.error(f"Error in user tracking: {e}", exc_info=True)
 

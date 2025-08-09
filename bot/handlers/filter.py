@@ -7,9 +7,12 @@ from telegram.ext import ContextTypes, MessageHandler, filters
 
 from bot.db.database import iran_cities_fa
 from bot.handlers.intraction import track_user_interaction
-from bot.utils.messages import Messages
 from bot.db.database import UserDatabase
 from bot.handlers.show_cases import ShowCases
+
+from bot.utils.messages_manager import messages as msg
+# messages = msg(language=context.user_data['lan'])
+
 
 
 
@@ -25,28 +28,30 @@ class Filter:
         Initiates the advanced search filter selection.
         Presents inline buttons for various filtering options (Distance, Last Online, Gender, Age, Cities).
         """
+        messages = msg(language=context.user_data['lan'])
         keyboard = [
             [
-                InlineKeyboardButton(Messages.DISTANCE_FILTER, callback_data='A_F: Dis'),
-                InlineKeyboardButton(Messages.LAST_ONLINE_FILTER, callback_data='A_F: last_online')
+                InlineKeyboardButton(messages.DISTANCE_FILTER, callback_data='A_F: Dis'),
+                InlineKeyboardButton(messages.LAST_ONLINE_FILTER, callback_data='A_F: last_online')
             ],
             [
-                InlineKeyboardButton(Messages.GENDER_FILTER, callback_data='A_F: Gender'),
-                InlineKeyboardButton(Messages.AGE_FILTER, callback_data='A_F: Age')
+                InlineKeyboardButton(messages.GENDER_FILTER, callback_data='A_F: Gender'),
+                InlineKeyboardButton(messages.AGE_FILTER, callback_data='A_F: Age')
             ],
-            [InlineKeyboardButton(Messages.CITIES_FILTER, callback_data='A_F: Cities')],
-            [InlineKeyboardButton(Messages.SEARCH_BUTTON, callback_data='A_F: Search')]
+            [InlineKeyboardButton(messages.CITIES_FILTER, callback_data='A_F: Cities')],
+            [InlineKeyboardButton(messages.SEARCH_BUTTON, callback_data='A_F: Search')]
         ]
 
         reply_markup = InlineKeyboardMarkup(keyboard)
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text=Messages.ADVANCE_SEARCH_TITLE,
+            text=messages.ADVANCE_SEARCH_TITLE,
             reply_markup=reply_markup
         )
 
     def advance_search_handler(self):
-        return MessageHandler(filters.Regex(Messages.ADVANCE_SEARCH_REGEX), self.advance_search)
+        messages = msg()
+        return MessageHandler(filters.Regex(messages.ADVANCE_SEARCH_REGEX), self.advance_search)
 
 
     async def buttons(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -69,11 +74,6 @@ class Filter:
             await self.age_filter_buttons(query, context)
         elif query.data.startswith("city_filter:"):
             await self.city_filter_buttons(query, context)
-
-        elif query.data == 'page_before':
-            await self.search_filters_handler(query, context, current_page=context.user_data.get('current_page', 1) - 1)
-        elif query.data == 'page_next':
-            await self.search_filters_handler(query, context, current_page=context.user_data.get('current_page', 1) + 1)
 
 
 
@@ -160,6 +160,7 @@ class Filter:
         await self.age_filter_handler(query, context)
 
     async def city_filter_buttons(self, query, context: ContextTypes.DEFAULT_TYPE):
+
         if 'user_filter' not in context.user_data:
             context.user_data['user_filter'] = {}
         if "city_filter" not in context.user_data['user_filter']:
@@ -185,22 +186,23 @@ class Filter:
         """
         Displays inline keyboard for distance filtering options in advanced search.
         """
+        messages = msg(language=context.user_data['lan'])
         keyboard = [
             [
-                InlineKeyboardButton(Messages.DISTANCE_5KM, callback_data='A_F_D: dis_filter: 5km'),
-                InlineKeyboardButton(Messages.DISTANCE_10KM, callback_data='A_F_D: dis_filter: 10km'),
+                InlineKeyboardButton(messages.DISTANCE_5KM, callback_data='A_F_D: dis_filter: 5km'),
+                InlineKeyboardButton(messages.DISTANCE_10KM, callback_data='A_F_D: dis_filter: 10km'),
             ],
             [
-                InlineKeyboardButton(Messages.DISTANCE_15KM, callback_data='A_F_D: dis_filter: 15km'),
-                InlineKeyboardButton(Messages.DISTANCE_20KM, callback_data='A_F_D: dis_filter: 20km'),
+                InlineKeyboardButton(messages.DISTANCE_15KM, callback_data='A_F_D: dis_filter: 15km'),
+                InlineKeyboardButton(messages.DISTANCE_20KM, callback_data='A_F_D: dis_filter: 20km'),
             ],
             [
-                InlineKeyboardButton(Messages.DISTANCE_25KM, callback_data='A_F_D: dis_filter: 25km'),
-                InlineKeyboardButton(Messages.DISTANCE_30KM, callback_data='A_F_D: dis_filter: 30km'),
+                InlineKeyboardButton(messages.DISTANCE_25KM, callback_data='A_F_D: dis_filter: 25km'),
+                InlineKeyboardButton(messages.DISTANCE_30KM, callback_data='A_F_D: dis_filter: 30km'),
             ],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(Messages.CHOOSE_PROMPT, reply_markup=reply_markup)
+        await query.edit_message_text(messages.CHOOSE_PROMPT, reply_markup=reply_markup)
 
     def get_dis_filter(self, query, context):
         """
@@ -213,22 +215,23 @@ class Filter:
         """
         Displays inline keyboard for 'last online' filtering options in advanced search.
         """
+        messages = msg(language=context.user_data['lan'])
         keyboard = [
             [
-                InlineKeyboardButton(Messages.TIME_15MIN, callback_data='A_F_D: last_online_filter: 15min'),
-                InlineKeyboardButton(Messages.TIME_30MIN, callback_data='A_F_D: last_online_filter: 30min'),
+                InlineKeyboardButton(messages.TIME_15MIN, callback_data='A_F_D: last_online_filter: 15min'),
+                InlineKeyboardButton(messages.TIME_30MIN, callback_data='A_F_D: last_online_filter: 30min'),
             ],
             [
-                InlineKeyboardButton(Messages.TIME_1HR, callback_data='A_F_D: last_online_filter: 1hr'),
-                InlineKeyboardButton(Messages.TIME_3HR, callback_data='A_F_D: last_online_filter: 3hr'),
+                InlineKeyboardButton(messages.TIME_1HR, callback_data='A_F_D: last_online_filter: 1hr'),
+                InlineKeyboardButton(messages.TIME_3HR, callback_data='A_F_D: last_online_filter: 3hr'),
             ],
             [
-                InlineKeyboardButton(Messages.TIME_1DAY, callback_data='A_F_D: last_online_filter: 1day'),
-                InlineKeyboardButton(Messages.TIME_1WEEK, callback_data='A_F_D: last_online_filter: 1week'),
+                InlineKeyboardButton(messages.TIME_1DAY, callback_data='A_F_D: last_online_filter: 1day'),
+                InlineKeyboardButton(messages.TIME_1WEEK, callback_data='A_F_D: last_online_filter: 1week'),
             ],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(Messages.CHOOSE_PROMPT, reply_markup=reply_markup)
+        await query.edit_message_text(messages.CHOOSE_PROMPT, reply_markup=reply_markup)
 
     def get_last_online_filter(self, query, context):
         """
@@ -253,23 +256,24 @@ class Filter:
         Displays inline keyboard for gender filtering in advanced search, with current selections marked.
         Toggles selection of 'male' or 'female'.
         """
+        messages = msg(language=context.user_data['lan'])
         if "gender_filter" not in context.user_data:
             context.user_data['gender_filter'] = []
 
         gender_filter = context.user_data['gender_filter']
         keyboard = [
             [
-                InlineKeyboardButton(f"{'✓ ' if 'male' in gender_filter else ''}{Messages.MALE_OPTION}",
+                InlineKeyboardButton(f"{'✓ ' if 'male' in gender_filter else ''}{messages.MALE_OPTION}",
                                      callback_data="gender: male"),
-                InlineKeyboardButton(f"{'✓ ' if 'female' in gender_filter else ''}{Messages.FEMALE_OPTION}",
+                InlineKeyboardButton(f"{'✓ ' if 'female' in gender_filter else ''}{messages.FEMALE_OPTION}",
                                      callback_data="gender: female"),
             ],
-            [InlineKeyboardButton(Messages.DONE_BUTTON, callback_data="A_F_D: gender: done")],
+            [InlineKeyboardButton(messages.DONE_BUTTON, callback_data="A_F_D: gender: done")],
         ]
 
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(
-            text=Messages.CHOOSE_GENDER,
+            text=messages.CHOOSE_GENDER,
             reply_markup=reply_markup,
         )
 
@@ -277,23 +281,24 @@ class Filter:
         """
         Updates the gender filter options for random chat, similar to the general gender filter handler.
         """
+        messages = msg(language=context.user_data['lan'])
         if "gender_filter" not in context.user_data:
             context.user_data['gender_filter'] = []
 
         gender_filter = context.user_data['gender_filter']
         keyboard = [
             [
-                InlineKeyboardButton(f"{'✓ ' if 'male' in gender_filter else ''}{Messages.MALE_OPTION}",
+                InlineKeyboardButton(f"{'✓ ' if 'male' in gender_filter else ''}{messages.MALE_OPTION}",
                                      callback_data="random gender: male"),
-                InlineKeyboardButton(f"{'✓ ' if 'female' in gender_filter else ''}{Messages.FEMALE_OPTION}",
+                InlineKeyboardButton(f"{'✓ ' if 'female' in gender_filter else ''}{messages.FEMALE_OPTION}",
                                      callback_data="random gender: female"),
             ],
-            [InlineKeyboardButton(Messages.DONE_BUTTON, callback_data="random_chat: gender: done")],
+            [InlineKeyboardButton(messages.DONE_BUTTON, callback_data="random_chat: gender: done")],
         ]
 
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(
-            text=Messages.CHOOSE_GENDER,
+            text=messages.CHOOSE_GENDER,
             reply_markup=reply_markup,
         )
 
@@ -309,6 +314,7 @@ class Filter:
         Allows selection of one or two age values to define a range.
         Handles dynamic display of selected ages.
         """
+        messages = msg(language=context.user_data['lan'])
         if "user_filter" not in context.user_data:
             context.user_data['user_filter'] = {}
         if "age_filter" not in context.user_data['user_filter']:
@@ -330,14 +336,14 @@ class Filter:
                                    f"{'✓ ' if (8 * i + n) + 1 in range(age_filter[0], age_filter[1] + 1) else ''}{(8 * i + n) + 1}",
                                    callback_data=f'age_filter: {(8 * i + n) + 1}') for n in range(8)
                            ] for i in range(1, 13)
-                       ] + [[InlineKeyboardButton(Messages.DONE_BUTTON, callback_data="A_F_D: age: done")]]
+                       ] + [[InlineKeyboardButton(messages.DONE_BUTTON, callback_data="A_F_D: age: done")]]
         else:
             keyboard = [
                            [
                                InlineKeyboardButton(f"{'✓ ' if (8 * i + n) + 1 in age_filter else ''}{(8 * i + n) + 1}",
                                                     callback_data=f'age_filter: {(8 * i + n) + 1}') for n in range(8)
                            ] for i in range(1, 13)
-                       ] + [[InlineKeyboardButton(Messages.DONE_BUTTON, callback_data="A_F_D: age: done")]]
+                       ] + [[InlineKeyboardButton(messages.DONE_BUTTON, callback_data="A_F_D: age: done")]]
 
         if len(context.user_data['user_filter']['age_filter']) == 2:
             context.user_data['user_filter']['age_filter'].sort()
@@ -345,7 +351,7 @@ class Filter:
         elif len(context.user_data['user_filter']['age_filter']) == 1:
             text = f'-{context.user_data["user_filter"]["age_filter"][0]}-'
         else:
-            text = Messages.CHOOSE_STARTING_AGE
+            text = messages.CHOOSE_STARTING_AGE
 
         reply_markup = InlineKeyboardMarkup(keyboard)
         try:
@@ -359,6 +365,7 @@ class Filter:
         Displays inline keyboard for city filtering in advanced search, with current selections marked.
         Allows toggling individual cities or selecting/deselecting all cities.
         """
+        messages = msg(language=context.user_data['lan'])
         if "city_filter" not in context.user_data['user_filter']:
             context.user_data['user_filter']['city_filter'] = []
 
@@ -371,13 +378,13 @@ class Filter:
                        ] for i in range(10)
                    ] + [
                        [
-                           InlineKeyboardButton(Messages.ALL_BUTTON, callback_data="city_filter: all"),
-                           InlineKeyboardButton(Messages.DONE_BUTTON, callback_data="A_F_D: city: done"),
+                           InlineKeyboardButton(messages.ALL_BUTTON, callback_data="city_filter: all"),
+                           InlineKeyboardButton(messages.DONE_BUTTON, callback_data="A_F_D: city: done"),
                        ],
                    ]
 
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(Messages.CHOOSE_PROMPT, reply_markup=reply_markup)
+        await query.edit_message_text(messages.CHOOSE_PROMPT, reply_markup=reply_markup)
 
     def apply_dis_filter(self, user_filters, selected_users):
         """
@@ -390,7 +397,6 @@ class Filter:
 
         if user_filters:
             if dis_filter:
-                print("hello fucking world")
                 max_dis = float(user_filters['dis_filter'])
                 return [u for u in selected_users if u['distance'] <= max_dis]
 
@@ -554,16 +560,19 @@ class Filter:
         selected_users = self.get_filtered_users(user_data)
         #reset user filter
         context.user_data['user_filter'] = {}
+        context.user_data['gender_filter'] = []
 
 
 
-        await self.show_cases.show_selected_users(query, context, selected_users)
+
+        await self.show_cases.show_selected_users(query, context, selected_users=selected_users)
 
     async def update_advance_search(self, query, context: ContextTypes.DEFAULT_TYPE):
         """
         Updates the displayed advanced search message with the currently applied filters.
         Reflects selections for distance, last online, gender, age, and cities on the buttons.
         """
+        messages = msg(language=context.user_data['lan'])
         filter_data = context.user_data['user_filter']
 
         dis = f": {filter_data['dis_filter']}km" if "dis_filter" in filter_data else ""
@@ -593,19 +602,19 @@ class Filter:
 
         keyboard = [
             [
-                InlineKeyboardButton(f"{Messages.DISTANCE_FILTER}{dis}", callback_data='A_F: Dis'),
-                InlineKeyboardButton(f"{Messages.LAST_ONLINE_FILTER}{last_online}", callback_data='A_F: last_online')
+                InlineKeyboardButton(f"{messages.DISTANCE_FILTER}{dis}", callback_data='A_F: Dis'),
+                InlineKeyboardButton(f"{messages.LAST_ONLINE_FILTER}{last_online}", callback_data='A_F: last_online')
             ],
             [
-                InlineKeyboardButton(f"{gender if gender else Messages.GENDER_FILTER}", callback_data='A_F: Gender'),
-                InlineKeyboardButton(f"{Messages.AGE_FILTER}{age}", callback_data='A_F: Age')
+                InlineKeyboardButton(f"{gender if gender else messages.GENDER_FILTER}", callback_data='A_F: Gender'),
+                InlineKeyboardButton(f"{messages.AGE_FILTER}{age}", callback_data='A_F: Age')
             ],
-            [InlineKeyboardButton(f"{Messages.CITIES_FILTER}{num_cities}", callback_data='A_F: Cities')],
-            [InlineKeyboardButton(Messages.SEARCH_BUTTON, callback_data='A_F: Search')]
+            [InlineKeyboardButton(f"{messages.CITIES_FILTER}{num_cities}", callback_data='A_F: Cities')],
+            [InlineKeyboardButton(messages.SEARCH_BUTTON, callback_data='A_F: Search')]
         ]
 
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(
-            text=Messages.ADVANCE_SEARCH_TITLE,
+            text=messages.ADVANCE_SEARCH_TITLE,
             reply_markup=reply_markup
         )

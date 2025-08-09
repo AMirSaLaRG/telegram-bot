@@ -7,13 +7,16 @@ from telegram.ext import ContextTypes, MessageHandler, filters, ConversationHand
     CallbackQueryHandler
 
 from bot.handlers.telegram_chat_handler import UserMessage
-from bot.utils.messages import Messages
+from bot.handlers.intraction import track_user_interaction
+
 from bot.db.database import UserDatabase, ChatDatabase, RelationshipManager
 from bot.handlers.relationship import RelationshipHandler
 
 
+from bot.utils.messages_manager import messages as msg
+# messages = msg(language=context.user_data['lan'])
 
-
+from bot.utils.messages_manager import languages
 
 
 
@@ -52,7 +55,7 @@ class Profile:
         return ConversationHandler(
             entry_points=[CommandHandler(self.create_commend, self.start_profile)],
             states={
-                self.PHOTO: [MessageHandler(filters.PHOTO, self.handle_photo)],
+                # self.PHOTO: [MessageHandler(filters.PHOTO, self.handle_photo)],
                 self.NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_name)],
                 self.AGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_age)],
                 self.GENDER: [MessageHandler(filters.Regex("^(Male|Female|Other)$"), self.handle_gender)],
@@ -67,6 +70,7 @@ class Profile:
         Defines and returns the ConversationHandler for sending direct messages.
         It handles the start of a message request and the text input for the message.
         """
+
         return ConversationHandler(
             entry_points=[CallbackQueryHandler(self.start_msg_request, pattern=f'^{self.msg_request_pattern}')],
             states={
@@ -87,37 +91,40 @@ class Profile:
         """
         Starts the profile creation conversation. Asks the user to send their photo.
         """
+        messages = msg(language=context.user_data['lan'])
         context.user_data['user_id'] = update.effective_user.id
         await update.message.reply_text(
-            Messages.PROFILE_START,
+            messages.PROFILE_START,
             reply_markup=ReplyKeyboardRemove()  # Removes the custom keyboard
         )
-        return self.PHOTO
-
-    async def handle_photo(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """
-        Handles the photo input during profile creation. Stores the file_id of the highest
-        resolution photo and prompts for the user's name.
-        """
-        # Check if a photo was actually sent
-        if not update.message.photo:
-            await update.message.reply_text("plz send your photo!")
-            return self.PHOTO
-
-        # Store the file_id of the highest resolution photo
-        photo_file = await update.message.photo[-1].get_file()
-        context.user_data['profile_photo'] = photo_file.file_id
-
-        await update.message.reply_text(Messages.PROFILE_PHOTO_RECEIVED)
         return self.NAME
+
+    # async def handle_photo(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    #     """
+    #     Handles the photo input during profile creation. Stores the file_id of the highest
+    #     resolution photo and prompts for the user's name.
+    #     """
+    #     messages = msg(language=context.user_data['lan'])
+    #     # Check if a photo was actually sent
+    #     if not update.message.photo:
+    #         await update.message.reply_text("plz send your photo!")
+    #         return self.PHOTO
+    #
+    #     # Store the file_id of the highest resolution photo
+    #     photo_file = await update.message.photo[-1].get_file()
+    #     context.user_data['profile_photo'] = photo_file.file_id
+    #
+    #     await update.message.reply_text(messages.PROFILE_PHOTO_RECEIVED)
+    #     return self.NAME
 
     async def handle_name(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Handles the name input during profile creation. Stores the name and prompts for age.
         """
+        messages = msg(language=context.user_data['lan'])
         context.user_data['name'] = update.message.text
 
-        await update.message.reply_text(Messages.PROFILE_ASK_AGE)
+        await update.message.reply_text(messages.PROFILE_ASK_AGE)
         return self.AGE
 
     async def handle_age(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -125,24 +132,25 @@ class Profile:
         Handles the age input during profile creation. Validates age (13-120),
         stores it, and prompts for gender with a custom keyboard.
         """
+        messages = msg(language=context.user_data['lan'])
         try:
             age = int(update.message.text)
             if age < 13 or age > 120:
                 await update.message.reply_text(
-                    Messages.PROFILE_INVALID_AGE
+                    messages.PROFILE_INVALID_AGE
                 )
                 return self.AGE  # Stay in AGE state
             context.user_data['age'] = age
         except ValueError:  # If input is not a valid number
             await update.message.reply_text(
-                Messages.PROFILE_AGE_NOT_NUMBER
+                messages.PROFILE_AGE_NOT_NUMBER
             )
             return self.AGE  # Stay in AGE state
 
         # Create gender selection keyboard
         reply_keyboard = [["Male"], ["Female"], ["Other"]]
         await update.message.reply_text(
-            Messages.PROFILE_ASK_GENDER,
+            messages.PROFILE_ASK_GENDER,
             reply_markup=ReplyKeyboardMarkup(
                 reply_keyboard,
                 one_time_keyboard=True,  # Keyboard disappears after one use
@@ -156,10 +164,11 @@ class Profile:
         Handles the gender input during profile creation. Stores the gender and
         prompts for the 'about' section.
         """
+        messages = msg(language=context.user_data['lan'])
         context.user_data['gender'] = update.message.text
 
         await update.message.reply_text(
-            Messages.PROFILE_ASK_ABOUT,
+            messages.PROFILE_ASK_ABOUT,
             reply_markup=ReplyKeyboardRemove()  # Removes the custom keyboard
         )
         return self.ABOUT
@@ -169,8 +178,9 @@ class Profile:
         Handles the 'about' text input during profile creation. Validates length,
         stores the text, and prompts for location with a "Share Location" button.
         """
+        messages = msg(language=context.user_data['lan'])
         if len(update.message.text) > 200:
-            await update.message.reply_text(Messages.PROFILE_ABOUT_TOO_LONG)
+            await update.message.reply_text(messages.PROFILE_ABOUT_TOO_LONG)
             return self.ABOUT  # Stay in ABOUT state
 
         context.user_data['about'] = update.message.text
@@ -178,7 +188,7 @@ class Profile:
         # Request location with a button that triggers location sharing
         reply_keyboard = [[KeyboardButton("Share Location", request_location=True)]]
         await update.message.reply_text(
-            Messages.PROFILE_ASK_LOCATION,
+            messages.PROFILE_ASK_LOCATION,
             reply_markup=ReplyKeyboardMarkup(
                 reply_keyboard,
                 one_time_keyboard=True,
@@ -192,6 +202,7 @@ class Profile:
         Handles the location input during profile creation. Stores latitude and longitude,
         saves the complete profile to the database, and displays the user's profile.
         """
+
         location = update.message.location
         context.user_data['location'] = (location.latitude, location.longitude)
         context.user_data['latitude'] = context.user_data['location'][0]
@@ -206,17 +217,18 @@ class Profile:
         return ConversationHandler.END  # End the conversation
 
     def _self_profile_keyboard(self, user_id):
+        messages = msg()
         all_rels = self.rel_db.get_user_relationships(user_id)
         if all_rels:
             num_friends = len(all_rels['friends'])
-            num_likes = len(all_rels['likes'])
+            num_likes = len(all_rels['liked_by'])
         else:
             num_friends = ""
             num_likes = ""
         return [
             [
                 InlineKeyboardButton('Edit', callback_data=f'{self.my_profile_key_starter}: edit'),
-                InlineKeyboardButton('Update Photo', callback_data=f'{Messages.PROFILE_EDIT_PATTERN}: {Messages.PHOTO_PATTERN}')
+                InlineKeyboardButton('Update Photo', callback_data=f'{messages.PROFILE_EDIT_PATTERN}: {messages.PHOTO_PATTERN}')
             ],
             [
                 InlineKeyboardButton(f'( {num_likes} ) likes', callback_data=f'{self.rel.rel_inspect_pattern}: {self.rel.like_pattern}'),
@@ -224,12 +236,14 @@ class Profile:
             ]
         ]
 
+    @track_user_interaction
     async def show_my_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Displays the current user's profile information, including photo, name, age,
         gender, 'about' text, last online status, and a generated user ID.
         Provides inline buttons for editing profile and other actions.
         """
+        messages = msg(language=context.user_data['lan'])
         self.load_profile(update, context)  # Ensure user_data is loaded/updated from DB
         user_id = update.effective_user.id
 
@@ -254,7 +268,7 @@ class Profile:
         online_display = last_online if profile.last_online else "Long time ago"
         generated_id_display = profile.generated_id  # Assuming this is always set if profile exists
 
-        text = Messages.PROFILE_DISPLAY.format(
+        text = messages.PROFILE_DISPLAY.format(
             name=name_display,
             age=age_display,
             gender=gender_display,
@@ -279,7 +293,8 @@ class Profile:
                 reply_markup=reply_markup
             )
         else:
-            await update.message.reply_text(text)
+            await update.message.reply_text(text,
+                                            reply_markup=reply_markup)
 
 
 
@@ -289,18 +304,23 @@ class Profile:
         Switches the 'My Profile' view to an edit mode, presenting buttons for
         specific profile field edits (Name, About, City, Photo).
         """
+        messages = msg(language=context.user_data['lan'])
         self.load_profile(update, context)  # Ensure user data is up-to-date
 
         # Define inline keyboard buttons for specific edit actions
         keyboard = [
             [
-                InlineKeyboardButton('Edit Name', callback_data=f'{Messages.PROFILE_EDIT_PATTERN}:{Messages.NAME_PATTERN}'),
-                InlineKeyboardButton('Edit About', callback_data=f'{Messages.PROFILE_EDIT_PATTERN}:{Messages.ABOUT_PATTERN}')
+                InlineKeyboardButton('Edit Name', callback_data=f'{messages.PROFILE_EDIT_PATTERN}:{messages.NAME_PATTERN}'),
+                InlineKeyboardButton('Edit About', callback_data=f'{messages.PROFILE_EDIT_PATTERN}:{messages.ABOUT_PATTERN}')
                 # Mislabeled, should be specific action
             ],
             [
-                InlineKeyboardButton('Edit City', callback_data=f'{Messages.PROFILE_EDIT_PATTERN}:{Messages.CITY_PATTERN}'),  # Mislabeled
-                InlineKeyboardButton('Edit Location', callback_data=f"{Messages.PROFILE_EDIT_PATTERN}:{Messages.LOCATION_PATTER}")
+                InlineKeyboardButton('Edit City', callback_data=f'{messages.PROFILE_EDIT_PATTERN}:{messages.CITY_PATTERN}'),
+                InlineKeyboardButton('Edit Location', callback_data=f"{messages.PROFILE_EDIT_PATTERN}:{messages.LOCATION_PATTER}")
+            ],
+            [
+                InlineKeyboardButton('Edit Language', callback_data=f'{messages.LANGUAGE_PATTERN}'),
+
             ]
         ]
 
@@ -313,6 +333,7 @@ class Profile:
         )
 
     def _target_profile_keyboard(self, user_id, target_id):
+        print(self.rel_db.is_liked(user_id=user_id, target_id=target_id))
         return [
             [
                 InlineKeyboardButton('Direct MSG', callback_data=f"{self.msg_request_pattern}: {target_id}"),
@@ -334,16 +355,16 @@ class Profile:
 
 
             [
-                InlineKeyboardButton('unblock', callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.block_pattern}:{target_id}")
+                InlineKeyboardButton('block', callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.block_pattern}:{target_id}")
                 if not self.rel_db.is_block(user_id=user_id, target_id=target_id) else
-                InlineKeyboardButton('block', callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.unblock_pattern}:{target_id}"),
+                InlineKeyboardButton('unblock', callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.unblock_pattern}:{target_id}"),
 
                 InlineKeyboardButton('Report', callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.report_pattern}:{target_id}")
                 if not self.rel_db.is_report(user_id=user_id, target_id=target_id) else
                 InlineKeyboardButton('Reported', callback_data=f"{self.rel.rel_starter_pattern}:{self.rel.report_pattern}:{target_id}"),
             ]
         ]
-
+    @track_user_interaction
     async def show_target_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE, target_id: int, is_callback=False):
         """
         Displays the profile information of a target user (not the current user).
@@ -387,7 +408,6 @@ class Profile:
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         # Send photo with caption or just text if no photo exists for the target profile
-        print(is_callback)
         if is_callback:
 
             # Handle callback query case
@@ -473,6 +493,29 @@ class Profile:
             else:
                 return True
 
+    def _language_options_keyboard(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        language_set = [key for key, value in languages.items()]
+        key_set = []
+        i = 1
+        keys_in_line = []
+        for lan in language_set:
+            i += 1
+            new = InlineKeyboardButton(lan, callback_data=f'set lan: {lan}')
+            keys_in_line.append(new)
+            if i % 3 == 0 or i == len(language_set):
+                key_set.append(keys_in_line)
+                keys_in_line = []
+
+        return key_set
+
+    async def language_options(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        keyboard = self._language_options_keyboard(update, context)
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await context.bot.send_message(
+            chat_id=update.effective_user.id,
+            text='Plz choose your language',
+            reply_markup=reply_markup,
+        )
 
     async def buttons(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
@@ -480,6 +523,7 @@ class Profile:
         (e.g., chat requests, direct messages, likes, blocks).
         Routes the actions based on the callback data pattern.
         """
+        messages = msg(language=context.user_data['lan'])
         user_id = update.effective_user.id
         message_handler = UserMessage()
         query = update.callback_query
@@ -503,23 +547,31 @@ class Profile:
             if action == 'edit':
                 await self.show_my_profile_edit_mode(update, context)
 
-        if query.data.startswith(self.rel.rel_starter_pattern):
+        elif query.data.startswith(messages.LANGUAGE_PATTERN):
+            await self.language_options(update, context)
+
+        elif query.data.startswith("set lan"):
+            action = query.data.split(':')[1].strip().lower()
+
+            self.user_db.update_len(user_id, action)
+            context.user_data['language'] = action
+            await query.edit_message_text(
+                'language changed'
+            )
+
+
+
+
+        elif query.data.startswith(self.rel.rel_starter_pattern):
             action = query.data.split(':')[1].strip().lower()
             target_id = int(query.data.split(':')[2].strip().lower())
 
-            if action == Messages.LIKE_PATTERN:
-                self.rel.liking_handler(update, context, target_id)
-            if action == Messages.FRIEND_PATTERN:
-                self.rel.add_friend_handler(update, context, target_id)
-            if action == Messages.BLOCK_PATTERN:
-                self.rel.block_handler(update, context, target_id)
-            if action == Messages.REPORT_PATTERN:
-                self.rel.report_handler(update, context, target_id)
-            if action == Messages.UNLIKE_PATTERN:
+
+            if action == messages.UNLIKE_PATTERN:
                 self.rel.unliking_handler(update, context, target_id)
-            if action == Messages.UNFRIEND_PATTERN:
+            if action == messages.UNFRIEND_PATTERN:
                 self.rel.unadd_friend_handler(update, context, target_id)
-            if action == Messages.UNBLOCK_PATTERN:
+            if action == messages.UNBLOCK_PATTERN:
                 self.rel.unblock_handler(update, context, target_id)
 
             try:
@@ -533,38 +585,39 @@ class Profile:
 
 
     async def handle_edit_button_click(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        messages = msg(language=context.user_data['lan'])
         query = update.callback_query
         action = query.data.split(':')[1].strip().lower()
 
         await query.answer()
 
         try:
-            if action == Messages.NAME_PATTERN:
+            if action == messages.NAME_PATTERN:
                 await context.bot.send_message(
                     chat_id=update.effective_user.id,
                     text="Please enter your new name:"
                 )
                 return self.EDIT_NAME
-            elif action == Messages.ABOUT_PATTERN:
+            elif action == messages.ABOUT_PATTERN:
                 await context.bot.send_message(
                     chat_id=update.effective_user.id,
                     text="Please enter your new bio/about text:"
                 )
                 return self.EDIT_ABOUT
-            elif action == Messages.CITY_PATTERN:
+            elif action == messages.CITY_PATTERN:
                 await context.bot.send_message(
                     chat_id=update.effective_user.id,
                     text="Please enter your new city:"
                 )
                 return self.EDIT_CITY
-            elif action == Messages.PHOTO_PATTERN:
+            elif action == messages.PHOTO_PATTERN:
                 await context.bot.send_message(
                     chat_id=update.effective_user.id,
                     text="Please send your new profile photo:",
 
                 )
                 return self.EDIT_PHOTO
-            elif action == Messages.LOCATION_PATTER:
+            elif action == messages.LOCATION_PATTER:
 
                 await context.bot.send_message(
                     chat_id=update.effective_user.id,
@@ -650,38 +703,42 @@ class Profile:
         return ConversationHandler.END
 
     def get_profile_edit_conversation_handler(self):
+        messages = msg()
         return ConversationHandler(
             entry_points=[CallbackQueryHandler(
                 self.handle_edit_button_click,
-                pattern=f'^{Messages.PROFILE_EDIT_PATTERN}'
+                pattern=f'^{messages.PROFILE_EDIT_PATTERN}'
             )],
             states={
                 self.EDIT_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_edit_name_input)],
                 self.EDIT_ABOUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_edit_about_input)],
                 self.EDIT_CITY: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_edit_city_input)],
                 self.EDIT_PHOTO: [MessageHandler(filters.PHOTO, self.handle_edit_photo_input)],
-                self.EDIT_LOCATION: [MessageHandler(filters.LOCATION, self.handle_edit_location_input)]
+                self.EDIT_LOCATION: [MessageHandler(filters.LOCATION, self.handle_edit_location_input)],
+
+
             },
             fallbacks=[CommandHandler('cancel', self.cancel_edit)],
             allow_reentry=True
         )
-
+    @track_user_interaction
     async def start_msg_request(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Initiates the direct message request conversation.
         Stores the target user's ID and prompts the user to send their message.
         """
+        messages = msg(language=context.user_data['lan'])
         query = update.callback_query
         user_id = update.effective_user.id
         target_id = query.data.split(':')[1].strip()  # Extract target_id from callback data
         if self.rel_db.is_block(target_id, user_id):
             await context.bot.send_message(user_id,
-                                           text=Messages.BLOCKED_FROM_USER_WARNING)
+                                           text=messages.BLOCKED_FROM_USER_WARNING)
             return
         context.user_data['request_from_id'] = target_id  # Store target ID in user_data
         context.user_data['user_id'] = update.effective_user.id  # Ensure current user_id is in context
 
-        await context.bot.send_message(user_id, text=Messages.DIRECT_MSG_PROMPT)
+        await context.bot.send_message(user_id, text=messages.DIRECT_MSG_PROMPT)
         return self.DIRECT_TEXT  # Move to the state for direct message text input
 
     async def handle_direct_msg(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -690,22 +747,23 @@ class Profile:
         Validates message length, adds it as a 'requested' message to the database,
         and notifies both sender and receiver.
         """
+        messages = msg(language=context.user_data['lan'])
         user_id = update.effective_user.id
         target_id = context.user_data['request_from_id']  # Retrieve target ID
-        msg = update.message.text
+        the_msg = update.message.text
 
         # Basic message validation
-        if not msg:
+        if not the_msg:
             return ConversationHandler.END  # End conversation if no message text
-        if len(msg) > 250:
+        if len(the_msg) > 250:
             # Maybe send a warning message and stay in the state
-            await update.message.reply_text(Messages.DIRECT_MSG_TOO_LONG)
+            await update.message.reply_text(messages.DIRECT_MSG_TOO_LONG)
             return self.DIRECT_TEXT
 
         chat_db = ChatDatabase()  # Instance of ChatDatabase
 
         # Attempt to add the message as a requested message in the database
-        if chat_db.add_requested_msg(user_id, target_id, msg):
+        if chat_db.add_requested_msg(user_id, target_id, the_msg):
             # Create inline keyboard for recipient to accept or decline the message request
             keyboard = [
                 [
@@ -716,17 +774,17 @@ class Profile:
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             # Notify the sender that their request has been sent
-            await update.message.reply_text(Messages.DIRECT_MSG_SENT)
+            await update.message.reply_text(messages.DIRECT_MSG_SENT)
             # Notify the recipient with the message request and action buttons
             await context.bot.send_message(target_id,
-                                           text=Messages.DIRECT_MSG_REQUEST.format(user_id=user_id),
+                                           text=messages.DIRECT_MSG_REQUEST.format(user_id=user_id),
                                            reply_markup=reply_markup)
             return ConversationHandler.END  # End conversation
         else:
             # Handle case where message could not be added (e.g., DB error)
-            await update.message.reply_text(Messages.DIRECT_MSG_ERROR)
+            await update.message.reply_text(messages.DIRECT_MSG_ERROR)
             return ConversationHandler.END
-
+    @track_user_interaction
     async def chat_request_accepted(self, update: Update, context: ContextTypes.DEFAULT_TYPE, target_id: int):
         """
         Handles the acceptance of a chat request. Retrieves and sends the requested messages
@@ -737,6 +795,7 @@ class Profile:
             context (ContextTypes.DEFAULT_TYPE): The context object.
             target_id (int): The user ID of the sender whose messages are being accepted.
         """
+        messages = msg(language=context.user_data['lan'])
         user_id = update.effective_user.id
         message_db = ChatDatabase()
 
@@ -745,13 +804,13 @@ class Profile:
         query = update.callback_query  # The callback query that triggered this action
 
         if msgs:
-            await query.edit_message_text(Messages.DIRECT_MSG_ACCEPTED.format(target_id=target_id))  # Edit original button message
-            for msg in msgs:
+            await query.edit_message_text(messages.DIRECT_MSG_ACCEPTED.format(target_id=target_id))  # Edit original button message
+            for the_msg in msgs:
                 await context.bot.send_message(user_id,
-                                               text=f"/chaT_{target_id}: {msg}")  # Send each message to the accepting user
-            await context.bot.send_message(target_id, text=Messages.DIRECT_MSG_RECEIVED.format(user_id=user_id))  # Notify sender
+                                               text=f"/chaT_{target_id}: {the_msg}")  # Send each message to the accepting user
+            await context.bot.send_message(target_id, text=messages.DIRECT_MSG_RECEIVED.format(user_id=user_id))  # Notify sender
         else:
-            await query.edit_message_text(Messages.DIRECT_MSG_NO_MSGS.format(target_id=target_id))  # No messages found
+            await query.edit_message_text(messages.DIRECT_MSG_NO_MSGS.format(target_id=target_id))  # No messages found
 
         # Consider ending the conversation or offering next steps here
 
@@ -765,23 +824,26 @@ class Profile:
             context (ContextTypes.DEFAULT_TYPE): The context object.
             target_id (int): The user ID of the sender whose messages are being declined.
         """
+        messages = msg(language=context.user_data['lan'])
         user_id = update.effective_user.id
         message_db = ChatDatabase()
         query = update.callback_query  # The callback query that triggered this action
 
         # Attempt to clear requested messages from the database
         if message_db.clear_msg_requests_from_map(user_id, target_id):
-            await query.edit_message_text(Messages.DIRECT_MSG_DECLINED.format(target_id=target_id))  # Edit original button message
+            await query.edit_message_text(messages.DIRECT_MSG_DECLINED.format(target_id=target_id))  # Edit original button message
             await context.bot.send_message(target_id,
-                                           text=Messages.DIRECT_MSG_DECLINE_NOTIFY.format(user_id=user_id))  # Notify sender
+                                           text=messages.DIRECT_MSG_DECLINE_NOTIFY.format(user_id=user_id))  # Notify sender
         else:
-            await query.edit_message_text(Messages.DIRECT_MSG_FAILED_DECLINE.format(target_id=target_id))  # Error or no messages
+            await query.edit_message_text(messages.DIRECT_MSG_FAILED_DECLINE.format(target_id=target_id))  # Error or no messages
 
+    @track_user_interaction
     async def show_profile_request(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Handles requests to show a user's profile based on a '/chaT_<generated_id>' command.
         Validates the generated ID and then calls the profile handler to display the profile.
         """
+        messages = msg(language=context.user_data['lan'])
         user_id = update.effective_user.id
         target_id_parts = update.message.text.split('_', 1)
         if self.user_db.get_user_generated_id(user_id) == target_id_parts[1]:
@@ -789,23 +851,24 @@ class Profile:
             return
 
         if len(target_id_parts) < 2:
-            await update.message.reply_text(Messages.INVALID_FORMAT.format(command="chaT"))
+            await update.message.reply_text(messages.INVALID_FORMAT.format(command="chaT"))
             return
 
         command, target_id_generated = target_id_parts
         if not target_id_generated:
-            await update.message.reply_text(Messages.INVALID_ITEM)
+            await update.message.reply_text(messages.INVALID_ITEM)
             return
 
         if not self.user_db.get_user_id_from_generated_id(target_id_generated):
-            await update.message.reply_text(Messages.USER_NOT_REGISTERED)
+            await update.message.reply_text(messages.USER_NOT_REGISTERED)
             return
 
         target_id = self.user_db.get_user_id_from_generated_id(target_id_generated)
         await self.show_target_profile(update, context, target_id)
 
     def show_profile_handler(self):
-        return MessageHandler(filters.Regex(Messages.CHAT_PROFILE_REGEX), self.show_profile_request)
+        messages = msg()
+        return MessageHandler(filters.Regex(messages.CHAT_PROFILE_REGEX), self.show_profile_request)
 
 
     def get_all_handlers(self) -> list:

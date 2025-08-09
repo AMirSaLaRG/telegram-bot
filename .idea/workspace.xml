@@ -4,13 +4,24 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35578467-47ec-4149-be7c-60947fca684a" name="Changes" comment="added table of relationships to db&#10;added handler of that table&#10;made handler of showcase for showing users &#10;switch some filter functions from db to filter handler&#10;added functionality to key of profile like add block report on profile and the show like and friends">
+    <list default="true" id="35578467-47ec-4149-be7c-60947fca684a" name="Changes" comment="added functionality to edit keys with short conversation &#10;when blocked can send msg or request chat&#10;made keys dynamic to change when report block unblock friend unfriend like unlike&#10;keys in owner profile shows how many ppl liked him or is his friend&#10;moved buttons from relationship py to the profile to made update for dynamic keyboard">
+      <change afterPath="$PROJECT_DIR$/bot/utils/fa.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/bot/utils/messages_manager.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bot/db/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/db/database.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot/handlers/filter.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/filter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot/handlers/gold_dollar_report.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/gold_dollar_report.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot/handlers/intraction.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/intraction.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bot/handlers/profile.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/profile.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bot/handlers/relationship.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/relationship.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot/handlers/show_cases.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/show_cases.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot/handlers/start.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/start.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bot/handlers/telegram_chat_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/telegram_chat_handler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bot/utils/messages.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/utils/messages.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot/handlers/telegram_conversations.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/telegram_conversations.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot/handlers/torob_interact.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/torob_interact.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot/service/dolar_gold_price_ir.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/service/dolar_gold_price_ir.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot/utils/messages.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/utils/en.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -58,13 +69,16 @@
     &quot;Python.chat_test.executor&quot;: &quot;Run&quot;,
     &quot;Python.data-base.executor&quot;: &quot;Run&quot;,
     &quot;Python.data_base.executor&quot;: &quot;Run&quot;,
+    &quot;Python.database.executor&quot;: &quot;Run&quot;,
     &quot;Python.dolar_gold_price_ir.executor&quot;: &quot;Run&quot;,
+    &quot;Python.language_manager.executor&quot;: &quot;Run&quot;,
     &quot;Python.main.executor&quot;: &quot;Run&quot;,
     &quot;Python.python -m venv venv.executor&quot;: &quot;Run&quot;,
     &quot;Python.simple chat.executor&quot;: &quot;Run&quot;,
     &quot;Python.telegram_chat_handler.executor&quot;: &quot;Run&quot;,
     &quot;Python.telegram_conversation.executor&quot;: &quot;Run&quot;,
     &quot;Python.telegram_conversations.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test.executor&quot;: &quot;Run&quot;,
     &quot;Python.torob_scraper.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
@@ -346,7 +360,15 @@
       <option name="project" value="LOCAL" />
       <updated>1754120414888</updated>
     </task>
-    <option name="localTasksCounter" value="25" />
+    <task id="LOCAL-00025" summary="added functionality to edit keys with short conversation &#10;when blocked can send msg or request chat&#10;made keys dynamic to change when report block unblock friend unfriend like unlike&#10;keys in owner profile shows how many ppl liked him or is his friend&#10;moved buttons from relationship py to the profile to made update for dynamic keyboard">
+      <option name="closed" value="true" />
+      <created>1754313261543</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1754313261543</updated>
+    </task>
+    <option name="localTasksCounter" value="26" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -382,6 +404,18 @@
     <MESSAGE value="added some test &#10;got 4 failed in data base" />
     <MESSAGE value="managed the files extract codes from main.py and put them in smaller handlers" />
     <MESSAGE value="added table of relationships to db&#10;added handler of that table&#10;made handler of showcase for showing users &#10;switch some filter functions from db to filter handler&#10;added functionality to key of profile like add block report on profile and the show like and friends" />
-    <option name="LAST_COMMIT_MESSAGE" value="added table of relationships to db&#10;added handler of that table&#10;made handler of showcase for showing users &#10;switch some filter functions from db to filter handler&#10;added functionality to key of profile like add block report on profile and the show like and friends" />
+    <MESSAGE value="added functionality to edit keys with short conversation &#10;when blocked can send msg or request chat&#10;made keys dynamic to change when report block unblock friend unfriend like unlike&#10;keys in owner profile shows how many ppl liked him or is his friend&#10;moved buttons from relationship py to the profile to made update for dynamic keyboard" />
+    <option name="LAST_COMMIT_MESSAGE" value="added functionality to edit keys with short conversation &#10;when blocked can send msg or request chat&#10;made keys dynamic to change when report block unblock friend unfriend like unlike&#10;keys in owner profile shows how many ppl liked him or is his friend&#10;moved buttons from relationship py to the profile to made update for dynamic keyboard" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/.venv/Lib/site-packages/telegram/_inline/inlinequeryresultarticle.py</url>
+          <line>20</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

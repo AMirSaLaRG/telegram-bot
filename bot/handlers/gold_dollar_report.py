@@ -5,7 +5,8 @@ import logging
 from bot.handlers.telegram_conversations import Calculator
 from bot.db.database import GoldPriceDatabase
 from bot.handlers.intraction import track_user_interaction
-from bot.utils.messages import Messages
+from bot.utils.messages_manager import messages as msg
+# messages = msg(language=context.user_data['lan'])
 
 
 
@@ -23,6 +24,7 @@ class GoldDollarReport:
         Displays live prices from tgju.org and goldpricez.com, and includes a calculator button.
         Handles potential errors during price fetching.
         """
+        messages = msg(language=context.user_data['lan'])
         user_id = update.effective_chat.id
         checking_msg = await context.bot.send_message(user_id, text='Checking site .... wait')
 
@@ -32,13 +34,13 @@ class GoldDollarReport:
                 raise Exception("Could not fetch prices")
 
             keyboard = [
-                [InlineKeyboardButton(Messages.CALCULATOR_BUTTON, callback_data=f'{self.calculator.calculate_command}')]]
+                [InlineKeyboardButton(messages.CALCULATOR_BUTTON, callback_data=f'{self.calculator.calculate_command}')]]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             await context.bot.edit_message_text(
                 chat_id=user_id,
                 message_id=checking_msg.message_id,
-                text=Messages.GOLD_PRICE_UPDATE.format(
+                text=messages.GOLD_PRICE_UPDATE.format(
                     time=latest_price.time_check_ir.strftime('%Y-%m-%d %H:%M'),
                     gold_18k_ir=latest_price.gold_18k_ir,
                     dollar_ir_rial=latest_price.dollar_ir_rial,
@@ -52,10 +54,11 @@ class GoldDollarReport:
             await context.bot.edit_message_text(
                 chat_id=user_id,
                 message_id=checking_msg.message_id,
-                text=Messages.PRICE_FETCH_ERROR)
+                text=messages.PRICE_FETCH_ERROR)
 
 
     async def button(self, update, context):
+
         query = update.callback_query
         await query.answer()
 
@@ -67,4 +70,5 @@ class GoldDollarReport:
 
 
     def handler(self):
-        return MessageHandler(filters.Regex(Messages.GOLD_DOLLAR_REGEX), self.gold_dollar)
+        messages = msg()
+        return MessageHandler(filters.Regex(messages.GOLD_DOLLAR_REGEX), self.gold_dollar)

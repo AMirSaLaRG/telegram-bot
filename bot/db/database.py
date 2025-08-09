@@ -96,6 +96,7 @@ class User(Base):
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     registration_date = Column(DateTime, default=datetime.now, nullable=True)
+    language = Column(String, default='en')
 
     friends = relationship(
         'User',
@@ -385,6 +386,8 @@ class RelationshipManager:
             try:
                 the_relationship = self._get_or_create_relationship(session, user_id, target_id)
                 the_relationship.friend = action
+                if action:
+                    the_relationship.block = False
 
                 session.commit()
                 return True
@@ -402,6 +405,9 @@ class RelationshipManager:
             try:
                 the_relationship = self._get_or_create_relationship(session, user_id, target_id)
                 the_relationship.like = action
+                if action:
+
+                    the_relationship.block = False
 
                 session.commit()
                 return True
@@ -659,7 +665,6 @@ class GoldPriceDatabase:
         # If another check is in progress, wait and return the cached data
         if self.on_check:
             logging.info("Another update is in progress. Returning the latest cached price.")
-            time.sleep(2)  # Wait for a short period in case the ongoing check finishes
             return latest_check  # Return cached/latest instead of risky recursion
 
         self.on_check = True  # Acquire the lock
@@ -828,6 +833,15 @@ class UserDatabase:
                 logging.error(f"Database error fetching user {target_id}: {e}")
                 return None
 
+    def update_len(self, user_id:int, language:str):
+        with self.Session() as session:
+            try:
+                user = session.query(User).filter_by(user_id=user_id).first()
+                user.language = language
+                session.commit()
+            except Exception as e:
+                logging.error(f"Database error updating language {user_id}: {e}")
+
     def add_or_update_user(self, user_id: int, user_data: dict):
         """
         Adds a new user or updates an existing user's information in the database.
@@ -846,12 +860,14 @@ class UserDatabase:
             # Try to find an existing user
             user = session.query(User).filter_by(user_id=str(user_id)).first()
 
+
             if not user:
                 # If user doesn't exist, create a new one
                 generated_id = self.generate_user_special_id()
                 user = User(user_id=str(user_id), generated_id=generated_id)
                 user.registration_date = datetime.now()
                 user_data['generated_id'] = generated_id
+                user_data['lan'] = 'en'
             # If user exists but somehow doesn't have a generated_id, create one
             elif not user.generated_id:
                 generated_id = self.generate_user_special_id()
@@ -862,6 +878,8 @@ class UserDatabase:
             if not user_data:
                 user_data = {}
 
+
+            user_data['lan'] = user.language
             # Handle case for existing users who might not have a 'generated_id' in user_data
             # This ensures that even if user_data doesn't explicitly provide it, the existing one is used
             # or a new one is generated if missing from the DB.
@@ -1889,7 +1907,9 @@ class TorobDb:
             bool: True if this user is the owner of this item, False otherwise.
         """
         try:
+            print(user_id)
             user_items = self.get_user_items(user_id)  # Get all items owned by the user
+            print(user_items)
             if user_items:
                 user_items_id = [item.item_id for item in user_items]  # Extract item IDs
                 if item_id in user_items_id:
@@ -2117,3 +2137,197 @@ class TorobDb:
             except Exception as e:
                 print(f'get_all_user_id_of_oweners: {e}')
                 return []
+
+
+def add_dummy_data_for_testing():
+    """
+    Adds 21 rows of consistent, generated data to all tables for testing purposes.
+    This function is for development and testing only and does not use the 'random' library.
+    """
+    # Generated data lists
+    first_names = ['Jack', 'Alice', 'Bob', 'Cynthia', 'David', 'Eva', 'Frank', 'Grace', 'Henry', 'Ivy', 'John', 'Kate', 'Leo', 'Mia', 'Noah', 'Olivia', 'Peter', 'Quinn', 'Ryan', 'Sarah', 'Tom']
+    last_names = ['Smith', 'Johnson', 'Williams', 'Jones', 'Brown', 'Davis', 'Miller', 'Wilson', 'Moore', 'Taylor', 'Anderson', 'Thomas', 'Jackson', 'White', 'Harris', 'Martin', 'Thompson', 'Garcia', 'Martinez', 'Robinson', 'Clark']
+    genders = ['male', 'female'] * 11  # 11 male, 10 female to get 21
+    cities = iran_cities_fa[:21] # Use the first 21 cities from the provided list
+    languages = ['en', 'fa'] * 11
+
+    # Initialize the database engine and session
+    engine = create_engine(SQLALCHEMY_DATABASE_URI)
+    Session = sessionmaker(bind=engine)
+
+    with Session() as session:
+        try:
+            # 1. Add 21 rows to 'users'
+            dummy_users = []
+            for i in range(21):
+                user_id = 1000 + i
+                user = User(
+                    user_id=user_id,
+                    generated_id=generate_secure_random_id(),
+                    name=f"{first_names[i]} {last_names[i]}",
+                    first_name=first_names[i],
+                    last_name=last_names[i],
+                    gender=genders[i],
+                    age=20 + i,
+                    city=cities[i],
+                    last_online=datetime.now() - timedelta(minutes=i*10),
+                    about=f"About {first_names[i]}...",
+                    latitude=35.6892 + i * 0.1,  # Generated sequential lat/long
+                    longitude=51.3890 + i * 0.1,
+                    language=languages[i]
+                )
+                dummy_users.append(user)
+            session.add_all(dummy_users)
+            session.commit()
+            print("Added 21 rows of dummy data to 'users' table.")
+
+            # 2. Add 21 rows to 'users_sessions'
+            dummy_sessions = []
+            for i in range(21):
+                user_id = 1000 + i
+                partner_id = 1000 + (i + 1) % 21 # Connects each user to the next one
+                session_entry = Sessions(
+                    user_id=user_id,
+                    partner_id=partner_id,
+                    secret_chat=(i % 2 == 0),
+                    looking_random_chat=(i % 3 == 0)
+                )
+                dummy_sessions.append(session_entry)
+            session.add_all(dummy_sessions)
+            session.commit()
+            print("Added 21 rows of dummy data to 'users_sessions' table.")
+
+            # 3. Add 21 rows to 'relationships'
+            dummy_relationships = []
+            for i in range(21):
+                user_id = 1000 + i
+                target_id = 1000 + (i + 2) % 21 # Connects each user to a different user
+                relationship = Relationships(
+                    user_id=user_id,
+                    target_id=target_id,
+                    like=(i % 2 == 0),
+                    friend=(i % 3 == 0),
+                    block=(i % 4 == 0),
+                    report=(i % 5 == 0)
+                )
+                dummy_relationships.append(relationship)
+            session.add_all(dummy_relationships)
+            session.commit()
+            print("Added 21 rows of dummy data to 'relationships' table.")
+
+            # 4. Add 21 rows to 'gold'
+            dummy_gold_prices = []
+            for i in range(21):
+                gold_price_ir = 1500000 + i * 5000
+                dollar_price_ir = 55000 + i * 100
+                dummy_gold_prices.append(GoldDollarRial(
+                    gold_18k_ir=gold_price_ir,
+                    dollar_ir_rial=dollar_price_ir,
+                    time_check_ir=datetime.now() - timedelta(minutes=i),
+                    gold_18k_international_dollar=1300 + i * 2,
+                    gold_18k_international_rial=dollar_price_ir * (1300 + i * 2),
+                    time_check_int=datetime.now() - timedelta(minutes=i)
+                ))
+            session.add_all(dummy_gold_prices)
+            session.commit()
+            print("Added 21 rows of dummy data to 'gold' table.")
+
+            # 5. Add 21 rows to 'torob_item'
+            dummy_torob_items = []
+            for i in range(21):
+                user_id = 1000 + (i+1) % 21 # Associate with existing dummy users
+                item = TorobScrapUser(
+                    user_id=user_id,
+                    name_of_item=f"Laptop_{i}",
+                    user_preferred_price=20000000 + i * 100000,
+                    torob_url=f"http://example.com/torob_item/{i}"
+                )
+                dummy_torob_items.append(item)
+            session.add_all(dummy_torob_items)
+            session.commit()
+            print("Added 21 rows of dummy data to 'torob_item' table.")
+
+            # 6. Add 21 rows to 'torob_check'
+            # We need the primary keys from torob_item first
+            torob_items_from_db = session.query(TorobScrapUser).all()
+            dummy_torob_checks = []
+            for i, item in enumerate(torob_items_from_db):
+                checked_price = item.user_preferred_price - (i * 1000)
+                dummy_torob_checks.append(TorobCheck(
+                    item_id=item.item_id,
+                    checked_price=checked_price,
+                    check_timestamp=datetime.now() - timedelta(minutes=i)
+                ))
+            session.add_all(dummy_torob_checks)
+            session.commit()
+            print("Added 21 rows of dummy data to 'torob_check' table.")
+
+
+            # 7. Add 21 rows to 'message_map'
+            dummy_messages = []
+            for i in range(21):
+                sender_id = 1000 + i
+                receiver_id = 1000 + (i + 1) % 21
+                message = MessageMap(
+                    bot_message_id=50000 + i,
+                    sender_id=sender_id,
+                    receiver_id=receiver_id,
+                    msg_txt=f"Message {i+1} from {first_names[i]}.",
+                    requested=(i % 2 != 0)
+                )
+                dummy_messages.append(message)
+            session.add_all(dummy_messages)
+            session.commit()
+            print("Added 21 rows of dummy data to 'message_map' table.")
+
+            # 8. Add 21 rows to 'links'
+            dummy_links = []
+            for i in range(21):
+                owner_id = 1000 + i
+                link = Links(
+                    link=generate_secure_random_id(12),
+                    expire_time=datetime.now() + timedelta(days=30),
+                    owner_id=owner_id,
+                    max_uses=(i % 5) + 1,
+                    number_of_used=i % 2,
+                    active=(i % 2 == 0)
+                )
+                dummy_links.append(link)
+            session.add_all(dummy_links)
+            session.commit()
+            print("Added 21 rows of dummy data to 'links' table.")
+
+        except Exception as e:
+            session.rollback()
+            print(f"An error occurred while adding dummy data: {e}")
+        finally:
+            session.close()
+if __name__ == "__main__":
+
+    add_dummy_data_for_testing()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

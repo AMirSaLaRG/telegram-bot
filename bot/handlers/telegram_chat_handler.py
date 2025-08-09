@@ -8,8 +8,11 @@ import time
 from bot.db.database import ChatDatabase, UserDatabase, RelationshipManager
 from random import choice
 import asyncio
-from bot.utils.messages import Messages
 from bot.handlers.intraction import track_user_interaction
+
+from bot.utils.messages_manager import messages as msg
+from bot.utils.messages_manager import languages as the_lans
+# messages = msg(language=context.user_data['lan'])
 
 # a leave and a goffy name option
 # kasaii ke online ya 15 min online boodan beheshoon ye request bere hatman nabayad link dashte bashan
@@ -27,14 +30,16 @@ class UserMessage:
         """
         Initializes the UserMessage handler with command strings and database connections.
         """
-        self.leave_command = Messages.LEAVE_BUTTON
-        self.secret_command = Messages.SECRET_BUTTON
-        self.delete_command = Messages.DELETE_BUTTON
-        self.command_create_anon_chat = Messages.CREATE_ANON_CHAT
-        self.command_create_anon_msg = Messages.CREATE_ANON_MSG
-        self.button_start_with_command = Messages.BUTTON_PREFIX
-        self.accept_chat_button_command = Messages.ACCEPT_CMD
-        self.deny_chat_button_command = Messages.DENY_CMD
+        #todo this look sass the messages check
+        messages = msg()
+        self.leave_command = messages.LEAVE_BUTTON
+        self.secret_command = messages.SECRET_BUTTON
+        self.delete_command = messages.DELETE_BUTTON
+        self.command_create_anon_chat = messages.CREATE_ANON_CHAT
+        self.command_create_anon_msg = messages.CREATE_ANON_MSG
+        self.button_start_with_command = messages.BUTTON_PREFIX
+        self.accept_chat_button_command = messages.ACCEPT_CMD
+        self.deny_chat_button_command = messages.DENY_CMD
         self.db = ChatDatabase()
         self.db_rel = RelationshipManager()
         self.user_db = UserDatabase()
@@ -185,16 +190,17 @@ class UserMessage:
     #         await context.bot.send_message(user_id, text=f'Message sent to {partner_id}')
 
 
-
+    @track_user_interaction
     async def reply_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Handles incoming messages and forwards them to the connected chat partner.
         Supports text, photo, video, audio, document, sticker, and voice messages.
         Also handles replies and secret chat protections.
         """
+        messages = msg(language=context.user_data['lan'])
         user_id = update.effective_user.id
         if not (partner_id := self.db.get_partner_id(user_id)):
-            await update.message.reply_text(Messages.NOT_IN_CHAT)
+            await update.message.reply_text(messages.NOT_IN_CHAT)
             return
         try:
             name = context.user_data.get("msg_name", "👤")
@@ -216,8 +222,8 @@ class UserMessage:
         except Exception as e:
             print(f"Error sending message message reply: {e}")
             retry_keyboard = [
-                [InlineKeyboardButton(Messages.RETRY_BUTTON, callback_data=f"retry_{update.message.message_id}")],
-                [InlineKeyboardButton(Messages.CANCEL_BUTTON, callback_data="cancel_failed_message")]
+                [InlineKeyboardButton(messages.RETRY_BUTTON, callback_data=f"retry_{update.message.message_id}")],
+                [InlineKeyboardButton(messages.CANCEL_BUTTON, callback_data="cancel_failed_message")]
             ]
             await update.message.reply_text(
                 "⚠️ Failed to send message. Please try again.",
@@ -261,6 +267,7 @@ class UserMessage:
         Handles the "Confirm Delete All" callback, deleting all messages sent by the user
         in a previous chat with a partner.
         """
+        messages = msg(language=context.user_data['lan'])
         query = update.callback_query
         await query.answer() # Acknowledge the callback query
         user_id = query.from_user.id
@@ -283,9 +290,9 @@ class UserMessage:
                 except Exception as e:
                     print(f"Failed to delete message from partner {msg_id}: {e}")
                     failed_count += 1
-            status_msg = Messages.MESSAGE_DELETED.format(deleted_count=deleted_count)
+            status_msg = messages.MESSAGE_DELETED.format(deleted_count=deleted_count)
             if failed_count > 0:
-                status_msg += Messages.DELETE_FAILED.format(failed_count=failed_count)
+                status_msg += messages.DELETE_FAILED.format(failed_count=failed_count)
 
             await query.edit_message_text(status_msg)
 
@@ -294,19 +301,20 @@ class UserMessage:
                 try:
                     await context.bot.send_message(
                         perv_partner_id,
-                         Messages.DELETE_NOTIFICATION
+                         messages.DELETE_NOTIFICATION
                     )
                 except Exception as e:
                     print(f"Couldn't notify partner: {e}")
         except Exception as e:
             print(f"Error in delete_handler: {e}")
-            await query.edit_message_text(Messages.DELETE_ERROR)
+            await query.edit_message_text(messages.DELETE_ERROR)
 
     async def leave_chat(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Allows a user to leave an active chat. It notifies the partner,
         removes the partnership, and offers the option to delete messages.
         """
+        messages = msg(language=context.user_data['lan'])
         self.user_db.get_user_data(update.effective_user.id, context.user_data) # Load user data for keyboard layout
         user_id = update.effective_user.id
         # Define keyboard options based on whether the user has a profile name
@@ -348,14 +356,14 @@ class UserMessage:
                 self.db.secret_chat_toggle(user_id, hand_change=False) # Disable secret chat for the user
 
                 # Notify partner that the chat has ended
-                await context.bot.send_message(partner_id, Messages.PARTNER_LEFT,
+                await context.bot.send_message(partner_id, messages.PARTNER_LEFT,
                                                reply_markup=InlineKeyboardMarkup(keyboard)) # Offer partner message deletion option
-                await context.bot.send_message(partner_id, Messages.WHAT_ELSE,
+                await context.bot.send_message(partner_id, messages.WHAT_ELSE,
                                                reply_markup=reply_markup2)
                 # Notify the user and offer message deletion option
-                await update.message.reply_text(Messages.CHAT_LEFT,
+                await update.message.reply_text(messages.CHAT_LEFT,
                                                 reply_markup=InlineKeyboardMarkup(keyboard))
-                await context.bot.send_message(user_id, Messages.WHAT_ELSE,
+                await context.bot.send_message(user_id, messages.WHAT_ELSE,
                                                reply_markup=reply_markup2)
 
                 # Ensure secret chat is toggled off for both users
@@ -371,22 +379,23 @@ class UserMessage:
 
         else:
             # If user is not in any active chat
-            await update.message.reply_text(Messages.NOT_IN_CHAT)
+            await update.message.reply_text(messages.NOT_IN_CHAT)
 
     async def secret_toggle(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Toggles the 'secret mode' for the current chat, blurring and protecting media.
         Notifies both chat participants of the change.
         """
+        messages = msg(language=context.user_data['lan'])
         user_id = update.effective_user.id
         partner_id = self.db.get_partner_id(user_id)
         if not partner_id:
             await update.message.reply_text("⚠️ You're not in an active chat.")
             return
         self.db.secret_chat_toggle(user_id) # Toggle secret chat status for the user
-        status = Messages.SECRET_MODE_ACTIVATED if self.db.get_user_session(user_id).secret_chat else Messages.SECRET_MODE_DEACTIVATED
+        status = messages.SECRET_MODE_ACTIVATED if self.db.get_user_session(user_id).secret_chat else messages.SECRET_MODE_DEACTIVATED
 
-        secret_note = Messages.SECRET_MODE_NOTE if self.db.get_user_session(user_id).secret_chat else ""
+        secret_note = messages.SECRET_MODE_NOTE if self.db.get_user_session(user_id).secret_chat else ""
         # Notify both users about the secret mode status change
         if self.db.get_partner_id(partner_id) and self.db.get_partner_id(partner_id) == user_id:
 
@@ -404,12 +413,13 @@ class UserMessage:
                 user_id,
                 f"Secret mode {status} for your chat.{secret_note}",
                 parse_mode="Markdown")
-
+    @track_user_interaction
     async def create_anonymous_chat_link(self, update:Update, context:ContextTypes.DEFAULT_TYPE):
         """
         Generates a unique deep link for an anonymous chat request.
         This link allows another user to initiate an anonymous chat with the link creator.
         """
+        messages = msg(language=context.user_data['lan'])
         user_id = update.effective_user.id
         # Generate a unique token for the anonymous chat link
         token = f'anonymously_chat-{abs(hash(str(user_id + time.time())))}'
@@ -419,20 +429,21 @@ class UserMessage:
 
         keyboard = [
             [
-                InlineKeyboardButton(Messages.SHARE_BUTTON, url=f'https://t.me/share/url?url={deep_link}'),
+                InlineKeyboardButton(messages.SHARE_BUTTON, url=f'https://t.me/share/url?url={deep_link}'),
             ]
         ]
         await update.message.reply_text(
-            Messages.ANON_CHAT_LINK.format(token=token),
+            messages.ANON_CHAT_LINK.format(token=token),
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="Markdown"
         )
-
+    @track_user_interaction
     async def create_anonymous_msg_link(self, update:Update, context:ContextTypes.DEFAULT_TYPE):
         """
         Generates a unique deep link for sending anonymous messages.
         This link allows another user to send anonymous messages to the link creator.
         """
+        messages = msg(language=context.user_data['lan'])
         user_id = update.effective_user.id
         # Generate a unique token for the anonymous message link
         token = f'anonymously_msg-{abs(hash(str(user_id + time.time())))}'
@@ -442,11 +453,11 @@ class UserMessage:
 
         keyboard = [
             [
-                InlineKeyboardButton(Messages.SHARE_BUTTON, url=f'https://t.me/share/url?url={deep_link}'),
+                InlineKeyboardButton(messages.SHARE_BUTTON, url=f'https://t.me/share/url?url={deep_link}'),
             ]
         ]
         await update.message.reply_text(
-            Messages.ANON_MSG_LINK.format(token=token),
+            messages.ANON_MSG_LINK.format(token=token),
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="Markdown"
         )
@@ -456,17 +467,18 @@ class UserMessage:
         Handles an incoming message containing an anonymous chat link.
         Establishes a chat partnership if the link is valid and not used by the owner.
         """
+        messages = msg(language=context.user_data['lan'])
         user_id = update.effective_user.id
         text = update.message.text.strip()
         try:
             link_obj = self.db.get_link(text) # Retrieve link object from database
             if not link_obj:
-                await update.message.reply_text(Messages.INVALID_LINK)
+                await update.message.reply_text(messages.INVALID_LINK)
                 return
 
             partner_id = link_obj.owner_id # Get the owner of the link
             if user_id == partner_id:
-                await update.message.reply_text(Messages.SELF_CHAT_ERROR)
+                await update.message.reply_text(messages.SELF_CHAT_ERROR)
                 return
 
             self.user_db.add_or_update_user(user_id, context.user_data) # Add or update user data
@@ -484,10 +496,10 @@ class UserMessage:
             # Notify both users that they are connected
             await context.bot.send_message(
                 partner_id,
-                Messages.STRANGER_JOINED,
+                messages.STRANGER_JOINED,
                 reply_markup=reply_markup
             )
-            await update.message.reply_text(Messages.CONNECTED_STRANGER,
+            await update.message.reply_text(messages.CONNECTED_STRANGER,
                                             reply_markup=reply_markup)
 
         except Exception as e:
@@ -502,13 +514,14 @@ class UserMessage:
         Handles an incoming message containing an anonymous message link.
         Sets up a one-sided connection for sending anonymous messages.
         """
+        messages = msg(language=context.user_data['lan'])
         user_id = update.effective_user.id
         text = update.message.text.strip()
         context.user_data['msg_name'] = 'Some Person Over Link: ' # Set a default anonymous name for message sender
         if self.db.get_link(text): # Check if the link is valid
             partner_id = self.db.get_link_owner(text) # Get the owner of the link
             if user_id == partner_id:
-                await update.message.reply_text(Messages.SELF_CHAT_ERROR)
+                await update.message.reply_text(messages.SELF_CHAT_ERROR)
                 return
             self.user_db.add_or_update_user(user_id, context.user_data)
             self.db.create_user_session(user_id)
@@ -527,11 +540,11 @@ class UserMessage:
             #     "🔄 A stranger has joined your chat! Say hello :)",
             #     reply_markup=reply_markup
             # )
-            await update.message.reply_text(Messages.CONNECTED_STRANGER,
+            await update.message.reply_text(messages.CONNECTED_STRANGER,
                                             reply_markup=reply_markup)
 
         else:
-            await update.message.reply_text(Messages.LINK_EXPIRED)
+            await update.message.reply_text(messages.LINK_EXPIRED)
             # return
 
     async def handle_random_chat(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -539,13 +552,14 @@ class UserMessage:
         Initiates a search for a random chat partner based on user gender preferences.
         Establishes a chat connection if a suitable partner is found within a timeout period.
         """
+        messages = msg(language=context.user_data['lan'])
         #todo check the realtionship table and dont connect block pplz
         user_id = update.effective_user.id
         user_data = context.user_data
 
         # Set user as looking for chat in the database
         if not self.db.set_random_chat(user_id, True):
-            await context.bot.send_message(user_id, text=Messages.RANDOM_CHAT_ERROR)
+            await context.bot.send_message(user_id, text=messages.RANDOM_CHAT_ERROR)
             return
 
         # Get user's gender preferences for matching
@@ -556,7 +570,7 @@ class UserMessage:
         # Send a searching message to the user
         searching_msg = await context.bot.send_message(
             user_id,
-            text=Messages.SEARCHING_PARTNER
+            text=messages.SEARCHING_PARTNER
         )
 
         # Search parameters for timeout
@@ -579,7 +593,7 @@ class UserMessage:
                 await context.bot.edit_message_text(
                     chat_id=user_id,
                     message_id=searching_msg.message_id,
-                    text=Messages.PARTNER_TIMEOUT
+                    text=messages.PARTNER_TIMEOUT
                 )
                 self.db.set_random_chat(user_id, False) # Stop searching for the user
                 return
@@ -611,13 +625,13 @@ class UserMessage:
             # Update searching message for the user who initiated the search
             await context.bot.send_message(
                 user_id,
-                text=Messages.CONNECTED,
+                text=messages.CONNECTED,
                 reply_markup=reply_markup
             )
             # Notify the found partner
             await context.bot.send_message(
                 partner_id,
-                text=Messages.CONNECTED,
+                text=messages.CONNECTED,
                 reply_markup=reply_markup
             )
 
@@ -629,26 +643,26 @@ class UserMessage:
             await context.bot.edit_message_text(
                 chat_id=user_id,
                 message_id=searching_msg.message_id,
-                text=Messages.CONNECTION_FAILED
+                text=messages.CONNECTION_FAILED
             )
             self.db.set_random_chat(user_id, False) # Stop searching for the user
-
+    @track_user_interaction
     async def chat_request(self, update:Update, context: ContextTypes.DEFAULT_TYPE, target_id):
         """
         Sends a chat request to a specific user (target_id).
         Allows the target user to accept or deny the chat.
         """
-
+        messages = msg(language=context.user_data['lan'])
         user_id = update.effective_user.id
         if self.db_rel.is_block(target_id, user_id):
             await context.bot.send_message(user_id,
-                                           text=Messages.BLOCKED_FROM_USER_WARNING)
+                                           text=messages.BLOCKED_FROM_USER_WARNING)
             return
 
         # Check if the requesting user is already in an active chat
         if self.db.get_partner_id(user_id):
             await context.bot.send_message(user_id,
-                                           text=Messages.ACTIVE_CHAT_WARNING)
+                                           text=messages.ACTIVE_CHAT_WARNING)
 
         # Check if the target user has an active session
         elif self.db.get_user_session(target_id):
@@ -657,20 +671,20 @@ class UserMessage:
 
                 keyboard = [
                     [
-                        InlineKeyboardButton(Messages.ACCEPT_BUTTON, callback_data=f'{Messages.BUTTON_PREFIX}: {Messages.ACCEPT_CMD}: {user_id}'),
-                        InlineKeyboardButton(Messages.DENY_BUTTON, callback_data=f'{Messages.BUTTON_PREFIX}: {Messages.DENY_CMD}: {user_id}'),
+                        InlineKeyboardButton(messages.ACCEPT_BUTTON, callback_data=f'{messages.BUTTON_PREFIX}: {messages.ACCEPT_CMD}: {user_id}'),
+                        InlineKeyboardButton(messages.DENY_BUTTON, callback_data=f'{messages.BUTTON_PREFIX}: {messages.DENY_CMD}: {user_id}'),
                     ],
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
-                await context.bot.send_message(user_id, text=Messages.REQUEST_SENT.format(target_id=target_id))
-                await context.bot.send_message(target_id, text=Messages.REQUEST_RECEIVED.format(user_id=user_id), reply_markup=reply_markup)
+                await context.bot.send_message(user_id, text=messages.REQUEST_SENT.format(target_id=target_id))
+                await context.bot.send_message(target_id, text=messages.REQUEST_RECEIVED.format(user_id=user_id), reply_markup=reply_markup)
             else:
-                await context.bot.send_message(user_id, Messages.BUSY_USER.format(target_id=target_id))
+                await context.bot.send_message(user_id, messages.BUSY_USER.format(target_id=target_id))
         else:
             await context.bot.send_message(user_id,
-                                           text=Messages.INVALID_USER)
+                                           text=messages.INVALID_USER)
 
-    @track_user_interaction
+
     async def buttons_set(self, update:Update, context:ContextTypes.DEFAULT_TYPE):
         """
         Handles callback queries from inline keyboard buttons, dispatching to specific handlers.
@@ -726,6 +740,7 @@ class UserMessage:
         """
         Initiates the random chat setup, specifically for gender filtering.
         """
+        messages = msg(language=context.user_data['lan'])
         if "gender_filter" not in context.user_data:
             #mael and female
             context.user_data['gender_filter'] = []
@@ -733,18 +748,18 @@ class UserMessage:
         gender_filter = context.user_data['gender_filter']
         keyboard = [
             [
-                InlineKeyboardButton(f"{'✓ ' if 'male' in gender_filter else ''}{Messages.MALE_OPTION}",
+                InlineKeyboardButton(f"{'✓ ' if 'male' in gender_filter else ''}{messages.MALE_OPTION}",
                                      callback_data="random gender: male"),
-                InlineKeyboardButton(f"{'✓ ' if 'female' in gender_filter else ''}{Messages.FEMALE_OPTION}",
+                InlineKeyboardButton(f"{'✓ ' if 'female' in gender_filter else ''}{messages.FEMALE_OPTION}",
                                      callback_data="random gender: female"),
             ],
-            [InlineKeyboardButton(Messages.DONE_BUTTON, callback_data="random_chat: gender: done")],
+            [InlineKeyboardButton(messages.DONE_BUTTON, callback_data="random_chat: gender: done")],
         ]
 
         reply_markup = InlineKeyboardMarkup(keyboard)
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text=Messages.RANDOM_CHAT_PROMPT,
+            text=messages.RANDOM_CHAT_PROMPT,
             reply_markup=reply_markup,
         )
 
@@ -756,20 +771,21 @@ class UserMessage:
         Handles the 'ChaT' button.
         Displays options related to chat functionalities (random, anonymous, advanced search).
         """
+        messages = msg()
         keyboard = [
-            [KeyboardButton(Messages.RANDOM_CHAT_BUTTON)],
+            [KeyboardButton(messages.RANDOM_CHAT_BUTTON)],
             [
                 KeyboardButton(f'/{self.command_create_anon_chat}'),
                 KeyboardButton(f'/{self.command_create_anon_msg}')
             ],
-            [KeyboardButton(Messages.ADVANCE_SEARCH_BUTTON)],
+            [KeyboardButton(messages.ADVANCE_SEARCH_BUTTON)],
             [KeyboardButton('/start')]
         ]
 
         reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text=Messages.WHAT_YOU_LOOKING_FOR,
+            text=messages.WHAT_YOU_LOOKING_FOR,
             reply_markup=reply_markup,
         )
 
@@ -778,9 +794,10 @@ class UserMessage:
         Returns a list of Telegram Bot API handlers for various commands and message types.
         These handlers link commands and message patterns to their corresponding asynchronous functions.
         """
+        messages = msg()
         return [
-            MessageHandler(filters.Regex(Messages.RANDOM_CHAT_REGEX), self.random_chat),
-            MessageHandler(filters.Regex(Messages.CHAT_REGEX), self.chat_initiator_buttom),
+            MessageHandler(filters.Regex(messages.RANDOM_CHAT_REGEX), self.random_chat),
+            MessageHandler(filters.Regex(messages.CHAT_REGEX), self.chat_initiator_buttom),
             CommandHandler(f'{self.command_create_anon_chat}', self.create_anonymous_chat_link), # Handler for creating anonymous chat links
             CommandHandler(f'{self.command_create_anon_msg}', self.create_anonymous_msg_link), # Handler for creating anonymous message links
             CommandHandler(f"{self.secret_command}", self.secret_toggle), # Handler for toggling secret chat mode

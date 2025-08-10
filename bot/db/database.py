@@ -1,6 +1,7 @@
 import time
 from os.path import realpath
 
+import httpx
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Text, select, inspect, ForeignKey, \
     Index, Boolean, text
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -652,7 +653,7 @@ class GoldPriceDatabase:
             return True
 
     # ________combine of all top function to check time valide and chose from where to update_________
-    def get_latest_update(self) -> Optional[GoldDollarRial]:
+    async def get_latest_update(self) -> Optional[GoldDollarRial]:
         """
         Retrieves the latest gold and dollar prices, updating them from external sources if necessary.
         Uses a lock to prevent concurrent updates.
@@ -668,57 +669,63 @@ class GoldPriceDatabase:
             return latest_check  # Return cached/latest instead of risky recursion
 
         self.on_check = True  # Acquire the lock
+        print(self.latest_ir_update(), self.latest_int_update())
         try:
-            # Check if Iranian site needs update
-            if not self.latest_ir_update():
-                # If IR is up-to-date, check if International site also needs update
-                if not self.latest_int_update():
-                    logging.info("Both IR and INT data are up-to-date in DB. No need to fetch.")
-                    pass  # Both are fine, use DB value
-                else:
-                    # Only INT site needs update, IR is valid from DB
-                    try:
-                        logging.info("Fetching INT site data only.")
-                        gold_18k_ir = latest_check.gold_18k_ir
-                        dollar_ir = latest_check.dollar_ir_rial
-                        time_check_ir = latest_check.time_check_ir
+            async with httpx.AsyncClient() as client:
+                # Check if Iranian site needs update
+                if not self.latest_ir_update():
+                    # If IR is up-to-date, check if International site also needs update
+                    if not self.latest_int_update():
+                        logging.info("Both IR and INT data are up-to-date in DB. No need to fetch.")
 
-                        # Fetch international prices, passing the current dollar rate
-                        gold_18k_int_dlr, gold_18k_int_rial, check_time_int = site_checker_gold.get_int_gold_to_dollar_to_rial(
-                            price_dollar_rial=dollar_ir
+                        pass  # Both are fine, use DB value
+                    else:
+                        # Only INT site needs update, IR is valid from DB
+                        try:
+                            logging.info("Fetching INT site data only.")
+                            gold_18k_ir = latest_check.gold_18k_ir
+                            dollar_ir = latest_check.dollar_ir_rial
+                            time_check_ir = latest_check.time_check_ir
+
+                            # Fetch international prices, passing the current dollar rate
+                            gold_18k_int_dlr, gold_18k_int_rial, check_time_int = await site_checker_gold.get_int_gold_to_dollar_to_rial(
+                                client,
+                                price_dollar_rial=dollar_ir
+                            )
+
+                            # Add the updated price entry to the database
+                            self.add_price(
+                                float(gold_18k_ir),  # Assuming gold_18k_ir is already float or can be cleaned
+                                float(dollar_ir),  # Assuming dollar_ir is already float or can be cleaned
+                                time_check_ir,
+                                float(gold_18k_int_dlr),
+                                float(gold_18k_int_rial),
+                                check_time_int
+                            )
+                        except Exception as e:
+                            logging.error(f"Error fetching INT site data: {e}")
+                else:
+                    # Both IR and INT sites need updating
+                    try:
+                        logging.info("Fetching both IR and INT site data.")
+                        gold_18k_ir, dollar_ir, time_check_ir = await site_checker_gold.get_ir_gold_dollar(client)  # Fetch Iranian prices
+                        gold_18k_int_dlr, gold_18k_int_rial, check_time_int = await site_checker_gold.get_int_gold_to_dollar_to_rial(
+                            client,
+                            price_dollar_rial=dollar_ir  # Fetch international prices using the newly fetched dollar rate
                         )
 
-                        # Add the updated price entry to the database
+                        # Add the combined updated price entry to the database
                         self.add_price(
-                            float(gold_18k_ir),  # Assuming gold_18k_ir is already float or can be cleaned
-                            float(dollar_ir),  # Assuming dollar_ir is already float or can be cleaned
+                            float(gold_18k_ir.replace(",", "")),  # Clean and convert to float
+                            float(dollar_ir.replace(",", "")),  # Clean and convert to float
                             time_check_ir,
                             float(gold_18k_int_dlr),
                             float(gold_18k_int_rial),
                             check_time_int
                         )
                     except Exception as e:
-                        logging.error(f"Error fetching INT site data: {e}")
-            else:
-                # Both IR and INT sites need updating
-                try:
-                    logging.info("Fetching both IR and INT site data.")
-                    gold_18k_ir, dollar_ir, time_check_ir = site_checker_gold.get_ir_gold_dollar()  # Fetch Iranian prices
-                    gold_18k_int_dlr, gold_18k_int_rial, check_time_int = site_checker_gold.get_int_gold_to_dollar_to_rial(
-                        price_dollar_rial=dollar_ir  # Fetch international prices using the newly fetched dollar rate
-                    )
-
-                    # Add the combined updated price entry to the database
-                    self.add_price(
-                        float(gold_18k_ir.replace(",", "")),  # Clean and convert to float
-                        float(dollar_ir.replace(",", "")),  # Clean and convert to float
-                        time_check_ir,
-                        float(gold_18k_int_dlr),
-                        float(gold_18k_int_rial),
-                        check_time_int
-                    )
-                except Exception as e:
-                    logging.error(f"Error fetching both IR and INT site data: {e}")
+                        print(f'error: {e}')
+                        logging.error(f"Error fetching both IR and INT site data: {e}")
 
         finally:
             self.on_check = False  # Always release the lock, even if an error occurs

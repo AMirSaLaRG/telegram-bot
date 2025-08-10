@@ -14,6 +14,8 @@ from bot.handlers.relationship import RelationshipHandler
 
 
 from bot.utils.messages_manager import messages as msg
+from bot.utils.messages_manager import languages as the_lans
+
 # messages = msg(language=context.user_data['lan'])
 
 from bot.utils.messages_manager import languages
@@ -202,7 +204,7 @@ class Profile:
         Handles the location input during profile creation. Stores latitude and longitude,
         saves the complete profile to the database, and displays the user's profile.
         """
-
+        messages = msg(language=context.user_data['lan'])
         location = update.message.location
         context.user_data['location'] = (location.latitude, location.longitude)
         context.user_data['latitude'] = context.user_data['location'][0]
@@ -216,8 +218,8 @@ class Profile:
 
         return ConversationHandler.END  # End the conversation
 
-    def _self_profile_keyboard(self, user_id):
-        messages = msg()
+    def _self_profile_keyboard(self, user_id, context):
+        messages = msg(language=context.user_data['lan'])
         all_rels = self.rel_db.get_user_relationships(user_id)
         if all_rels:
             num_friends = len(all_rels['friends'])
@@ -227,12 +229,12 @@ class Profile:
             num_likes = ""
         return [
             [
-                InlineKeyboardButton('Edit', callback_data=f'{self.my_profile_key_starter}: edit'),
-                InlineKeyboardButton('Update Photo', callback_data=f'{messages.PROFILE_EDIT_PATTERN}: {messages.PHOTO_PATTERN}')
+                InlineKeyboardButton(messages.EDIT_BUTTON, callback_data=f'{self.my_profile_key_starter}: edit'),
+                InlineKeyboardButton(messages.EDIT_PHOTO_BUTTON, callback_data=f'{messages.PROFILE_EDIT_PATTERN}: {messages.PHOTO_PATTERN}')
             ],
             [
-                InlineKeyboardButton(f'( {num_likes} ) likes', callback_data=f'{self.rel.rel_inspect_pattern}: {self.rel.like_pattern}'),
-                InlineKeyboardButton(f'( {num_friends} ) Friends', callback_data=f"{self.rel.rel_inspect_pattern}: {self.rel.friend_pattern}")
+                InlineKeyboardButton(f'( {num_likes} ) {messages.LIKES_SHOW_BUTTON}', callback_data=f'{self.rel.rel_inspect_pattern}: {self.rel.like_pattern}'),
+                InlineKeyboardButton(f'( {num_friends} ) {messages.FRIENDS_SHOW_BUTTON}', callback_data=f"{self.rel.rel_inspect_pattern}: {self.rel.friend_pattern}")
             ]
         ]
 
@@ -281,7 +283,7 @@ class Profile:
 
 
         # Define inline keyboard buttons for profile actions
-        keyboard = self._self_profile_keyboard(user_id)
+        keyboard = self._self_profile_keyboard(user_id, context)
 
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -310,16 +312,16 @@ class Profile:
         # Define inline keyboard buttons for specific edit actions
         keyboard = [
             [
-                InlineKeyboardButton('Edit Name', callback_data=f'{messages.PROFILE_EDIT_PATTERN}:{messages.NAME_PATTERN}'),
-                InlineKeyboardButton('Edit About', callback_data=f'{messages.PROFILE_EDIT_PATTERN}:{messages.ABOUT_PATTERN}')
+                InlineKeyboardButton(messages.EDIT_NAME_BUTTON, callback_data=f'{messages.PROFILE_EDIT_PATTERN}:{messages.NAME_PATTERN}'),
+                InlineKeyboardButton(messages.EDIT_ABOUT_BUTTON, callback_data=f'{messages.PROFILE_EDIT_PATTERN}:{messages.ABOUT_PATTERN}')
                 # Mislabeled, should be specific action
             ],
             [
-                InlineKeyboardButton('Edit City', callback_data=f'{messages.PROFILE_EDIT_PATTERN}:{messages.CITY_PATTERN}'),
-                InlineKeyboardButton('Edit Location', callback_data=f"{messages.PROFILE_EDIT_PATTERN}:{messages.LOCATION_PATTER}")
+                InlineKeyboardButton(messages.EDIT_CITY_BUTTON, callback_data=f'{messages.PROFILE_EDIT_PATTERN}:{messages.CITY_PATTERN}'),
+                InlineKeyboardButton(messages.EDIT_LOCATION_BUTTON, callback_data=f"{messages.PROFILE_EDIT_PATTERN}:{messages.LOCATION_PATTER}")
             ],
             [
-                InlineKeyboardButton('Edit Language', callback_data=f'{messages.LANGUAGE_PATTERN}'),
+                InlineKeyboardButton(messages.EDIT_LANGUAGE_BUTTON, callback_data=f'{messages.LANGUAGE_PATTERN}'),
 
             ]
         ]
@@ -479,6 +481,7 @@ class Profile:
         Returns:
             bool: True if the user has a non-empty 'name' in their profile, False otherwise.
         """
+
         context.user_data['user_id'] = str(update.effective_chat.id)  # Ensure user_id is in context
         self.user_db.add_or_update_user(update.effective_user.id, context.user_data)  # Ensure user record exists
         try:
@@ -509,11 +512,12 @@ class Profile:
         return key_set
 
     async def language_options(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        messages = msg(language=context.user_data['lan'])
         keyboard = self._language_options_keyboard(update, context)
         reply_markup = InlineKeyboardMarkup(keyboard)
         await context.bot.send_message(
             chat_id=update.effective_user.id,
-            text='Plz choose your language',
+            text=messages.EDIT_LANGUAGE_TEXT,
             reply_markup=reply_markup,
         )
 
@@ -553,11 +557,14 @@ class Profile:
         elif query.data.startswith("set lan"):
             action = query.data.split(':')[1].strip().lower()
 
+
             self.user_db.update_len(user_id, action)
             context.user_data['language'] = action
             await query.edit_message_text(
-                'language changed'
+
+                'success\nclick: /start'
             )
+
 
 
 
@@ -595,25 +602,25 @@ class Profile:
             if action == messages.NAME_PATTERN:
                 await context.bot.send_message(
                     chat_id=update.effective_user.id,
-                    text="Please enter your new name:"
+                    text=messages.EDIT_NAME_TEXT
                 )
                 return self.EDIT_NAME
             elif action == messages.ABOUT_PATTERN:
                 await context.bot.send_message(
                     chat_id=update.effective_user.id,
-                    text="Please enter your new bio/about text:"
+                    text=messages.EDIT_ABOUT_TEXT
                 )
                 return self.EDIT_ABOUT
             elif action == messages.CITY_PATTERN:
                 await context.bot.send_message(
                     chat_id=update.effective_user.id,
-                    text="Please enter your new city:"
+                    text=messages.EDIT_CITY_TEXT
                 )
                 return self.EDIT_CITY
             elif action == messages.PHOTO_PATTERN:
                 await context.bot.send_message(
                     chat_id=update.effective_user.id,
-                    text="Please send your new profile photo:",
+                    text=messages.EDIT_PHOTO_TEXT,
 
                 )
                 return self.EDIT_PHOTO
@@ -621,7 +628,7 @@ class Profile:
 
                 await context.bot.send_message(
                     chat_id=update.effective_user.id,
-                    text='Please send your location',
+                    text=messages.EDIT_LOCATION_TEXT,
 
 
                 )
@@ -637,54 +644,62 @@ class Profile:
 
     async def handle_edit_name_input(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Reuse your existing name validation logic
+        messages = msg(language=context.user_data['lan'])
         new_name = update.message.text
+
 
 
         # Update in database
         context.user_data['name'] = new_name
         self.user_db.add_or_update_user(update.effective_user.id, context.user_data)
-        await update.message.reply_text(f"Name updated to: {new_name}")
+        await update.message.reply_text(messages.EDIT_NAME_SUCCESS.format(new_name=new_name))
         await self.show_my_profile(update, context)
         return ConversationHandler.END
 
     async def handle_edit_about_input(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Reuse your existing about validation logic
+        messages = msg(language=context.user_data['lan'])
         new_about = update.message.text
         if len(new_about) > 200:  # Reuse your length check
-            await update.message.reply_text("Bio is too long, please shorten it")
+            await update.message.reply_text(messages.EDIT_ABOUT_ERROR_LONG)
             return self.EDIT_ABOUT
 
         # Update in database
         context.user_data['about'] = new_about
         self.user_db.add_or_update_user(update.effective_user.id, context.user_data)
-        await update.message.reply_text("Bio updated successfully!")
+        await update.message.reply_text(messages.EDIT_ABOUT_SUCCESS)
         await self.show_my_profile(update, context)
         return ConversationHandler.END
 
     async def handle_edit_city_input(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        messages = msg(language=context.user_data['lan'])
+
         new_city = update.message.text
         # Add any city validation if needed
 
         # Update in database - adjust field name if you use 'location' instead
         context.user_data['city'] = new_city
         self.user_db.add_or_update_user(update.effective_user.id, context.user_data)
-        await update.message.reply_text(f"City updated to: {new_city}")
+        await update.message.reply_text(messages.EDIT_CITY_SUCCESS.format(new_city=new_city))
         await self.show_my_profile(update, context)
         return ConversationHandler.END
 
     async def handle_edit_location_input(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        messages = msg(language=context.user_data['lan'])
+
         location = update.message.location
         context.user_data['location'] = (location.latitude, location.longitude)
         context.user_data['latitude'] = context.user_data['location'][0]
         context.user_data['longitude'] = context.user_data['location'][1]
         self.user_db.add_or_update_user(update.effective_user.id, context.user_data)
-        await update.message.reply_text(f"City updated to: new location")
+        await update.message.reply_text(messages.EDIT_LOCATION_SUCCESS)
         await self.show_my_profile(update, context)
         return ConversationHandler.END
 
     async def handle_edit_photo_input(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        messages = msg(language=context.user_data['lan'])
         if not update.message.photo:
-            await update.message.reply_text("Please send a valid photo")
+            await update.message.reply_text(messages.EDIT_PHOTO_VALIDATION_ERROR)
             return self.EDIT_PHOTO
 
         # Get highest resolution photo
@@ -694,12 +709,13 @@ class Profile:
         # Update in database
         context.user_data['profile_photo'] = photo_id
         self.user_db.add_or_update_user(update.effective_user.id, context.user_data)
-        await update.message.reply_text("Profile photo updated!")
+        await update.message.reply_text(messages.EDIT_PHOTO_SUCCESS)
         await self.show_my_profile(update, context)
         return ConversationHandler.END
 
     async def cancel_edit(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        await update.message.reply_text('Profile editing cancelled')
+        messages = msg(language=context.user_data['lan'])
+        await update.message.reply_text(messages.EDIT_PHOTO_CANCELED)
         return ConversationHandler.END
 
     def get_profile_edit_conversation_handler(self):
@@ -867,8 +883,17 @@ class Profile:
         await self.show_target_profile(update, context, target_id)
 
     def show_profile_handler(self):
-        messages = msg()
-        return MessageHandler(filters.Regex(messages.CHAT_PROFILE_REGEX), self.show_profile_request)
+        languages = [key for key, value in the_lans.items()]
+        handlers = []
+        for lan in languages:
+            messages = msg(language=lan)
+
+            lan_handler = [ MessageHandler(filters.Regex(messages.PROFILE_BUTTON), self.show_my_profile),
+                            MessageHandler(filters.Regex(messages.CHAT_PROFILE_REGEX), self.show_profile_request) ]
+            handlers += lan_handler
+        return handlers
+        # messages = msg()
+        # return MessageHandler(filters.Regex(messages.CHAT_PROFILE_REGEX), self.show_profile_request)
 
 
     def get_all_handlers(self) -> list:
@@ -879,7 +904,7 @@ class Profile:
         return [
             self.get_profile_create_conversation_handler(),
             self.direct_msg_conversation_handler(),
-            self.show_profile_handler(),
-            CommandHandler("profile", self.show_my_profile),
+
+
             self.get_profile_edit_conversation_handler()
-        ]
+        ] + self.show_profile_handler()

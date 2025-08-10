@@ -1,6 +1,6 @@
 from symtable import Class
 
-from bot.utils.en import messages as En
+from bot.utils.en import Messages as En
 from bot.utils.fa import Messages as Fa
 
 

@@ -11,6 +11,8 @@ from bot.db.database import UserDatabase
 from bot.handlers.show_cases import ShowCases
 
 from bot.utils.messages_manager import messages as msg
+from bot.utils.messages_manager import languages as the_lans
+
 # messages = msg(language=context.user_data['lan'])
 
 
@@ -49,9 +51,17 @@ class Filter:
             reply_markup=reply_markup
         )
 
-    def advance_search_handler(self):
-        messages = msg()
-        return MessageHandler(filters.Regex(messages.ADVANCE_SEARCH_REGEX), self.advance_search)
+    def advance_search_handlers(self):
+        languages = [key for key, value in the_lans.items()]
+        handlers = []
+        for lan in languages:
+            messages = msg(language=lan)
+
+            lan_handler = [MessageHandler(filters.Regex(rf"^{messages.ADVANCE_SEARCH_BUTTON}$"), self.advance_search)]
+            handlers += lan_handler
+        return handlers
+        # messages = msg()
+        # return MessageHandler(filters.Regex(messages.ADVANCE_SEARCH_REGEX), self.advance_search)
 
 
     async def buttons(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -69,6 +79,7 @@ class Filter:
             await self.gender_filter_buttons(query, context)
         elif query.data.startswith("random gender:"):
             await self.random_search_gender_filter_buttons(query, context)
+
 
         elif query.data.startswith("age_filter:"):
             await self.age_filter_buttons(query, context)
@@ -295,7 +306,6 @@ class Filter:
             ],
             [InlineKeyboardButton(messages.DONE_BUTTON, callback_data="random_chat: gender: done")],
         ]
-
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(
             text=messages.CHOOSE_GENDER,

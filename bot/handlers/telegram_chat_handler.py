@@ -35,8 +35,7 @@ class UserMessage:
         self.leave_command = messages.LEAVE_BUTTON
         self.secret_command = messages.SECRET_BUTTON
         self.delete_command = messages.DELETE_BUTTON
-        self.command_create_anon_chat = messages.CREATE_ANON_CHAT
-        self.command_create_anon_msg = messages.CREATE_ANON_MSG
+
         self.button_start_with_command = messages.BUTTON_PREFIX
         self.accept_chat_button_command = messages.ACCEPT_CMD
         self.deny_chat_button_command = messages.DENY_CMD
@@ -461,7 +460,7 @@ class UserMessage:
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="Markdown"
         )
-
+    @track_user_interaction
     async def handle_link_chat(self, update:Update, context:ContextTypes.DEFAULT_TYPE):
         """
         Handles an incoming message containing an anonymous chat link.
@@ -508,7 +507,7 @@ class UserMessage:
                 "⚠️ Something went wrong while processing your request.\n"
                 "Please try again later."
             )
-
+    @track_user_interaction
     async def handle_link_msg(self, update:Update, context:ContextTypes.DEFAULT_TYPE):
         """
         Handles an incoming message containing an anonymous message link.
@@ -564,6 +563,7 @@ class UserMessage:
 
         # Get user's gender preferences for matching
         gender_prefs = user_data.get('gender_filter', [])
+        context.user_data['gender_filter'] = []
         male_pref = 'male' in gender_prefs
         female_pref = 'female' in gender_prefs
 
@@ -696,6 +696,7 @@ class UserMessage:
         if query.data.startswith("random_chat: gender: done"):
             await self.handle_random_chat(update, context)
 
+
         if query.data.startswith(self.button_start_with_command):
             # Parse action and target ID from callback data
             action = query.data.split(':')[1].strip().lower()
@@ -771,12 +772,12 @@ class UserMessage:
         Handles the 'ChaT' button.
         Displays options related to chat functionalities (random, anonymous, advanced search).
         """
-        messages = msg()
+        messages = msg(language=context.user_data['lan'])
         keyboard = [
             [KeyboardButton(messages.RANDOM_CHAT_BUTTON)],
             [
-                KeyboardButton(f'/{self.command_create_anon_chat}'),
-                KeyboardButton(f'/{self.command_create_anon_msg}')
+                KeyboardButton(f'{messages.CREATE_ANON_CHAT}'),
+                KeyboardButton(f'{messages.CREATE_ANON_MSG}')
             ],
             [KeyboardButton(messages.ADVANCE_SEARCH_BUTTON)],
             [KeyboardButton('/start')]
@@ -789,6 +790,41 @@ class UserMessage:
             reply_markup=reply_markup,
         )
 
+    def get_handler_for_all_languages(self):
+        languages = [key for key, value in the_lans.items()]
+        handlers = []
+        for lan in languages:
+            messages = msg(language=lan)
+
+            lan_handler = [
+            MessageHandler(filters.Regex(rf"^{messages.RANDOM_CHAT_BUTTON}$"), self.random_chat),
+            MessageHandler(filters.Regex(messages.CHAT_REGEX), self.chat_initiator_buttom),
+            MessageHandler(filters.Regex(fr'^{messages.CREATE_ANON_CHAT}'), self.create_anonymous_chat_link), # Handler for creating anonymous chat links
+            MessageHandler(filters.Regex(fr'^{messages.CREATE_ANON_MSG}'), self.create_anonymous_msg_link), # Handler for creating anonymous message links
+            CommandHandler(f"{self.secret_command}", self.secret_toggle), # Handler for toggling secret chat mode
+            CallbackQueryHandler(self.delete_handler, pattern=f"^{self.delete_command}$"), # Handler for confirming message deletion
+            MessageHandler(filters.TEXT & filters.Regex(r'^anonymously_chat-'), self.handle_link_chat), # Handler for processing anonymous chat links
+            MessageHandler(filters.TEXT & filters.Regex(r'^anonymously_msg-'), self.handle_link_msg), # Handler for processing anonymous message links
+            CommandHandler(f"{self.leave_command}", self.leave_chat), # Handler for leaving a chat
+
+            MessageHandler(
+                filters.ALL & ~filters.COMMAND & filters.UpdateType.EDITED,
+                self.handle_edit # Handler for edited messages
+            ),
+            ]
+            handlers += lan_handler
+
+        constant_handlers = [
+            MessageHandler(
+                filters.ALL & ~filters.COMMAND & ~filters.Regex(r'^anonymously_msg-') & ~filters.Regex(
+                    r'^anonymously_chat-') & ~filters.UpdateType.EDITED,
+                self.reply_message  # Handler for all non-command, non-link, non-edited messages (for chat forwarding)
+            ),
+        ]
+        handlers += constant_handlers
+        print(handlers)
+        return handlers
+    #base handlers
     def message_handlers(self):
         """
         Returns a list of Telegram Bot API handlers for various commands and message types.
@@ -798,8 +834,10 @@ class UserMessage:
         return [
             MessageHandler(filters.Regex(messages.RANDOM_CHAT_REGEX), self.random_chat),
             MessageHandler(filters.Regex(messages.CHAT_REGEX), self.chat_initiator_buttom),
-            CommandHandler(f'{self.command_create_anon_chat}', self.create_anonymous_chat_link), # Handler for creating anonymous chat links
-            CommandHandler(f'{self.command_create_anon_msg}', self.create_anonymous_msg_link), # Handler for creating anonymous message links
+            CommandHandler(f'{messages.CREATE_ANON_CHAT}', self.create_anonymous_chat_link),
+            # Handler for creating anonymous chat links
+            CommandHandler(f'{messages.CREATE_ANON_MSG}', self.create_anonymous_msg_link),
+            # Handler for creating anonymous message links
             CommandHandler(f"{self.secret_command}", self.secret_toggle), # Handler for toggling secret chat mode
             CallbackQueryHandler(self.delete_handler, pattern=f"^{self.delete_command}$"), # Handler for confirming message deletion
             MessageHandler(filters.TEXT & filters.Regex(r'^anonymously_chat-'), self.handle_link_chat), # Handler for processing anonymous chat links

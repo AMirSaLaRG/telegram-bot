@@ -146,8 +146,8 @@ if __name__ == "__main__":
 
     # Create Handlers for various commands and message types.
     start_handler = start.handler()
-    advance_search_handler = bot_filter.advance_search_handler()
-    gold_dollar_handler = gold_dollar_report.handler()
+    advance_search_handler = bot_filter.advance_search_handlers()
+    gold_dollar_handler = gold_dollar_report.handlers()
     torob_handlers = torob_interact.handlers()
 
     # Inline button handler
@@ -155,8 +155,8 @@ if __name__ == "__main__":
 
     # Add handlers to the application.
     application.add_handler(start_handler)
-    application.add_handler(advance_search_handler)
-    application.add_handler(gold_dollar_handler)
+    application.add_handlers(advance_search_handler)
+    application.add_handlers(gold_dollar_handler)
     application.add_handlers(torob_handlers)
 
     application.add_handler(InlineQueryHandler(handle_inline_query))
@@ -164,7 +164,7 @@ if __name__ == "__main__":
     application.add_handler(calculator.get_calculated_price_conversation_handler())
     application.add_handlers(profile.get_all_handlers())
     application.add_handlers(torob_conversation.get_all_handlers())
-    application.add_handlers(user_message.message_handlers())
+    application.add_handlers(user_message.get_handler_for_all_languages())
     application.add_handler(buttons_handler)
 
     application.run_polling()

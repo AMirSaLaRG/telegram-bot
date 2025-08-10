@@ -5,6 +5,8 @@ from bot.handlers.intraction import track_user_interaction
 from bot.handlers.telegram_conversations import TorobConversation
 from bot.db.database import TorobDb
 from bot.utils.messages_manager import messages as msg
+from bot.utils.messages_manager import languages as the_lans
+
 # messages = msg(language=context.user_data['lan'])
 
 class TorobInteract:
@@ -65,12 +67,11 @@ class TorobInteract:
         context.user_data['editing_item_id'] = int(item_id)
         keyboard = [
             [
-                InlineKeyboardButton('Edit Price', callback_data=f'{self.torob_conversation.edit_price_pattern}'),
-                InlineKeyboardButton('Edit URL', callback_data=f'{self.torob_conversation.edit_url_pattern}'),
-                InlineKeyboardButton('Edit Name', callback_data=f'{self.torob_conversation.edit_name_pattern}')
+                InlineKeyboardButton(messages.TOROB_EDIT_PRICE, callback_data=f'{self.torob_conversation.edit_price_pattern}'),
+                InlineKeyboardButton(messages.TOROB_EDIT_URL, callback_data=f'{self.torob_conversation.edit_url_pattern}'),
+                InlineKeyboardButton(messages.TOROB_EDIT_NAME, callback_data=f'{self.torob_conversation.edit_name_pattern}')
             ],
-            [InlineKeyboardButton('delete', callback_data=f'{self.torob_conversation.delete_item_pattern}')],
-            [InlineKeyboardButton('home', callback_data='item_edit:home')]
+            [InlineKeyboardButton(messages.TOROB_EDIT_DELETE, callback_data=f'{self.torob_conversation.delete_item_pattern}')],
         ]
 
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -149,9 +150,17 @@ class TorobInteract:
             if action == "check":
                 await self.check_torob_list(query, context)
 
+    #here add handlers for languages
     def handlers(self):
-        messages = msg()
-        return [
-            MessageHandler(filters.Regex(messages.TOROB_REGEX), self.torob),
-            MessageHandler(filters.Regex(messages.ITEM_EDIT_REGEX), self.edit_command)
-        ]
+        languages = [key for key, value in the_lans.items()]
+        handlers = []
+        for lan in languages:
+            messages = msg(language=lan)
+            lan_handlers = [
+                MessageHandler(filters.Regex(fr"^{messages.TOROB_BUTTON}$"), self.torob),
+                MessageHandler(filters.Regex(messages.ITEM_EDIT_REGEX), self.edit_command)
+            ]
+            handlers += lan_handlers
+
+
+        return handlers

@@ -1,10 +1,49 @@
-from bot.utils.en import messages
+from bot.utils.en import Messages as Ms
 
 
-class Messages(messages):
+class Messages(Ms):
     # ==============================================
     # Frequently Changing Messages (Top) - Persian Translations
     # ==============================================
+
+    TOROB_EDIT_PRICE = 'ویرایش قیمت محصول'
+    TOROB_EDIT_URL = 'ویرایش URL محصول'
+    TOROB_EDIT_NAME = 'ویرایش نام محصول'
+    TOROB_EDIT_DELETE = 'حذف محصول'
+
+    EDIT_BUTTON = 'ویرایش'
+
+    LIKES_SHOW_BUTTON = 'لایک ها'
+    FRIENDS_SHOW_BUTTON= 'دوستان'
+
+    EDIT_NAME_BUTTON = "ویرایش نام"
+    EDIT_ABOUT_BUTTON = "ویرایش بیوگرافی"
+    EDIT_CITY_BUTTON = "ویرایش شهر"
+    EDIT_LOCATION_BUTTON = "ویرایش موقعیت"
+    EDIT_LANGUAGE_BUTTON = "ویرایش زبان"
+    EDIT_PHOTO_BUTTON = "به‌روزرسانی عکس "
+
+    EDIT_NAME_TEXT = "لطفاً نام جدید خود را وارد کنید:"
+    EDIT_ABOUT_TEXT = "لطفاً متن جدید بیوگرافی خود را وارد کنید:"
+    EDIT_CITY_TEXT = "لطفاً شهر جدید خود را وارد کنید:"
+    EDIT_LOCATION_TEXT = "لطفاً موقعیت خود را ارسال کنید"
+    EDIT_LANGUAGE_TEXT = "لطفاً زبان خود را انتخاب کنید:"
+    EDIT_PHOTO_TEXT = "لطفاً عکس جدید پروفایل را ارسال کنید:"
+
+    EDIT_PHOTO_VALIDATION_ERROR = "لطفاً یک عکس معتبر ارسال کنید"
+    EDIT_PHOTO_SUCCESS = "عکس پروفایل به‌روزرسانی شد!"
+    EDIT_PHOTO_CANCELED = "ویرایش پروفایل لغو شد"
+
+    EDIT_LOCATION_SUCCESS = "موقعیت به‌روزرسانی شد"
+
+
+    EDIT_CITY_SUCCESS = "شهر به {new_city} به‌روزرسانی شد"
+
+
+    EDIT_ABOUT_ERROR_LONG = "متن بیوگرافی بسیار طولانی است، لطفاً آن را کوتاه‌تر کنید"
+    EDIT_ABOUT_SUCCESS = "بیوگرافی با موفقیت به‌روزرسانی شد!"
+
+    EDIT_NAME_SUCCESS = "نام به {new_name} به‌روزرسانی شد"
 
     # General messages
     START_MESSAGE = "شروع"
@@ -29,9 +68,9 @@ class Messages(messages):
     CHAT_BUTTON = "چت"
     TOROB_BUTTON = "بررسی قیمت ترب"
     GOLD_DOLLAR_BUTTON = "قیمت طلا و دلار"
-    PROFILE_BUTTON = "/پروفایل"
+    PROFILE_BUTTON = "پروفایل"
     CREATE_PROFILE_BUTTON = "/ایجاد_پروفایل"
-    # RANDOM_CHAT_BUTTON = "چت تصادفی"
+    RANDOM_CHAT_BUTTON = "چت تصادفی"
     ADVANCE_SEARCH_BUTTON = "جستجوی پیشرفته"
     ADD_ITEM_BUTTON = "افزودن آیتم"
     CALCULATOR_BUTTON = "ماشین حساب"
@@ -133,8 +172,9 @@ class Messages(messages):
     PROFILE_COMPLETE = "ساخت پروفایل لغو شد"
 
     PROFILE_DISPLAY = """
+        -
         🏷 نام: {name}
-        🔢 سن: {age}
+        🔢 سن: {age}   
         👤 جنسیت: {gender}
         📝 درباره: {about}
         🕰 آخرین بازدید: {last_online}
@@ -192,4 +232,83 @@ class Messages(messages):
     # Common messages
     OPERATION_CANCELLED = "عملیات لغو شد"
     TEXT_INPUT_REQUIRED = "لطفا متن وارد کنید"
+
+
+    CREATE_ANON_CHAT = "چت_ناشناس"
+    CREATE_ANON_MSG = "پیام_ناشناس"
+
+    # ==============================================
+    # Stable Patterns and Technical Constants (Bottom)
+    # ==============================================
+
+    # Button patterns
+    test = "test"
+
+    # Core patterns (should rarely change)
+    REL_STARTER_PATTERN = "rel to rel"
+    REL_INSPECT_PATTERN = 'rel what what'
+    LIKE_PATTERN = 'it like it'
+    FRIEND_PATTERN = 'it add it'
+    BLOCK_PATTERN = 'it block it'
+    REPORT_PATTERN = 'it report it'
+    UNLIKE_PATTERN = 'it unlike it'
+    UNFRIEND_PATTERN = 'it unadd it'
+    UNBLOCK_PATTERN = 'it unblock it'
+    PROFILE_EDIT_PATTERN = "I EDIT ME"
+    NAME_PATTERN = 'namae'
+    ABOUT_PATTERN = "manan"
+    CITY_PATTERN = 'shahrmahr'
+    PHOTO_PATTERN = 'axmax'
+    LOCATION_PATTER = 'ja jo ja'
+    LANGUAGE_PATTERN = 'taghirzaban'
+    QUERY_PATTERN_FILTERED_PPL = "gettingfilteredppl"
+
+    # Gender options (stable)
+    MALE_OPTION = "Male"
+    FEMALE_OPTION = "Female"
+
+    # Time options (stable)
+    TIME_15MIN = "15min"
+    TIME_30MIN = "30min"
+    TIME_1HR = "1hr"
+    TIME_3HR = "3hr"
+    TIME_1DAY = "1day"
+    TIME_1WEEK = "1week"
+
+    # Distance options (stable)
+    DISTANCE_5KM = "5km"
+    DISTANCE_10KM = "10km"
+    DISTANCE_15KM = "15km"
+    DISTANCE_20KM = "20km"
+    DISTANCE_25KM = "25km"
+    DISTANCE_30KM = "30km"
+
+    # Button labels (stable UI elements)
+    LEAVE_BUTTON = "LeaveChat"
+    SECRET_BUTTON = "SecretChat"
+    DELETE_BUTTON = "ConfirmDeleteChat"
+    RETRY_BUTTON = "↻ Retry"
+    CANCEL_BUTTON = "✖ Cancel"
+    SHARE_BUTTON = "Share this link!!"
+    ACCEPT_BUTTON = "Accept"
+    DENY_BUTTON = "Deny"
+
+    # Command names (stable)
+
+    BUTTON_PREFIX = "usermessagehandlerStarter"
+    ACCEPT_CMD = "acceptchat"
+    DENY_CMD = "denychat"
+
+    # Regex patterns (should rarely change)
+    TOROB_SCRAPER_TITLE = "Torob Scraper: "
+    ITEM_CHECKED_FORMAT = "{signal}{name} @آخرین بررسی: با قیمت {latest_price}\n\nویرایش /item_{item_id}\n\n{divider}"
+
+    ITEM_UNCHECKED_FORMAT = "\n{signal}{name} هنوز بررسی نشده، لطفاً منتظر بمانید\n\nویرایش /item_{item_id}\n\n{divider}\n"
+    CHAT_REGEX = fr"^{CHAT_BUTTON}$"
+    ADVANCE_SEARCH_REGEX = r"^Advance Search$"
+    # RANDOM_CHAT_REGEX = r"^Random chat$"
+    # GOLD_DOLLAR_REGEX = r"^Gold & Dollar$"
+    # TOROB_REGEX = r"^Torob price check$"
+    ITEM_EDIT_REGEX = r'^/item_'
+    CHAT_PROFILE_REGEX = r'^/chaT_'
 

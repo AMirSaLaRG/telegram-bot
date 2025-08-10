@@ -1,4 +1,6 @@
-import requests
+# import requests
+import httpx
+import asyncio
 from bs4 import BeautifulSoup
 import time
 from datetime import datetime
@@ -24,10 +26,10 @@ class CheckSitePrice:
             'Accept-Language': 'en-US,en;q=0.9'
         }
         # Initialize a requests session with the defined headers
-        self.session = requests.Session()
-        self.session.headers.update(self.headers)
+        # self.session = requests.Session()
+        # self.session.headers.update(self.headers)
 
-    def safe_get(self, url):
+    async def safe_get(self, url, client):
         """
         Performs a safe HTTP GET request to the given URL with a random delay.
 
@@ -39,8 +41,8 @@ class CheckSitePrice:
         """
         try:
             # Introduce a random delay to avoid being flagged as a bot
-            time.sleep(random.uniform(1, 3))
-            response = self.session.get(url)
+            await asyncio.sleep(random.uniform(1, 3))
+            response = await client.get(url, headers=self.headers)
             # Raise an HTTPError for bad responses (4xx or 5xx)
             response.raise_for_status()
             return response.text
@@ -48,7 +50,7 @@ class CheckSitePrice:
             print(f"Error fetching {url}: {e}")
             return None
 
-    def get_ir_gold_dollar(self):
+    async def get_ir_gold_dollar(self, client):
         """
         Fetches the current 18K gold price in Iranian Rial and the US Dollar to Iranian Rial exchange rate
         from the specified Iranian financial website.
@@ -60,7 +62,7 @@ class CheckSitePrice:
                    - datetime: The timestamp when the data was fetched.
                    Returns None for all if fetching fails.
         """
-        html_iran = self.safe_get(self.ir_site)
+        html_iran = await self.safe_get(self.ir_site, client)
         if html_iran:
 
             soup = BeautifulSoup(html_iran, "html.parser")
@@ -73,7 +75,7 @@ class CheckSitePrice:
             return price_iran_18k_gold, price_dollar_rial, datetime.now()
         return None, None, None
 
-    def get_int_gold_to_dollar_to_rial(self, price_dollar_rial=None):
+    async def get_int_gold_to_dollar_to_rial(self, client, price_dollar_rial=None):
         """
         Fetches the international 18K gold price in USD and converts it to Iranian Rial
         using an optionally provided dollar-to-rial exchange rate.
@@ -89,7 +91,7 @@ class CheckSitePrice:
                    - datetime: The timestamp when the data was fetched.
                    Returns None for all if fetching fails.
         """
-        html_world = self.safe_get(self.int_site)
+        html_world = await self.safe_get(self.int_site, client)
         if html_world:
             soup = BeautifulSoup(html_world, "html.parser")
             # Select the element containing the international 18K gold price in USD
@@ -111,41 +113,41 @@ class CheckSitePrice:
                 return price_usd_18k_gold, int_gold_rial, datetime.now()
         return None, None, None
 
-    def get_public_ip(self):
+    async def get_public_ip(self):
         """
         Fetches the public IP address of the machine running the script.
-
-        Returns:
-            str: The public IP address, or "Unknown" if fetching fails.
         """
         try:
-            # Use an external service to get the public IP
-            ip = requests.get('https://api.ipify.org?format=json').json()
-            ip = ip.get('ip', 'Unknown')  # Extract 'ip' key, default to 'Unknown'
-        except Exception:  # Catching a general exception for robustness
+            async with httpx.AsyncClient() as client:
+                ip = await client.get('https://api.ipify.org?format=json')
+                ip = ip.json().get('ip', 'Unknown')
+        except Exception:
             ip = "Unknown"
 
         print(f"Your public IP is: {ip}")
         return ip
 
 
-def main():
+async def main():
     """
-    Main function to run the price checking operations.
-    It initializes the CheckSitePrice, fetches prices, and prints them.
+    Main asynchronous function to run the price checking operations.
     """
     robot_checker = CheckSitePrice()
-    # Fetch Iranian gold and dollar prices
-    gold_ir_price, dollar_ir_price, time_ir_checked = robot_checker.get_ir_gold_dollar()
-    # Fetch international gold price and convert to Rial using the fetched dollar price
-    gold_int_price, gold_int_to_rial_price, time_int_checked = robot_checker.get_int_gold_to_dollar_to_rial(
-        price_dollar_rial=dollar_ir_price)
+
+    # Use httpx.AsyncClient as a context manager for the entire session
+    async with httpx.AsyncClient() as client:
+        # Fetch Iranian gold and dollar prices
+        gold_ir_price, dollar_ir_price, time_ir_checked = await robot_checker.get_ir_gold_dollar(client)
+        # Fetch international gold price and convert to Rial
+        gold_int_price, gold_int_to_rial_price, time_int_checked = await robot_checker.get_int_gold_to_dollar_to_rial(
+            client, price_dollar_rial=dollar_ir_price)
+
     # Print all fetched prices
     print(gold_ir_price, dollar_ir_price, gold_int_price, gold_int_to_rial_price)
-    # Get and print the public IP
-    robot_checker.get_public_ip()
+    # Get and print the public IP (uses a separate client for simplicity)
+    await robot_checker.get_public_ip()
 
 
 # Entry point for the script
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

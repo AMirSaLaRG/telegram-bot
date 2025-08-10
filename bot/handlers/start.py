@@ -19,7 +19,8 @@ class Start:
         Handles the /start command.
         Initializes user session and displays the main keyboard based on user profile existence.
         """
-        messages = msg()
+        messages = msg(language=context.user_data['lan'])
+        print(messages.CHAT_REGEX)
 
         self.user_db.get_user_data(update.effective_user.id, context.user_data)
 

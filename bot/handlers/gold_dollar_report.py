@@ -6,6 +6,8 @@ from bot.handlers.telegram_conversations import Calculator
 from bot.db.database import GoldPriceDatabase
 from bot.handlers.intraction import track_user_interaction
 from bot.utils.messages_manager import messages as msg
+from bot.utils.messages_manager import languages as the_lans
+
 # messages = msg(language=context.user_data['lan'])
 
 
@@ -29,7 +31,7 @@ class GoldDollarReport:
         checking_msg = await context.bot.send_message(user_id, text='Checking site .... wait')
 
         try:
-            latest_price = self.gold_db.get_latest_update()
+            latest_price = await self.gold_db.get_latest_update()
             if not latest_price:
                 raise Exception("Could not fetch prices")
 
@@ -69,6 +71,15 @@ class GoldDollarReport:
             await query.delete_message()
 
 
-    def handler(self):
-        messages = msg()
-        return MessageHandler(filters.Regex(messages.GOLD_DOLLAR_REGEX), self.gold_dollar)
+    def handlers(self):
+        languages = [key for key, value in the_lans.items()]
+        handlers = []
+        for lan in languages:
+            messages = msg(language=lan)
+
+            lan_handler = [
+                MessageHandler(filters.Regex(rf"^{messages.GOLD_DOLLAR_BUTTON}$"), self.gold_dollar),
+                               ]
+            handlers += lan_handler
+        print(handlers)
+        return  handlers

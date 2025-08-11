@@ -2,8 +2,8 @@
 
 A comprehensive Telegram bot with social networking, price tracking, and utility features built with Python and the `python-telegram-bot` library.
 
-![Bot Features Preview](https://via.placeholder.com/800x400?text=Telegram+Bot+Demo)
-_(Consider adding actual screenshots later)_
+![Bot Features Preview](https://photos.fife.usercontent.google.com/pw/AP1GczOtvoZfevlE-ZBvzeg75fDeY5PvpW-RDv2TTBQWF-RBpRlCJK6166Bb=w751-h1132-s-no-gm?authuser=0)
+
 
 ## 🌟 Key Features
 

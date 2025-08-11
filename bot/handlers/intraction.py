@@ -4,6 +4,7 @@ from bot.db.database import ChatDatabase, UserDatabase
 from datetime import datetime
 from functools import wraps
 import logging
+from bot.utils.messages_manager import languages as lans
 
 # Set up logging
 logger = logging.getLogger(__name__)  # This creates a logger with your module's name
@@ -83,8 +84,18 @@ def track_user_interaction(func):
                 chat_db.create_user_session(user_id)
                 context.user_data['user_id'] = user_id
                 context.user_data['last_online'] = datetime.now()
+                language = context.user_data.get('lan', None)
+                print(language)
+                if not language in [lan for lan, value in lans.items()]:
+                    print('yay')
+                    context.user_data['language'] = [lan for lan, value in lans.items()][0]
+                    context.user_data['lan'] = [lan for lan, value in lans.items()][0]
                 user_db.add_or_update_user(user_id, context.user_data)
                 logger.debug(f"Tracked interaction for user {user_id}")
+
+
+
+
             print(context.user_data)
         except Exception as e:
             logger.error(f"Error in user tracking: {e}", exc_info=True)

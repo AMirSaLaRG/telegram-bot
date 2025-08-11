@@ -10,6 +10,7 @@ languages = {
 }
 
 def messages(language:str = 'en', admin_mode:bool =False):
+
     if not admin_mode:
         return languages[language]
     else:

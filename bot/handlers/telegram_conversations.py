@@ -17,6 +17,7 @@ from bot.utils.messages_manager import messages as msg
 # messages = msg(language=context.user_data['lan'])
 
 from bot.handlers.intraction import track_user_interaction
+from bot.handlers.start import Start
 
 
 class Calculator:
@@ -64,12 +65,14 @@ class Calculator:
         elif update.callback_query:
             await update.callback_query.answer()  # Answer the callback query to remove loading indicator
             await update.callback_query.edit_message_text(messages.CALCULATOR_STOPPED)  # Edit message to confirm cancellation
+        await Start().start(update, context)
         return ConversationHandler.END
 
     async def start_calculation(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Starts the price calculation conversation. Presents initial item options.
         """
+        messages = msg(language=context.user_data['lan'])
         # Handle both Message (command) and CallbackQuery (button) updates
         if update.message:
             message = update.message
@@ -81,13 +84,22 @@ class Calculator:
             [InlineKeyboardButton('gold: 18karat', callback_data='18kr')]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-
+        cancel_keyboard = [
+            [KeyboardButton('/cancel')]
+        ]
+        cancel_reply = ReplyKeyboardMarkup(cancel_keyboard, resize_keyboard=True)
         # Send message with item options
         await context.bot.send_message(
+            text='-',
             chat_id=message.chat.id,
-            text=message.CALCULATOR_START,
+            reply_markup=cancel_reply
+        )
+        await context.bot.send_message(
+            chat_id=message.chat.id,
+            text=messages.CALCULATOR_START,
             reply_markup=reply_markup
         )
+
         return self.ITEM  # Move to the ITEM state
 
     async def handle_item(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -318,6 +330,7 @@ class TorobConversation:
             await update.callback_query.edit_message_text(messages.OPERATION_CANCELLED)
         elif update.message:
             await update.message.reply_text(messages.OPERATION_CANCELLED)
+        await Start().start(update, context)
         return ConversationHandler.END  # End the conversation
 
     async def _send_fallback_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, text: str):
@@ -347,8 +360,18 @@ class TorobConversation:
         if not update.callback_query:  # Ensure it's triggered by a callback query
             return ConversationHandler.END
         await update.callback_query.answer()  # Acknowledge the callback query
+        keyboard = [
+            [KeyboardButton('/cancel')]
+        ]
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+        await context.bot.send_message(
+            chat_id=update.effective_user.id,
+            text='-',
+            reply_markup=reply_markup
+        )
         await update.callback_query.edit_message_text(
             messages.TOROB_ADD_START,
+
         )
         return self.NAME  # Move to the NAME state
 
@@ -436,6 +459,7 @@ class TorobConversation:
             self.price = None
             self.url = None
             self.name = None
+            await Start().start(update, context)
             return ConversationHandler.END  # End the conversation
         else:  # If item could not be added (e.g., DB error)
             self.url = None  # Clear URL, might be invalid
@@ -487,6 +511,9 @@ class TorobConversation:
         item_id = context.user_data.get('editing_item_id', "")
         user_id = update.effective_user.id
 
+        keyboard = [[KeyboardButton('/cancel')]]
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
         if not update.callback_query:
             return ConversationHandler.END
 
@@ -498,8 +525,13 @@ class TorobConversation:
             return ConversationHandler.END
 
         await update.callback_query.answer()
+        await context.bot.send_message(
+            chat_id=update.effective_user.id,
+            text='Editing',
+            reply_markup=reply_markup
+        )
         await update.callback_query.edit_message_text(
-            messages.TOROB_ASK_NEW_PRICE
+            messages.TOROB_ASK_NEW_PRICE,
         )
         return self.EDIT_PRICE  # Move to the EDIT_PRICE state
 
@@ -528,6 +560,9 @@ class TorobConversation:
         item_id = context.user_data.get('editing_item_id', "")
         user_id = update.effective_user.id
 
+        keyboard = [[KeyboardButton('/cancel')]]
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
         if not update.callback_query:
             return ConversationHandler.END
 
@@ -539,6 +574,11 @@ class TorobConversation:
             return ConversationHandler.END
 
         await update.callback_query.answer()
+        await context.bot.send_message(
+            chat_id=update.effective_user.id,
+            text='Editing',
+            reply_markup=reply_markup
+        )
         await update.callback_query.edit_message_text(
             messages.TOROB_ASK_NEW_URL
         )
@@ -574,6 +614,9 @@ class TorobConversation:
         item_id = context.user_data.get('editing_item_id', "")
         user_id = update.effective_user.id
 
+        keyboard = [[KeyboardButton('/cancel')]]
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
         if not update.callback_query:
             return ConversationHandler.END
 
@@ -585,6 +628,11 @@ class TorobConversation:
             return ConversationHandler.END
 
         await update.callback_query.answer()
+        await context.bot.send_message(
+            chat_id=update.effective_user.id,
+            text='Editing',
+            reply_markup=reply_markup
+        )
         await update.callback_query.edit_message_text(
             messages.TOROB_ASK_NEW_NAME
         )

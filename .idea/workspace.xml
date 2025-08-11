@@ -4,9 +4,18 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35578467-47ec-4149-be7c-60947fca684a" name="Changes" comment="updated handlers to support all languages not only basic&#10;updated keys to support all languages&#10;made my service of web scrip to async changed requests to httpx now but will not freez when someone scrapping the web">
+    <list default="true" id="35578467-47ec-4149-be7c-60947fca684a" name="Changes" comment="updated readme">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot/db/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/db/database.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot/handlers/gold_dollar_report.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/gold_dollar_report.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot/handlers/intraction.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/intraction.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot/handlers/profile.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/profile.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot/handlers/start.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/start.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot/handlers/telegram_conversations.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/telegram_conversations.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot/utils/en.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/utils/en.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot/utils/fa.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/utils/fa.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot/utils/messages_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/utils/messages_manager.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -46,34 +55,35 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python tests.Python tests in test_data_base.py.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.Python tests in test_telegram_chat_handler.py.executor&quot;: &quot;Run&quot;,
-    &quot;Python.a simple chat from scratch.executor&quot;: &quot;Run&quot;,
-    &quot;Python.chat_test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.data-base.executor&quot;: &quot;Run&quot;,
-    &quot;Python.data_base.executor&quot;: &quot;Run&quot;,
-    &quot;Python.database.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dolar_gold_price_ir.executor&quot;: &quot;Run&quot;,
-    &quot;Python.gold_dollar_report.executor&quot;: &quot;Run&quot;,
-    &quot;Python.language_manager.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;Python.python -m venv venv.executor&quot;: &quot;Run&quot;,
-    &quot;Python.simple chat.executor&quot;: &quot;Run&quot;,
-    &quot;Python.telegram_chat_handler.executor&quot;: &quot;Run&quot;,
-    &quot;Python.telegram_conversation.executor&quot;: &quot;Run&quot;,
-    &quot;Python.telegram_conversations.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.torob_scraper.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/portfolio&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python tests.Python tests in test_data_base.py.executor": "Run",
+    "Python tests.Python tests in test_telegram_chat_handler.py.executor": "Run",
+    "Python.a simple chat from scratch.executor": "Run",
+    "Python.chat_test.executor": "Run",
+    "Python.data-base.executor": "Run",
+    "Python.data_base.executor": "Run",
+    "Python.database.executor": "Run",
+    "Python.dolar_gold_price_ir.executor": "Run",
+    "Python.gold_dollar_report.executor": "Run",
+    "Python.language_manager.executor": "Run",
+    "Python.main.executor": "Run",
+    "Python.python -m venv venv.executor": "Run",
+    "Python.simple chat.executor": "Run",
+    "Python.start.executor": "Run",
+    "Python.telegram_chat_handler.executor": "Run",
+    "Python.telegram_conversation.executor": "Run",
+    "Python.telegram_conversations.executor": "Run",
+    "Python.test.executor": "Run",
+    "Python.torob_scraper.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "master",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "D:/portfolio",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\telegram bot project\profiles" />
@@ -370,7 +380,15 @@
       <option name="project" value="LOCAL" />
       <updated>1754808961741</updated>
     </task>
-    <option name="localTasksCounter" value="28" />
+    <task id="LOCAL-00028" summary="updated readme">
+      <option name="closed" value="true" />
+      <created>1754810384910</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1754810384910</updated>
+    </task>
+    <option name="localTasksCounter" value="29" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -409,7 +427,8 @@
     <MESSAGE value="added functionality to edit keys with short conversation &#10;when blocked can send msg or request chat&#10;made keys dynamic to change when report block unblock friend unfriend like unlike&#10;keys in owner profile shows how many ppl liked him or is his friend&#10;moved buttons from relationship py to the profile to made update for dynamic keyboard" />
     <MESSAGE value="added language manager for each user can set preferred language added button for chose for user in edit of the profile &#10;&#10;added a dummy in db for get tested and curredted next and pages&#10;&#10;remove useless prints&#10;optimized the tracking&#10;create profile no need of pic later on profile user can add one&#10;corrected filter resets keys work right&#10;added inline query show for current user users_filtered&#10;added inline query handler in main for more inline shows for later" />
     <MESSAGE value="updated handlers to support all languages not only basic&#10;updated keys to support all languages&#10;made my service of web scrip to async changed requests to httpx now but will not freez when someone scrapping the web" />
-    <option name="LAST_COMMIT_MESSAGE" value="updated handlers to support all languages not only basic&#10;updated keys to support all languages&#10;made my service of web scrip to async changed requests to httpx now but will not freez when someone scrapping the web" />
+    <MESSAGE value="updated readme" />
+    <option name="LAST_COMMIT_MESSAGE" value="updated readme" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -418,6 +437,10 @@
           <url>file://$PROJECT_DIR$/.venv/Lib/site-packages/telegram/_inline/inlinequeryresultarticle.py</url>
           <line>20</line>
           <option name="timeStamp" value="1" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/bot/handlers/intraction.py</url>
+          <option name="timeStamp" value="2" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

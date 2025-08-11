@@ -97,7 +97,7 @@ class User(Base):
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     registration_date = Column(DateTime, default=datetime.now, nullable=True)
-    language = Column(String, default='en')
+    language = Column(String, default='0')
 
     friends = relationship(
         'User',
@@ -874,6 +874,7 @@ class UserDatabase:
                 user = User(user_id=str(user_id), generated_id=generated_id)
                 user.registration_date = datetime.now()
                 user_data['generated_id'] = generated_id
+                user_data['name'] = user_data['generated_id']
                 user_data['lan'] = 'en'
             # If user exists but somehow doesn't have a generated_id, create one
             elif not user.generated_id:

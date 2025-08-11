@@ -19,6 +19,7 @@ from bot.utils.messages_manager import languages as the_lans
 # messages = msg(language=context.user_data['lan'])
 
 from bot.utils.messages_manager import languages
+from bot.handlers.start import Start
 
 
 
@@ -54,14 +55,23 @@ class Profile:
         Defines and returns the ConversationHandler for profile creation.
         It specifies entry points, states, and fallbacks for the conversation flow.
         """
+        languages = [key for key, value in the_lans.items()]
+        handlers = []
+        for lan in languages:
+            messages = msg(language=lan)
+
+            lan_handler = [ MessageHandler(filters.Regex(rf"^{messages.COMPLETE_PROFILE_BUTTON}$"), self.start_profile),]
+
+
+            handlers += lan_handler
         return ConversationHandler(
-            entry_points=[CommandHandler(self.create_commend, self.start_profile)],
+            entry_points=handlers,
             states={
                 # self.PHOTO: [MessageHandler(filters.PHOTO, self.handle_photo)],
                 self.NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_name)],
                 self.AGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_age)],
                 self.GENDER: [MessageHandler(filters.Regex("^(Male|Female|Other)$"), self.handle_gender)],
-                self.ABOUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_about)],
+                # self.ABOUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_about)],
                 self.LOCATION: [MessageHandler(filters.LOCATION, self.handle_location)],
             },
             fallbacks=[CommandHandler('cancel', self.cancel)],
@@ -86,18 +96,29 @@ class Profile:
         """
         Cancels the current conversation and sends a cancellation message.
         """
+        # keyboard = [
+        #     [KeyboardButton('/start')]
+        # ]
+
+        # reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
         await update.message.reply_text('Profile creation cancelled')
+        await Start().start(update, context)
         return ConversationHandler.END
 
+    @track_user_interaction
     async def start_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Starts the profile creation conversation. Asks the user to send their photo.
         """
         messages = msg(language=context.user_data['lan'])
+        keyboard = [
+            [KeyboardButton("/cancel")]
+        ]
+        reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
         context.user_data['user_id'] = update.effective_user.id
         await update.message.reply_text(
             messages.PROFILE_START,
-            reply_markup=ReplyKeyboardRemove()  # Removes the custom keyboard
+            reply_markup=reply_markup  # Removes the custom keyboard
         )
         return self.NAME
 
@@ -150,7 +171,7 @@ class Profile:
             return self.AGE  # Stay in AGE state
 
         # Create gender selection keyboard
-        reply_keyboard = [["Male"], ["Female"], ["Other"]]
+        reply_keyboard = [["Male"], ["Female"], ["Other"], [KeyboardButton("/cancel")]]
         await update.message.reply_text(
             messages.PROFILE_ASK_GENDER,
             reply_markup=ReplyKeyboardMarkup(
@@ -169,11 +190,19 @@ class Profile:
         messages = msg(language=context.user_data['lan'])
         context.user_data['gender'] = update.message.text
 
+
+
+        reply_keyboard = [[KeyboardButton("Share Location", request_location=True)],
+                          [KeyboardButton("/cancel")]]
         await update.message.reply_text(
-            messages.PROFILE_ASK_ABOUT,
-            reply_markup=ReplyKeyboardRemove()  # Removes the custom keyboard
+            messages.PROFILE_ASK_LOCATION,
+            reply_markup=ReplyKeyboardMarkup(
+                reply_keyboard,
+                one_time_keyboard=True,
+                resize_keyboard=True,  # Adjusts keyboard size based on content
+            )
         )
-        return self.ABOUT
+        return self.LOCATION
 
     async def handle_about(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
@@ -188,7 +217,8 @@ class Profile:
         context.user_data['about'] = update.message.text
 
         # Request location with a button that triggers location sharing
-        reply_keyboard = [[KeyboardButton("Share Location", request_location=True)]]
+        reply_keyboard = [[KeyboardButton("Share Location", request_location=True)],
+                          [KeyboardButton("/cancel")]]
         await update.message.reply_text(
             messages.PROFILE_ASK_LOCATION,
             reply_markup=ReplyKeyboardMarkup(
@@ -215,7 +245,7 @@ class Profile:
 
         # Display the newly created/updated profile
         await self.show_my_profile(update, context)
-
+        await Start().start(update, context)
         return ConversationHandler.END  # End the conversation
 
     def _self_profile_keyboard(self, user_id, context):
@@ -510,7 +540,7 @@ class Profile:
                 keys_in_line = []
 
         return key_set
-
+    @track_user_interaction
     async def language_options(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         messages = msg(language=context.user_data['lan'])
         keyboard = self._language_options_keyboard(update, context)
@@ -560,9 +590,10 @@ class Profile:
 
             self.user_db.update_len(user_id, action)
             context.user_data['language'] = action
+            await Start().start(update, context)
             await query.edit_message_text(
 
-                'success\nclick: /start'
+                'success'
             )
 
 
@@ -597,30 +628,38 @@ class Profile:
         action = query.data.split(':')[1].strip().lower()
 
         await query.answer()
+        cancel_keyboard = [
+            [KeyboardButton('/cancel')]
+        ]
+        reply_markup = ReplyKeyboardMarkup(cancel_keyboard, resize_keyboard=True)
 
         try:
             if action == messages.NAME_PATTERN:
                 await context.bot.send_message(
                     chat_id=update.effective_user.id,
-                    text=messages.EDIT_NAME_TEXT
+                    text=messages.EDIT_NAME_TEXT,
+                    reply_markup=reply_markup
                 )
                 return self.EDIT_NAME
             elif action == messages.ABOUT_PATTERN:
                 await context.bot.send_message(
                     chat_id=update.effective_user.id,
-                    text=messages.EDIT_ABOUT_TEXT
+                    text=messages.EDIT_ABOUT_TEXT,
+                    reply_markup=reply_markup
                 )
                 return self.EDIT_ABOUT
             elif action == messages.CITY_PATTERN:
                 await context.bot.send_message(
                     chat_id=update.effective_user.id,
-                    text=messages.EDIT_CITY_TEXT
+                    text=messages.EDIT_CITY_TEXT,
+                    reply_markup=reply_markup
                 )
                 return self.EDIT_CITY
             elif action == messages.PHOTO_PATTERN:
                 await context.bot.send_message(
                     chat_id=update.effective_user.id,
                     text=messages.EDIT_PHOTO_TEXT,
+                    reply_markup=reply_markup
 
                 )
                 return self.EDIT_PHOTO
@@ -629,6 +668,7 @@ class Profile:
                 await context.bot.send_message(
                     chat_id=update.effective_user.id,
                     text=messages.EDIT_LOCATION_TEXT,
+                    reply_markup=reply_markup
 
 
                 )
@@ -709,13 +749,16 @@ class Profile:
         # Update in database
         context.user_data['profile_photo'] = photo_id
         self.user_db.add_or_update_user(update.effective_user.id, context.user_data)
+        await Start().start(update, context)
         await update.message.reply_text(messages.EDIT_PHOTO_SUCCESS)
         await self.show_my_profile(update, context)
+
         return ConversationHandler.END
 
     async def cancel_edit(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         messages = msg(language=context.user_data['lan'])
         await update.message.reply_text(messages.EDIT_PHOTO_CANCELED)
+        await Start().start(update, context)
         return ConversationHandler.END
 
     def get_profile_edit_conversation_handler(self):
@@ -888,8 +931,10 @@ class Profile:
         for lan in languages:
             messages = msg(language=lan)
 
-            lan_handler = [ MessageHandler(filters.Regex(messages.PROFILE_BUTTON), self.show_my_profile),
-                            MessageHandler(filters.Regex(messages.CHAT_PROFILE_REGEX), self.show_profile_request) ]
+            lan_handler = [ MessageHandler(filters.Regex(rf"^{messages.PROFILE_BUTTON}$"), self.show_my_profile),
+                            MessageHandler(filters.Regex(messages.CHAT_PROFILE_REGEX), self.show_profile_request) ,
+                            MessageHandler(filters.Regex(rf"^{messages.EDIT_LANGUAGE_BUTTON}$"), self.language_options )
+            ]
             handlers += lan_handler
         return handlers
         # messages = msg()

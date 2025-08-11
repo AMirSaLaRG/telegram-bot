@@ -65,7 +65,7 @@ class Messages:
     TOROB_BUTTON = "Torob price check"
     GOLD_DOLLAR_BUTTON = "Gold & Dollar"
     PROFILE_BUTTON = "profile"
-    CREATE_PROFILE_BUTTON = f"/createprofile"
+    COMPLETE_PROFILE_BUTTON = f"Complete/Profile"
     RANDOM_CHAT_BUTTON = "Random chat"
     ADVANCE_SEARCH_BUTTON = "Advance Search"
     ADD_ITEM_BUTTON = "Add Item"

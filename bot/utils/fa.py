@@ -69,7 +69,7 @@ class Messages(Ms):
     TOROB_BUTTON = "بررسی قیمت ترب"
     GOLD_DOLLAR_BUTTON = "قیمت طلا و دلار"
     PROFILE_BUTTON = "پروفایل"
-    CREATE_PROFILE_BUTTON = "/ایجاد_پروفایل"
+    COMPLETE_PROFILE_BUTTON = "تکمیل_پروفایل"
     RANDOM_CHAT_BUTTON = "چت تصادفی"
     ADVANCE_SEARCH_BUTTON = "جستجوی پیشرفته"
     ADD_ITEM_BUTTON = "افزودن آیتم"
@@ -96,11 +96,11 @@ class Messages(Ms):
     GOLD_PRICE_UPDATE = ("""✨💰 *به‌روزرسانی قیمت طلا* 💰✨
         ___⏰ آخرین بروزرسانی: {time}
 
-        🇮🇷 *قیمت داخلی*
+        *قیمت داخلی* 🇮🇷 
         🟡 18 عیار: {gold_18k_ir:,} تومان
         💵 دلار: {dollar_ir_rial:,} تومان
 
-        🌍 *قیمت جهانی*
+        *قیمت جهانی* 🌍 
         🟡 18 عیار: ${gold_18k_international_dollar}
         ➡️ معادل تومان: {gold_18k_international_rial:,} تومان
 

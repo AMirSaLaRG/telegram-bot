@@ -51,6 +51,7 @@ class GoldDollarReport:
                 ),
                 reply_markup=reply_markup
             )
+
         except Exception as e:
             logging.error(f"Gold price error: {e}")
             await context.bot.edit_message_text(

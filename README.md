@@ -2,10 +2,8 @@
 
 A comprehensive Telegram bot with social networking, price tracking, and utility features built with Python and the `python-telegram-bot` library.
 
-![Bot Features Preview](https://lh3.googleusercontent.com/pw/AP1GczMLb2lqhsWOBwCct1AcEhkWTdzj7NkrR4b_QkPY9LxvCRawKw5P6jz_H0J_my0CFnaE6kbAgrdsnkqIdMVqOlzkZK4XhAYnwF48M6BXSPKGHAMc_FUZMzHhF_KBVGxGl6AQR3CxTq-ncNK2-svm41Ti=w756-h1147-s-no-gm?authuser=0)
-![Bot Features Preview](https://lh3.googleusercontent.com/pw/AP1GczMNFbW2PDkRMaSQte-FmROGrd5kUZaUPTipo1Mw5tED3ARORJjflrLEQdpnTv5Y-sAP4RWzECeVnDVzouriiTuaZgO6pfC0WeC1sM8qOLJAKhb0s8KLGg7NANtV0uvjvGCVGrvyJw76iOYFcK4TCWKD=w742-h1131-s-no-gm?authuser=0)
-![Bot Features Preview](https://lh3.googleusercontent.com/pw/AP1GczM2e_NNpyjMbsm1K_EyeCa82hwzb6auCiypCNIml_Me0TmcQt-Npi5nIpNVBLqICPo09rGgC0zamX9eAaB3cLJ7DHLMouNILH2x-Hdsb1KB8COCtrzYI3Fcm7dEmFgBr4nSGfPOg9g0aoi1r9TKfB8r=w716-h1187-s-no-gm?authuser=0)
-![Bot Features Preview](https://lh3.googleusercontent.com/pw/AP1GczNU58bmHN6XL5DwwmGE0sVl0Z2vbkwI9qnqKcbfeOAV3WD_gxme58FoDihHy6CMGBD8Qfj_vnYbq_zfyLiFHk2i4KqX748AHIylRQ-6DnvqzTBBX5YvqWGbubYPSYYe0HgeP_vd74FpU7rvSVE-JyMu=w720-h1187-s-no-gm?authuser=0)
+![Bot Features Preview](https://lh3.googleusercontent.com/pw/AP1GczNhKUKlk7S4el9yF8oWOs0HQfBNqzq7lvtO-A-UOJal4FtCrp9zp7EY2mf1zRGNhz3X4ZveuBWaDKJi_qnHKevmWaYit6C0vFPzltoPu3WrY6bCETdvCcLbtJuIf3yHpHhBYMoVpNQTRussaIJg_qy3=w1200-h500-s-no-gm?authuser=0)
+
 
 ## 🌟 Key Features
 

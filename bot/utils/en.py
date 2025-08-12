@@ -2,41 +2,39 @@ class Messages:
     # ==============================================
     # Frequently Changing Messages (Top)
     # ==============================================
-    TOROB_EDIT_PRICE= 'Edit Price'
-    TOROB_EDIT_URL=  'Edit URL'
-    TOROB_EDIT_NAME= 'Edit Name'
-    TOROB_EDIT_DELETE= 'delete'
+    TOROB_EDIT_PRICE = "Edit Price"
+    TOROB_EDIT_URL = "Edit URL"
+    TOROB_EDIT_NAME = "Edit Name"
+    TOROB_EDIT_DELETE = "delete"
 
+    EDIT_BUTTON = "Edit"
 
+    LIKES_SHOW_BUTTON = "Likes"
+    FRIENDS_SHOW_BUTTON = "Friends"
 
-    EDIT_BUTTON='Edit'
+    EDIT_NAME_BUTTON = "Edit Name"
+    EDIT_ABOUT_BUTTON = "Edit About"
+    EDIT_CITY_BUTTON = "Edit City"
+    EDIT_LOCATION_BUTTON = "Edit Location"
+    EDIT_LANGUAGE_BUTTON = "Edit Language"
+    EDIT_PHOTO_BUTTON = "Update Photo"
 
-    LIKES_SHOW_BUTTON = 'Likes'
-    FRIENDS_SHOW_BUTTON= 'Friends'
+    EDIT_NAME_TEXT = "Please enter your new name:"
+    EDIT_ABOUT_TEXT = "Please enter your new bio/about text:"
+    EDIT_CITY_TEXT = "Please enter your new city:"
+    EDIT_LOCATION_TEXT = "Please send your location"
+    EDIT_LANGUAGE_TEXT = "Plz choose your language:"
+    EDIT_PHOTO_TEXT = "Please send your new profile photo:"
 
-    EDIT_NAME_BUTTON= "Edit Name"
-    EDIT_ABOUT_BUTTON= "Edit About"
-    EDIT_CITY_BUTTON= "Edit City"
-    EDIT_LOCATION_BUTTON= "Edit Location"
-    EDIT_LANGUAGE_BUTTON= "Edit Language"
-    EDIT_PHOTO_BUTTON = 'Update Photo'
-
-    EDIT_NAME_TEXT= "Please enter your new name:"
-    EDIT_ABOUT_TEXT= "Please enter your new bio/about text:"
-    EDIT_CITY_TEXT= "Please enter your new city:"
-    EDIT_LOCATION_TEXT= 'Please send your location'
-    EDIT_LANGUAGE_TEXT= 'Plz choose your language:'
-    EDIT_PHOTO_TEXT= "Please send your new profile photo:"
-
-    EDIT_PHOTO_VALIDATION_ERROR="Please send a valid photo"
-    EDIT_PHOTO_SUCCESS="Profile photo updated!"
-    EDIT_PHOTO_CANCELED='Profile editing cancelled'
+    EDIT_PHOTO_VALIDATION_ERROR = "Please send a valid photo"
+    EDIT_PHOTO_SUCCESS = "Profile photo updated!"
+    EDIT_PHOTO_CANCELED = "Profile editing cancelled"
 
     EDIT_LOCATION_SUCCESS = "Location updated"
 
     EDIT_CITY_SUCCESS = "City updated to: {new_city}"
 
-    EDIT_ABOUT_ERROR_LONG ="Bio is too long, please shorten it"
+    EDIT_ABOUT_ERROR_LONG = "Bio is too long, please shorten it"
     EDIT_ABOUT_SUCCESS = "Bio updated successfully!"
 
     EDIT_NAME_SUCCESS = "Name updated to: {new_name}"
@@ -89,7 +87,7 @@ class Messages:
     PROFILE_NOTE = "\nName:{gender_icon} {name}\nAge: {age} Years old\nLast Online: {last_online}\ncity: {city}\nDistance: {distance}km away\n\nuser_id: /chaT_{generated_id}\n\n{divider}\n"
 
     # Gold price display
-    GOLD_PRICE_UPDATE = ("""✨💰 *GOLD PRICE UPDATE* 💰✨
+    GOLD_PRICE_UPDATE = """✨💰 *GOLD PRICE UPDATE* 💰✨
     ___⏰ Updated @ {time}
 
     🇮🇷 *Iran Gold*
@@ -100,7 +98,7 @@ class Messages:
     🟡 18K 1g = ${gold_18k_international_dollar}
     ➡️ Rial Equivalent = {gold_18k_international_rial:,} Rial
 
-   """)
+   """
 
     # Torob item display
     TOROB_ITEM_NOTE = "{signal}{name} @{latest_check}: with price of {latest_price}\n\nedit /item_{item_id}\n\n{divider}"
@@ -112,7 +110,7 @@ class Messages:
     FEMALE_ICON = "👩🏻"
     PRICE_OK_ICON = "✅"
     PRICE_HIGH_ICON = "❌"
-    DIVIDER = '〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️'
+    DIVIDER = "〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️"
 
     # General messages
     NOT_IN_CHAT = "⚠️ You're not in an active chat. Use /start to begin."
@@ -146,7 +144,9 @@ class Messages:
     ACTIVE_CHAT_WARNING = "You are in active chat first leave chat"
     REQUEST_SENT = "you chat request for /chaT_{target_id} \n sent plz wait for answer"
     REQUEST_RECEIVED = "user: /chaT_{user_id} \nrequested to chat with you"
-    BUSY_USER = "user txting another user /chaT_{target_id} \n plz w8 until it is finished"
+    BUSY_USER = (
+        "user txting another user /chaT_{target_id} \n plz w8 until it is finished"
+    )
     INVALID_USER = "invalid user id"
 
     # Edit/Delete messages
@@ -159,7 +159,9 @@ class Messages:
     # Profile class messages
     PROFILE_START = "Lets create your profile.\n First send me your name"
     PROFILE_ASK_AGE = "What's your age?"
-    PROFILE_INVALID_AGE = "⚠️ Please enter a valid age between 13-120.\n\nHow old are you?"
+    PROFILE_INVALID_AGE = (
+        "⚠️ Please enter a valid age between 13-120.\n\nHow old are you?"
+    )
     PROFILE_AGE_NOT_NUMBER = "❌ That doesn't look like a valid age.\n\nPlease enter your age as a number (e.g. 25):"
     PROFILE_ASK_GENDER = "Select your gender:"
     PROFILE_ASK_ABOUT = "Tell me something about yourself (max 200 characters):"
@@ -181,15 +183,23 @@ class Messages:
     # Direct message related
     DIRECT_MSG_PROMPT = "Plz send Your msg"
     DIRECT_MSG_TOO_LONG = "Message is too long. Please keep it under 250 characters."
-    DIRECT_MSG_SENT = "Your message request has been sent. The recipient will be notified."
-    DIRECT_MSG_REQUEST = "User /chaT_{user_id} wants to send you a message. Do you want to accept it?"
-    DIRECT_MSG_ERROR = "There was an issue sending your message request. Please try again."
+    DIRECT_MSG_SENT = (
+        "Your message request has been sent. The recipient will be notified."
+    )
+    DIRECT_MSG_REQUEST = (
+        "User /chaT_{user_id} wants to send you a message. Do you want to accept it?"
+    )
+    DIRECT_MSG_ERROR = (
+        "There was an issue sending your message request. Please try again."
+    )
     DIRECT_MSG_ACCEPTED = "Accepted: msgs from /chaT_{target_id}"
     DIRECT_MSG_DECLINED = "Declined: msgs from /chaT_{target_id}"
     DIRECT_MSG_RECEIVED = "/chaT_{user_id}:Received your Messages"
-    DIRECT_MSG_DECLINE_NOTIFY = '/chaT_{user_id} declined ur direct messages'
-    DIRECT_MSG_NO_MSGS = 'No messages to retrieve from /chaT_{target_id}'
-    DIRECT_MSG_FAILED_DECLINE = 'Failed to decline or no messages to clear from /chaT_{target_id}'
+    DIRECT_MSG_DECLINE_NOTIFY = "/chaT_{user_id} declined ur direct messages"
+    DIRECT_MSG_NO_MSGS = "No messages to retrieve from /chaT_{target_id}"
+    DIRECT_MSG_FAILED_DECLINE = (
+        "Failed to decline or no messages to clear from /chaT_{target_id}"
+    )
 
     # Calculator messages
     CALCULATOR_START = "Let's calculate it. \nFirst what item we will calculate"
@@ -206,15 +216,25 @@ class Messages:
     CALCULATOR_STOPPED = "Calculator stopped"
 
     # Torob messages
-    TOROB_ADD_START = "Lets add new item to your torob list \n What is name of Item (less that 150)"
+    TOROB_ADD_START = (
+        "Lets add new item to your torob list \n What is name of Item (less that 150)"
+    )
     TOROB_INVALID_NAME_LENGTH = "Please enter a string with less than 150 characters!"
     TOROB_ASK_PRICE = "Plz enter highest price that ur interest in {name}"
-    TOROB_INVALID_PRICE = "❌ Please enter a valid price (numbers only).\n\nExample: 1250000"
+    TOROB_INVALID_PRICE = (
+        "❌ Please enter a valid price (numbers only).\n\nExample: 1250000"
+    )
     TOROB_PRICE_TOO_LOW = "❌ Price must be greater than 0.\n\nPlease enter the maximum price you're willing to pay:"
-    TOROB_ASK_URL = "plz gimme the url from torob that is for {name}"
+    TOROB_ASK_URL = (
+        "plz gimme the url from torob that is for {name}\nhttps://torob.com/"
+    )
     TOROB_INVALID_URL = "plz send a torob url "
-    TOROB_ADD_SUCCESS = "{name}: highest price {price}\nwith ur provided url added\n\n/start"
-    TOROB_ADD_FAILED = "Failed to add item. Please ensure the URL is valid and try again."
+    TOROB_ADD_SUCCESS = (
+        "{name}: highest price {price}\nwith ur provided url added\n\n/start"
+    )
+    TOROB_ADD_FAILED = (
+        "Failed to add item. Please ensure the URL is valid and try again."
+    )
     TOROB_NOT_OWNER = "This item does not belong to you. Please enter a valid item ID."
     TOROB_DELETE_PROMPT = "Confirm delete with any word \n\nfor cancel type: /cancel"
     TOROB_ASK_NEW_PRICE = "Please enter new price"
@@ -222,13 +242,14 @@ class Messages:
     TOROB_ASK_NEW_NAME = "Please enter new name"
     TOROB_UPDATE_SUCCESS = "✅ Item updated successfully!\n\nItem: {name}\nCurrent Highest Price: {price}\n\nCurrent URL: {url}\n\nWhat would you like to edit next?"
     TOROB_DELETE_SUCCESS = "✅ Item Deleted successfully!\n\n/start"
-    TOROB_URL_UPDATE_FAILED = "Failed to update URL. Please try again with a valid Torob URL."
+    TOROB_URL_UPDATE_FAILED = (
+        "Failed to update URL. Please try again with a valid Torob URL."
+    )
     TOROB_NAME_UPDATE_FAILED = "Failed to update name. Please try again."
 
     # Common messages
     OPERATION_CANCELLED = "Operation cancelled"
     TEXT_INPUT_REQUIRED = "Please send a text message"
-
 
     CREATE_ANON_CHAT = "createanonymousChat"
     CREATE_ANON_MSG = "createanonymousMsg"
@@ -242,21 +263,21 @@ class Messages:
 
     # Core patterns (should rarely change)
     REL_STARTER_PATTERN = "rel to rel"
-    REL_INSPECT_PATTERN = 'rel what what'
-    LIKE_PATTERN = 'it like it'
-    FRIEND_PATTERN = 'it add it'
-    BLOCK_PATTERN = 'it block it'
-    REPORT_PATTERN = 'it report it'
-    UNLIKE_PATTERN = 'it unlike it'
-    UNFRIEND_PATTERN = 'it unadd it'
-    UNBLOCK_PATTERN = 'it unblock it'
+    REL_INSPECT_PATTERN = "rel what what"
+    LIKE_PATTERN = "it like it"
+    FRIEND_PATTERN = "it add it"
+    BLOCK_PATTERN = "it block it"
+    REPORT_PATTERN = "it report it"
+    UNLIKE_PATTERN = "it unlike it"
+    UNFRIEND_PATTERN = "it unadd it"
+    UNBLOCK_PATTERN = "it unblock it"
     PROFILE_EDIT_PATTERN = "I EDIT ME"
-    NAME_PATTERN = 'namae'
+    NAME_PATTERN = "namae"
     ABOUT_PATTERN = "manan"
-    CITY_PATTERN = 'shahrmahr'
-    PHOTO_PATTERN = 'axmax'
-    LOCATION_PATTER = 'ja jo ja'
-    LANGUAGE_PATTERN = 'taghirzaban'
+    CITY_PATTERN = "shahrmahr"
+    PHOTO_PATTERN = "axmax"
+    LOCATION_PATTER = "ja jo ja"
+    LANGUAGE_PATTERN = "taghirzaban"
     QUERY_PATTERN_FILTERED_PPL = "gettingfilteredppl"
 
     # Gender options (stable)
@@ -295,19 +316,14 @@ class Messages:
     ACCEPT_CMD = "acceptchat"
     DENY_CMD = "denychat"
 
-
-
     # Regex patterns (should rarely change)
     TOROB_SCRAPER_TITLE = "Torob Scraper: "
     ITEM_CHECKED_FORMAT = "{signal}{name} @{latest_check}: with price of {latest_price}\n\nedit /item_{item_id}\n\n{divider}"
     ITEM_UNCHECKED_FORMAT = "\n{signal}{name} is not yet Checked plz wait\n\nedit /item_{item_id}\n\n{divider}\n"
-    CHAT_REGEX = fr"^{CHAT_BUTTON}$"
+    CHAT_REGEX = rf"^{CHAT_BUTTON}$"
     ADVANCE_SEARCH_REGEX = r"^Advance Search$"
     # RANDOM_CHAT_REGEX = r"^Random chat$"
     GOLD_DOLLAR_REGEX = r"^Gold & Dollar$"
     # TOROB_REGEX = r"^Torob price check$"
-    ITEM_EDIT_REGEX = r'^/item_'
-    CHAT_PROFILE_REGEX = r'^/chaT_'
-
-
-
+    ITEM_EDIT_REGEX = r"^/item_"
+    CHAT_PROFILE_REGEX = r"^/chaT_"

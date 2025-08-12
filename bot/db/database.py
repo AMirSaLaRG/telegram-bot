@@ -1,9 +1,19 @@
-import time
-from os.path import realpath
-
 import httpx
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Text, select, inspect, ForeignKey, \
-    Index, Boolean, text
+from sqlalchemy import (
+    create_engine,
+    Column,
+    Integer,
+    String,
+    Float,
+    DateTime,
+    Text,
+    select,
+    inspect,
+    ForeignKey,
+    Index,
+    Boolean,
+    text,
+)
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from datetime import datetime, timedelta
@@ -19,9 +29,9 @@ import logging
 # Get the absolute path of the directory containing the current script
 basedir = os.path.abspath(os.path.dirname(__file__))
 # Construct the path to the SQLite database file
-db_path = os.path.join(basedir, 'database/telegram_database.db')
+db_path = os.path.join(basedir, "database/telegram_database.db")
 # Define the SQLAlchemy database URI
-SQLALCHEMY_DATABASE_URI = 'sqlite:///' + db_path
+SQLALCHEMY_DATABASE_URI = "sqlite:///" + db_path
 
 # ___________________________Web scraping Class_____________________________________________
 site_checker_gold = CheckSitePrice()
@@ -33,13 +43,13 @@ Base = declarative_base()
 # ___________________________________________________________________________________________
 def generate_secure_random_id(length=8):
     """
-    Generates a secure, random ID string with a mix of lowercase, uppercase, and digits.
+        Generates a secure, random ID string with a mix of lowercase, uppercase, and digits.
 
-    Args:
-        length (int): The desired length of the generated ID. Defaults to 8.
-ghg
-    Returns:
-        str: A randomly generated ID string.
+        Args:
+            length (int): The desired length of the generated ID. Defaults to 8.
+    ghg
+        Returns:
+            str: A randomly generated ID string.
     """
     # Define character sets for ID generation
     lowercase = string.ascii_lowercase
@@ -65,7 +75,7 @@ ghg
     secrets.SystemRandom().shuffle(password)
 
     # Convert the list of characters to a single string
-    return ''.join(password)
+    return "".join(password)
 
 
 # Example usage (commented out, as per instruction not to change code)
@@ -76,12 +86,14 @@ ghg
 # _________________Initiate Users data base (for chat , etc, ..)_____________________________
 # ___________________________________________________________________________________________
 
+
 class User(Base):
     """
     SQLAlchemy model for storing user information.
     Represents the 'users' table in the database.
     """
-    __tablename__ = 'users'
+
+    __tablename__ = "users"
 
     user_id = Column(Integer, primary_key=True)
     generated_id = Column(String)
@@ -93,50 +105,54 @@ class User(Base):
     city = Column(String(50), nullable=True)
     last_online = Column(DateTime, default=datetime.now, nullable=True)
     profile_photo = Column(Text, nullable=True)
-    about = Column(Text, default='No bio yet', nullable=True)
+    about = Column(Text, default="No bio yet", nullable=True)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     registration_date = Column(DateTime, default=datetime.now, nullable=True)
-    language = Column(String, default='0')
+    language = Column(String, default="0")
 
     friends = relationship(
-        'User',
-        secondary='relationships',
-        primaryjoin='and_(User.user_id==Relationships.user_id, Relationships.friend==True)',
-        secondaryjoin='and_(User.user_id==Relationships.target_id, Relationships.friend==True)',
-        backref='friend_of',
-        viewonly=True    )
+        "User",
+        secondary="relationships",
+        primaryjoin="and_(User.user_id==Relationships.user_id, Relationships.friend==True)",
+        secondaryjoin="and_(User.user_id==Relationships.target_id, Relationships.friend==True)",
+        backref="friend_of",
+        viewonly=True,
+    )
 
     likes = relationship(
-        'User',
-        secondary='relationships',
-        primaryjoin='and_(User.user_id==Relationships.user_id, Relationships.like==True)',
-        secondaryjoin='and_(User.user_id==Relationships.target_id, Relationships.like==True)',
-        backref='liked_by',
-        viewonly=True    )
+        "User",
+        secondary="relationships",
+        primaryjoin="and_(User.user_id==Relationships.user_id, Relationships.like==True)",
+        secondaryjoin="and_(User.user_id==Relationships.target_id, Relationships.like==True)",
+        backref="liked_by",
+        viewonly=True,
+    )
 
     blocks = relationship(
-        'User',
-        secondary='relationships',
-        primaryjoin='and_(User.user_id==Relationships.user_id, Relationships.block==True)',
-        secondaryjoin='and_(User.user_id==Relationships.target_id, Relationships.block==True)',
-        backref='blocked_by',
-        viewonly=True    )
+        "User",
+        secondary="relationships",
+        primaryjoin="and_(User.user_id==Relationships.user_id, Relationships.block==True)",
+        secondaryjoin="and_(User.user_id==Relationships.target_id, Relationships.block==True)",
+        backref="blocked_by",
+        viewonly=True,
+    )
 
     reports = relationship(
-        'User',
-        secondary='relationships',
-        primaryjoin='and_(User.user_id==Relationships.user_id, Relationships.report==True)',
-        secondaryjoin='and_(User.user_id==Relationships.target_id, Relationships.report==True)',
-        backref='reported_by',
-        viewonly=True    )
+        "User",
+        secondary="relationships",
+        primaryjoin="and_(User.user_id==Relationships.user_id, Relationships.report==True)",
+        secondaryjoin="and_(User.user_id==Relationships.target_id, Relationships.report==True)",
+        backref="reported_by",
+        viewonly=True,
+    )
 
 
 class Relationships(Base):
-    __tablename__ = 'relationships'
+    __tablename__ = "relationships"
 
-    user_id = Column(Integer, ForeignKey('users.user_id'), primary_key=True)
-    target_id = Column(Integer, ForeignKey('users.user_id'), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.user_id"), primary_key=True)
+    target_id = Column(Integer, ForeignKey("users.user_id"), primary_key=True)
     like = Column(Boolean, default=False)
     friend = Column(Boolean, default=False)
     block = Column(Boolean, default=False)
@@ -147,11 +163,13 @@ class Relationships(Base):
 # ____________________________Initiate Gold & Dollar data base ______________________________
 # ___________________________________________________________________________________________
 
+
 class GoldDollarRial(Base):
     """
     SQLAlchemy model for storing gold and dollar prices.
     Represents the 'gold' table in the database.
     """
+
     __tablename__ = "gold"
 
     check_id = Column(Integer, primary_key=True)
@@ -167,11 +185,13 @@ class GoldDollarRial(Base):
 # ____________________________Initiate Torob Scraping data base ______________________________
 # ___________________________________________________________________________________________
 
+
 class TorobScrapUser(Base):
     """
     SQLAlchemy model for items a user wants to track on Torob.
     Represents the 'torob_item' table.
     """
+
     __tablename__ = "torob_item"
 
     item_id = Column(Integer, primary_key=True)
@@ -179,13 +199,17 @@ class TorobScrapUser(Base):
     name_of_item = Column(String, nullable=False)
     user_preferred_price = Column(Float, nullable=False)
     torob_url = Column(String, nullable=False)
-    created_at = Column(DateTime, server_default=func.now())  # Database timestamp for creation
-    updated_at = Column(DateTime, onupdate=func.now())  # Database timestamp for last update
+    created_at = Column(
+        DateTime, server_default=func.now()
+    )  # Database timestamp for creation
+    updated_at = Column(
+        DateTime, onupdate=func.now()
+    )  # Database timestamp for last update
     # Relationship to TorobCheck: an item can have many price checks
     price_checks = relationship(
-        'TorobCheck',
-        back_populates='item',
-        cascade="all, delete-orphan"  # Deletes associated checks when an item is deleted
+        "TorobCheck",
+        back_populates="item",
+        cascade="all, delete-orphan",  # Deletes associated checks when an item is deleted
     )
 
 
@@ -194,79 +218,85 @@ class TorobCheck(Base):
     SQLAlchemy model for individual price checks of a Torob item.
     Represents the 'torob_check' table.
     """
+
     __tablename__ = "torob_check"
 
     check_id = Column(Integer, primary_key=True)
-    item_id = Column(Integer, ForeignKey('torob_item.item_id'))  # Foreign key linking to TorobScrapUser
+    item_id = Column(
+        Integer, ForeignKey("torob_item.item_id")
+    )  # Foreign key linking to TorobScrapUser
     checked_price = Column(Float, nullable=False)
-    check_timestamp = Column(DateTime, server_default=func.now())  # Timestamp of when the check occurred
+    check_timestamp = Column(
+        DateTime, server_default=func.now()
+    )  # Timestamp of when the check occurred
 
     # Relationship back to TorobScrapUser: a check belongs to one item
-    item = relationship(
-        'TorobScrapUser',
-        back_populates='price_checks'
-    )
+    item = relationship("TorobScrapUser", back_populates="price_checks")
 
 
 # ___________________________________________________________________________________________
 # _____________________________Initiate Users Chat data base ________________________________
 # ___________________________________________________________________________________________
 
+
 class Sessions(Base):
     """
     SQLAlchemy model for managing user chat sessions and relationships.
     Represents the 'users_sessions' table.
     """
-    __tablename__ = 'users_sessions'
 
-    user_id = Column(Integer, ForeignKey('users.user_id'), primary_key=True)  # Foreign key to User table
+    __tablename__ = "users_sessions"
+
+    user_id = Column(
+        Integer, ForeignKey("users.user_id"), primary_key=True
+    )  # Foreign key to User table
 
     partner_id = Column(Integer, nullable=True)
     perv_partner_id = Column(Integer, nullable=True)  # Previous partner ID
     secret_chat = Column(Boolean, default=False)
-    created_at = Column(DateTime, server_default=func.now())  # Timestamp for session creation
-    updated_at = Column(DateTime, onupdate=func.now())  # Timestamp for last session update
+    created_at = Column(
+        DateTime, server_default=func.now()
+    )  # Timestamp for session creation
+    updated_at = Column(
+        DateTime, onupdate=func.now()
+    )  # Timestamp for last session update
     looking_random_chat = Column(Boolean, default=False)
 
     # Relationship to messages where this user is the sender
     sent_messages = relationship(
-        'MessageMap',
-        foreign_keys="[MessageMap.sender_id]",
-        back_populates='sender'
+        "MessageMap", foreign_keys="[MessageMap.sender_id]", back_populates="sender"
     )
     # Relationship to messages where this user is the receiver
     received_messages = relationship(
-        'MessageMap',
-        foreign_keys="[MessageMap.receiver_id]",
-        back_populates='receiver'
+        "MessageMap", foreign_keys="[MessageMap.receiver_id]", back_populates="receiver"
     )
     # Relationship to Links owned by this user
     links = relationship(
-        'Links',
-        foreign_keys='[Links.owner_id]',
-        back_populates='owner'
+        "Links", foreign_keys="[Links.owner_id]", back_populates="owner"
     )
     # Table arguments, including an index for partner_id for faster lookups
-    __table_args__ = (
-        Index('idx_partner', 'partner_id'),
-    )
+    __table_args__ = (Index("idx_partner", "partner_id"),)
 
 
 # ___________________________________________________________________________________________
 # _____________________________Initiate Users Message Map data base ________________________________
 # ___________________________________________________________________________________________
 
+
 class MessageMap(Base):
     """
     SQLAlchemy model for mapping messages between users through the bot.
     Represents the 'message_map' table.
     """
-    __tablename__ = 'message_map'
+
+    __tablename__ = "message_map"
 
     message_id = Column(Integer, primary_key=True)  # User's internal message ID
-    bot_message_id = Column(Integer, nullable=False)  # Bot's message ID (e.g., from Telegram API)
-    sender_id = Column(Integer, ForeignKey('users_sessions.user_id'), nullable=False)
-    receiver_id = Column(Integer, ForeignKey('users_sessions.user_id'), nullable=False)
+    bot_message_id = Column(
+        Integer, nullable=False
+    )  # Bot's message ID (e.g., from Telegram API)
+    sender_id = Column(Integer, ForeignKey("users_sessions.user_id"), nullable=False)
+    receiver_id = Column(Integer, ForeignKey("users_sessions.user_id"), nullable=False)
     time = Column(DateTime, nullable=True)  # Timestamp of the message
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
@@ -275,30 +305,23 @@ class MessageMap(Base):
 
     # Relationship to the sender (Sessions)
     sender = relationship(
-        'Sessions',
-        foreign_keys=[sender_id],
-        back_populates='sent_messages'
+        "Sessions", foreign_keys=[sender_id], back_populates="sent_messages"
     )
     # Relationship to the receiver (Sessions)
     receiver = relationship(
-        'Sessions',
-        foreign_keys=[receiver_id],
-        back_populates='received_messages'
+        "Sessions", foreign_keys=[receiver_id], back_populates="received_messages"
     )
 
     # Recommended indexes for efficient queries
     __table_args__ = (
         # Composite index for finding conversations between two users
-        Index('idx_conversation', 'sender_id', 'receiver_id'),
-
+        Index("idx_conversation", "sender_id", "receiver_id"),
         # Reverse composite index for the same conversation (for dual-direction lookup)
-        Index('idx_conversation_reverse', 'receiver_id', 'sender_id'),
-
+        Index("idx_conversation_reverse", "receiver_id", "sender_id"),
         # Index for time-based queries (e.g., retrieving message history)
-        Index('idx_message_time', 'time'),
-
+        Index("idx_message_time", "time"),
         # Index for bot message tracking (if querying by bot_message_id)
-        Index('idx_bot_message', 'bot_message_id'),
+        Index("idx_bot_message", "bot_message_id"),
     )
 
 
@@ -306,34 +329,45 @@ class MessageMap(Base):
 # _____________________________Initiate Users Links data base ________________________________
 # ___________________________________________________________________________________________
 
+
 class Links(Base):
     """
     SQLAlchemy model for managing unique links or tokens, possibly for invites or special access.
     Represents the 'links' table.
     """
-    __tablename__ = 'links'
+
+    __tablename__ = "links"
 
     id = Column(Integer, primary_key=True)
     link = Column(String, unique=True)  # The unique link/token string
     expire_time = Column(DateTime, nullable=False)
-    owner_id = Column(Integer, ForeignKey('users_sessions.user_id'))  # Owner of the link
-    max_uses = Column(Integer, nullable=True)  # Maximum number of times the link can be used
-    number_of_used = Column(Integer, nullable=True, default=0)  # Counter for how many times the link has been used
-    active = Column(Boolean, default=True, nullable=False)  # Flag to indicate if the link is active
-    created_at = Column(DateTime, server_default=func.now())  # Timestamp for link creation
+    owner_id = Column(
+        Integer, ForeignKey("users_sessions.user_id")
+    )  # Owner of the link
+    max_uses = Column(
+        Integer, nullable=True
+    )  # Maximum number of times the link can be used
+    number_of_used = Column(
+        Integer, nullable=True, default=0
+    )  # Counter for how many times the link has been used
+    active = Column(
+        Boolean, default=True, nullable=False
+    )  # Flag to indicate if the link is active
+    created_at = Column(
+        DateTime, server_default=func.now()
+    )  # Timestamp for link creation
 
     # Relationship back to owner (Sessions)
     owner = relationship(
-        'Sessions',
-        back_populates='links',  # Matches Sessions.links
+        "Sessions",
+        back_populates="links",  # Matches Sessions.links
         foreign_keys=[owner_id],
     )
     # Indexes for efficient link lookup
     __table_args__ = (
-        Index('idx_link_active', 'link', 'active'),  # For quick lookup of active links
-        Index('idx_owner_link', 'owner_id', 'link'),  # For finding links by owner
+        Index("idx_link_active", "link", "active"),  # For quick lookup of active links
+        Index("idx_owner_link", "owner_id", "link"),  # For finding links by owner
     )
-
 
 
 class RelationshipManager:
@@ -342,13 +376,19 @@ class RelationshipManager:
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
 
-    def _get_or_create_relationship(self,session, user_id: int, target_id: int) -> Relationships:
+    def _get_or_create_relationship(
+        self, session, user_id: int, target_id: int
+    ) -> Relationships:
         """Helper method to get or create a relationship record"""
 
-        the_relationship = session.query(Relationships).filter(
-            Relationships.user_id == user_id,  # Fixed filter syntax
-            Relationships.target_id == target_id
-        ).first()
+        the_relationship = (
+            session.query(Relationships)
+            .filter(
+                Relationships.user_id == user_id,  # Fixed filter syntax
+                Relationships.target_id == target_id,
+            )
+            .first()
+        )
 
         if not the_relationship:
             the_relationship = Relationships(
@@ -357,16 +397,17 @@ class RelationshipManager:
                 like=False,
                 friend=False,
                 block=False,
-                report=False
+                report=False,
             )
             session.add(the_relationship)
         return the_relationship
 
-
-    def block(self, user_id:int, target_id:int, action=True) -> bool:
+    def block(self, user_id: int, target_id: int, action=True) -> bool:
         with self.Session() as session:
             try:
-                the_relationship = self._get_or_create_relationship(session, user_id, target_id)
+                the_relationship = self._get_or_create_relationship(
+                    session, user_id, target_id
+                )
                 the_relationship.like = False
                 the_relationship.friend = False
                 the_relationship.block = action
@@ -382,10 +423,12 @@ class RelationshipManager:
                 print(f"Database error blocking user: {e}")
                 return False
 
-    def friend(self, user_id:int, target_id:int, action=True) -> bool:
+    def friend(self, user_id: int, target_id: int, action=True) -> bool:
         with self.Session() as session:
             try:
-                the_relationship = self._get_or_create_relationship(session, user_id, target_id)
+                the_relationship = self._get_or_create_relationship(
+                    session, user_id, target_id
+                )
                 the_relationship.friend = action
                 if action:
                     the_relationship.block = False
@@ -401,13 +444,14 @@ class RelationshipManager:
                 print(f"Database error while friending user: {e}")
                 return False
 
-    def like(self, user_id:int, target_id:int, action=True) -> bool:
+    def like(self, user_id: int, target_id: int, action=True) -> bool:
         with self.Session() as session:
             try:
-                the_relationship = self._get_or_create_relationship(session, user_id, target_id)
+                the_relationship = self._get_or_create_relationship(
+                    session, user_id, target_id
+                )
                 the_relationship.like = action
                 if action:
-
                     the_relationship.block = False
 
                 session.commit()
@@ -421,10 +465,12 @@ class RelationshipManager:
                 print(f"Database error while liking user: {e}")
                 return False
 
-    def report(self, user_id:int, target_id:int, action=True) -> bool:
+    def report(self, user_id: int, target_id: int, action=True) -> bool:
         with self.Session() as session:
             try:
-                the_relationship = self._get_or_create_relationship(session, user_id, target_id)
+                the_relationship = self._get_or_create_relationship(
+                    session, user_id, target_id
+                )
 
                 the_relationship.report = action
 
@@ -443,24 +489,28 @@ class RelationshipManager:
         """Get complete relationship status between two users"""
         with self.Session() as session:
             try:
-                rel = session.query(Relationships).filter(
-                    Relationships.user_id == user_id,
-                    Relationships.target_id == target_id
-                ).first()
+                rel = (
+                    session.query(Relationships)
+                    .filter(
+                        Relationships.user_id == user_id,
+                        Relationships.target_id == target_id,
+                    )
+                    .first()
+                )
 
                 if not rel:
                     return {
-                        'like': False,
-                        'friend': False,
-                        'block': False,
-                        'report': False
+                        "like": False,
+                        "friend": False,
+                        "block": False,
+                        "report": False,
                     }
 
                 return {
-                    'like': rel.like,
-                    'friend': rel.friend,
-                    'block': rel.block,
-                    'report': rel.report
+                    "like": rel.like,
+                    "friend": rel.friend,
+                    "block": rel.block,
+                    "report": rel.report,
                 }
             except SQLAlchemyError as e:
                 print(f"Error getting relationship status: {e}")
@@ -476,14 +526,14 @@ class RelationshipManager:
 
                 # Initialize result structure
                 result = {
-                    'friends': user.friends,
-                    'friend_of': user.friend_of,
-                    'likes': user.likes,
-                    'liked_by': user.liked_by,
-                    'blocks': user.blocks,
-                    'blocked_by': user.blocked_by,
+                    "friends": user.friends,
+                    "friend_of": user.friend_of,
+                    "likes": user.likes,
+                    "liked_by": user.liked_by,
+                    "blocks": user.blocks,
+                    "blocked_by": user.blocked_by,
                     "reports": user.reports,
-                    "reports_by": user.reported_by
+                    "reports_by": user.reported_by,
                 }
                 return result
 
@@ -496,13 +546,11 @@ class RelationshipManager:
             list_of_blocked = self.get_user_relationships(user_id)["blocks"]
             list_of_blocked_id = [user.user_id for user in list_of_blocked]
             if target_id in list_of_blocked_id:
-
                 return True
             else:
-
                 return False
         except Exception as e:
-            print(f'in is block Error: {e}')
+            print(f"in is block Error: {e}")
             return False
 
     def is_report(self, user_id, target_id):
@@ -510,14 +558,11 @@ class RelationshipManager:
             list_of_reported = self.get_user_relationships(user_id)["reports"]
             list_of_reported_id = [user.user_id for user in list_of_reported]
             if target_id in list_of_reported_id:
-
                 return True
             else:
-
                 return False
         except Exception as e:
-
-            print(f'in is report Error: {e}')
+            print(f"in is report Error: {e}")
             return False
 
     def is_friend(self, user_id, target_id):
@@ -525,13 +570,11 @@ class RelationshipManager:
             list_of_fiends = self.get_user_relationships(user_id)["friends"]
             list_of_friends_id = [user.user_id for user in list_of_fiends]
             if target_id in list_of_friends_id:
-
                 return True
             else:
-
                 return False
         except Exception as e:
-            print(f'in is report Error: {e}')
+            print(f"in is report Error: {e}")
             return False
 
     def is_liked(self, user_id, target_id):
@@ -539,14 +582,14 @@ class RelationshipManager:
             list_of_likes = self.get_user_relationships(user_id)["likes"]
             list_of_likes_id = [user.user_id for user in list_of_likes]
             if target_id in list_of_likes_id:
-
                 return True
             else:
-
                 return False
         except Exception as e:
-            print(f'in is report Error: {e}')
+            print(f"in is report Error: {e}")
             return False
+
+
 # ___________________________________________________________________________________________
 # ____________________________Class of Gold & Dollar data base ______________________________
 # ___________________________________________________________________________________________
@@ -569,10 +612,15 @@ class GoldPriceDatabase:
 
     # ________________________________adding new price to the db manually________________________
 
-    def add_price(self, gold_18k_ir: float, dollar_ir_rial: float, time_check_ir: datetime,
-                  gold_18k_international_dollar: float,
-                  gold_18k_international_rial: float,
-                  time_check_int: datetime):
+    def add_price(
+        self,
+        gold_18k_ir: float,
+        dollar_ir_rial: float,
+        time_check_ir: datetime,
+        gold_18k_international_dollar: float,
+        gold_18k_international_rial: float,
+        time_check_int: datetime,
+    ):
         """
         Adds a new entry of gold and dollar prices to the database.
 
@@ -607,7 +655,11 @@ class GoldPriceDatabase:
         """
         session = self.Session()
         try:
-            return session.query(GoldDollarRial).order_by(GoldDollarRial.check_id.desc()).first()
+            return (
+                session.query(GoldDollarRial)
+                .order_by(GoldDollarRial.check_id.desc())
+                .first()
+            )
         finally:
             session.close()
 
@@ -665,7 +717,9 @@ class GoldPriceDatabase:
 
         # If another check is in progress, wait and return the cached data
         if self.on_check:
-            logging.info("Another update is in progress. Returning the latest cached price.")
+            logging.info(
+                "Another update is in progress. Returning the latest cached price."
+            )
             return latest_check  # Return cached/latest instead of risky recursion
 
         self.on_check = True  # Acquire the lock
@@ -676,7 +730,9 @@ class GoldPriceDatabase:
                 if not self.latest_ir_update():
                     # If IR is up-to-date, check if International site also needs update
                     if not self.latest_int_update():
-                        logging.info("Both IR and INT data are up-to-date in DB. No need to fetch.")
+                        logging.info(
+                            "Both IR and INT data are up-to-date in DB. No need to fetch."
+                        )
 
                         pass  # Both are fine, use DB value
                     else:
@@ -688,19 +744,26 @@ class GoldPriceDatabase:
                             time_check_ir = latest_check.time_check_ir
 
                             # Fetch international prices, passing the current dollar rate
-                            gold_18k_int_dlr, gold_18k_int_rial, check_time_int = await site_checker_gold.get_int_gold_to_dollar_to_rial(
-                                client,
-                                price_dollar_rial=dollar_ir
+                            (
+                                gold_18k_int_dlr,
+                                gold_18k_int_rial,
+                                check_time_int,
+                            ) = await site_checker_gold.get_int_gold_to_dollar_to_rial(
+                                client, price_dollar_rial=dollar_ir
                             )
 
                             # Add the updated price entry to the database
                             self.add_price(
-                                float(gold_18k_ir),  # Assuming gold_18k_ir is already float or can be cleaned
-                                float(dollar_ir),  # Assuming dollar_ir is already float or can be cleaned
+                                float(
+                                    gold_18k_ir
+                                ),  # Assuming gold_18k_ir is already float or can be cleaned
+                                float(
+                                    dollar_ir
+                                ),  # Assuming dollar_ir is already float or can be cleaned
                                 time_check_ir,
                                 float(gold_18k_int_dlr),
                                 float(gold_18k_int_rial),
-                                check_time_int
+                                check_time_int,
                             )
                         except Exception as e:
                             logging.error(f"Error fetching INT site data: {e}")
@@ -708,23 +771,37 @@ class GoldPriceDatabase:
                     # Both IR and INT sites need updating
                     try:
                         logging.info("Fetching both IR and INT site data.")
-                        gold_18k_ir, dollar_ir, time_check_ir = await site_checker_gold.get_ir_gold_dollar(client)  # Fetch Iranian prices
-                        gold_18k_int_dlr, gold_18k_int_rial, check_time_int = await site_checker_gold.get_int_gold_to_dollar_to_rial(
+                        (
+                            gold_18k_ir,
+                            dollar_ir,
+                            time_check_ir,
+                        ) = await site_checker_gold.get_ir_gold_dollar(
+                            client
+                        )  # Fetch Iranian prices
+                        (
+                            gold_18k_int_dlr,
+                            gold_18k_int_rial,
+                            check_time_int,
+                        ) = await site_checker_gold.get_int_gold_to_dollar_to_rial(
                             client,
-                            price_dollar_rial=dollar_ir  # Fetch international prices using the newly fetched dollar rate
+                            price_dollar_rial=dollar_ir,  # Fetch international prices using the newly fetched dollar rate
                         )
 
                         # Add the combined updated price entry to the database
                         self.add_price(
-                            float(gold_18k_ir.replace(",", "")),  # Clean and convert to float
-                            float(dollar_ir.replace(",", "")),  # Clean and convert to float
+                            float(
+                                gold_18k_ir.replace(",", "")
+                            ),  # Clean and convert to float
+                            float(
+                                dollar_ir.replace(",", "")
+                            ),  # Clean and convert to float
                             time_check_ir,
                             float(gold_18k_int_dlr),
                             float(gold_18k_int_rial),
-                            check_time_int
+                            check_time_int,
                         )
                     except Exception as e:
-                        print(f'error: {e}')
+                        print(f"error: {e}")
                         logging.error(f"Error fetching both IR and INT site data: {e}")
 
         finally:
@@ -736,6 +813,7 @@ class GoldPriceDatabase:
 # ___________________________________________________________________________________________
 # ________________________________Class of Users data base __________________________________
 # ___________________________________________________________________________________________
+
 
 class UserDatabase:
     """
@@ -768,7 +846,9 @@ class UserDatabase:
         # If user does not exist, create a new one
         if not user:
             user = User(user_id=str(user_id))
-            user.registration_date = datetime.now()  # Set registration date for new user
+            user.registration_date = (
+                datetime.now()
+            )  # Set registration date for new user
 
         # Use inspect to iterate over columns and populate user_data dictionary
         inspector = inspect(user)
@@ -813,7 +893,7 @@ class UserDatabase:
 
                     attempt += 1  # ID exists, try again
             except Exception as e:
-                print(f'Error generating user ID (attempt {attempt + 1}): {e}')
+                print(f"Error generating user ID (attempt {attempt + 1}): {e}")
                 attempt += 1  # Log error and try again
                 continue
 
@@ -840,7 +920,7 @@ class UserDatabase:
                 logging.error(f"Database error fetching user {target_id}: {e}")
                 return None
 
-    def update_len(self, user_id:int, language:str):
+    def update_len(self, user_id: int, language: str):
         with self.Session() as session:
             try:
                 user = session.query(User).filter_by(user_id=user_id).first()
@@ -867,40 +947,47 @@ class UserDatabase:
             # Try to find an existing user
             user = session.query(User).filter_by(user_id=str(user_id)).first()
 
-
             if not user:
                 # If user doesn't exist, create a new one
                 generated_id = self.generate_user_special_id()
                 user = User(user_id=str(user_id), generated_id=generated_id)
                 user.registration_date = datetime.now()
-                user_data['generated_id'] = generated_id
-                user_data['name'] = user_data['generated_id']
-                user_data['lan'] = 'en'
+                user_data["generated_id"] = generated_id
+                user_data["name"] = user_data["generated_id"]
+                user_data["lan"] = "en"
             # If user exists but somehow doesn't have a generated_id, create one
             elif not user.generated_id:
                 generated_id = self.generate_user_special_id()
                 user.generated_id = generated_id  # Update the user object directly
-                user_data['generated_id'] = generated_id # Also update user_data to reflect this
+                user_data["generated_id"] = (
+                    generated_id  # Also update user_data to reflect this
+                )
 
             # Ensure user_data is not None if it was passed empty
             if not user_data:
                 user_data = {}
 
-
-            user_data['lan'] = user.language
+            user_data["lan"] = user.language
             # Handle case for existing users who might not have a 'generated_id' in user_data
             # This ensures that even if user_data doesn't explicitly provide it, the existing one is used
             # or a new one is generated if missing from the DB.
-            if 'generated_id' not in user_data or not user_data['generated_id']:
-                 # If generated_id is missing from user_data, try to get it from the user object or generate
-                user_data['generated_id'] = user.generated_id if user.generated_id else self.generate_user_special_id()
-                if not user.generated_id: # If still missing after fetching, assign the newly generated one
-                    user.generated_id = user_data['generated_id']
-
+            if "generated_id" not in user_data or not user_data["generated_id"]:
+                # If generated_id is missing from user_data, try to get it from the user object or generate
+                user_data["generated_id"] = (
+                    user.generated_id
+                    if user.generated_id
+                    else self.generate_user_special_id()
+                )
+                if (
+                    not user.generated_id
+                ):  # If still missing after fetching, assign the newly generated one
+                    user.generated_id = user_data["generated_id"]
 
             # Update all fields provided in user_data
             for key, value in user_data.items():
-                if hasattr(user, key):  # Check if the attribute exists on the User model
+                if hasattr(
+                    user, key
+                ):  # Check if the attribute exists on the User model
                     setattr(user, key, value)
 
             user.last_online = datetime.now()  # Update last online timestamp
@@ -938,10 +1025,16 @@ class UserDatabase:
         with self.Session() as session:
             time_threshold = datetime.now() - timedelta(minutes=time_min)
             # Select users where last_online is greater than or equal to the time threshold
-            query = select(User).where(User.last_online >= time_threshold).order_by(User.last_online.desc())
+            query = (
+                select(User)
+                .where(User.last_online >= time_threshold)
+                .order_by(User.last_online.desc())
+            )
             return session.execute(query).scalars().all()
 
-    def get_users_apply_system_sorting_by_db(self, user_id: int, max_km: float = 9999999.0) -> List[dict]:
+    def get_users_apply_system_sorting_by_db(
+        self, user_id: int, max_km: float = 9999999.0
+    ) -> List[dict]:
         """
         Retrieves users located near the requesting user, filtering by maximum distance.
         Includes calculated distance, minutes since last online, and online status.
@@ -964,12 +1057,17 @@ class UserDatabase:
 
             # 2. Get all users (or better: filter nearby users directly in SQL)
             # Exclude self and ensure other users have location data
-            #todo what the fuck ppl who dont have latitude long should be shown
-            all_users = session.query(User).filter(
-                User.latitude.isnot(None),
-                User.longitude.isnot(None),
-                User.user_id != requesting_user.user_id  # Exclude the requesting user itself
-            ).all()
+            # todo what the fuck ppl who dont have latitude long should be shown
+            all_users = (
+                session.query(User)
+                .filter(
+                    User.latitude.isnot(None),
+                    User.longitude.isnot(None),
+                    User.user_id
+                    != requesting_user.user_id,  # Exclude the requesting user itself
+                )
+                .all()
+            )
 
             # 3. Calculate distances and online status for each user
             now = datetime.now()
@@ -977,34 +1075,42 @@ class UserDatabase:
 
             for user in all_users:
                 distance = self._calculate_distance(
-                    requesting_user.latitude, requesting_user.longitude,
-                    user.latitude, user.longitude
+                    requesting_user.latitude,
+                    requesting_user.longitude,
+                    user.latitude,
+                    user.longitude,
                 )
 
                 if distance <= max_km:
                     # Calculate minutes since last online
                     mins_ago = (now - user.last_online).total_seconds() / 60
-                    is_online = mins_ago <= 1  # Consider online if active in last 1 minute
+                    is_online = (
+                        mins_ago <= 1
+                    )  # Consider online if active in last 1 minute
 
-                    nearby_users.append({
-                        'user': user,
-                        'distance': distance,
-                        'mins_ago': mins_ago,
-                        'is_online': is_online
-                    })
+                    nearby_users.append(
+                        {
+                            "user": user,
+                            "distance": distance,
+                            "mins_ago": mins_ago,
+                            "is_online": is_online,
+                        }
+                    )
 
             # 4. Sort by: online status first, then by minutes ago, then by distance
             return sorted(
                 nearby_users,
                 key=lambda x: (
-                    not x['is_online'],  # Online users first (False sorts before True)
-                    x['mins_ago'],  # Then by minutes since last online
-                    x['distance']  # Then by distance
-                )
+                    not x["is_online"],  # Online users first (False sorts before True)
+                    x["mins_ago"],  # Then by minutes since last online
+                    x["distance"],  # Then by distance
+                ),
             )
 
     @staticmethod
-    def _calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    def _calculate_distance(
+        lat1: float, lon1: float, lat2: float, lon2: float
+    ) -> float:
         """
         Calculates the distance between two geographical points using the Haversine formula.
 
@@ -1047,7 +1153,7 @@ class UserDatabase:
                 ).scalar()
                 if generated_id:
                     return generated_id if generated_id else None
-                return None # Explicitly return None if no generated_id found
+                return None  # Explicitly return None if no generated_id found
 
         except SQLAlchemyError as e:
             # logger.error(f"Database error fetching generated ID for user {user_id}: {e}",
@@ -1075,7 +1181,7 @@ class UserDatabase:
                 ).scalar()
                 if user_id:
                     return user_id if user_id else None
-                return None # Explicitly return None if no user_id found
+                return None  # Explicitly return None if no user_id found
 
         except SQLAlchemyError as e:
             # logger.error(f"Database error fetching generated ID for user {user_id}: {e}",
@@ -1092,15 +1198,43 @@ class UserDatabase:
 
 # A list of Iranian cities in Persian, used for filtering or selection.
 iran_cities_fa = [
-    "تهران", "مشهد", "اصفهان", "کرج", "شیراز", "تبریز", "قم", "اهواز", "کرمانشاه", "ارومیه",
-    "رشت", "زاهدان", "همدان", "کرمان", "یزد", "اردبیل", "بندرعباس", "گرگان", "ساری", "قم",
-    "خرم آباد", "سنندج", "دزفول", "بوشهر", "بیرجند", "سبزوار", "نجف اباد", "بروجرد", "ملایر", "قزوین"
+    "تهران",
+    "مشهد",
+    "اصفهان",
+    "کرج",
+    "شیراز",
+    "تبریز",
+    "قم",
+    "اهواز",
+    "کرمانشاه",
+    "ارومیه",
+    "رشت",
+    "زاهدان",
+    "همدان",
+    "کرمان",
+    "یزد",
+    "اردبیل",
+    "بندرعباس",
+    "گرگان",
+    "ساری",
+    "قم",
+    "خرم آباد",
+    "سنندج",
+    "دزفول",
+    "بوشهر",
+    "بیرجند",
+    "سبزوار",
+    "نجف اباد",
+    "بروجرد",
+    "ملایر",
+    "قزوین",
 ]
 
 
 # ___________________________________________________________________________________________
 # ________________________________Class of Users Chat base __________________________________
 # ___________________________________________________________________________________________
+
 
 class ChatDatabase:
     """
@@ -1138,7 +1272,9 @@ class ChatDatabase:
         with self.Session() as session:
             # Check if a session for the user already exists
             if not session.query(Sessions).filter_by(user_id=user_id).first():
-                new_session = Sessions(user_id=user_id)  # Create a new session if not found
+                new_session = Sessions(
+                    user_id=user_id
+                )  # Create a new session if not found
                 session.add(new_session)
                 session.commit()
 
@@ -1241,7 +1377,9 @@ class ChatDatabase:
 
             except Exception as e:
                 session.rollback()  # Rollback on error
-                print(f"Error establishing partnership between {user_id} and {partner_id}: {e}")
+                print(
+                    f"Error establishing partnership between {user_id} and {partner_id}: {e}"
+                )
                 return False
 
     def remove_partnership(self, user_id: int) -> bool:
@@ -1266,24 +1404,27 @@ class ChatDatabase:
 
                 partner_id = user1.partner_id
                 if not partner_id:
-                    return True # No partner to remove for user1
+                    return True  # No partner to remove for user1
                 user2 = session.query(Sessions).filter_by(user_id=partner_id).first()
 
-                if not user2: # Partner's session not found, but user1 might still have a partner_id
+                if not user2:  # Partner's session not found, but user1 might still have a partner_id
                     user1.perv_partner_id = user1.partner_id
                     user1.partner_id = None
                     session.commit()
                     return True
 
-
                 # Update user1's partnership status
                 if user1.partner_id == partner_id:
-                    user1.perv_partner_id = user1.partner_id  # Store current partner as previous
+                    user1.perv_partner_id = (
+                        user1.partner_id
+                    )  # Store current partner as previous
                     user1.partner_id = None  # Remove current partner
 
                 # Update user2's (the partner's) partnership status
                 if user2.partner_id == user_id:
-                    user2.perv_partner_id = user2.partner_id  # Store current partner as previous
+                    user2.perv_partner_id = (
+                        user2.partner_id
+                    )  # Store current partner as previous
                     user2.partner_id = None  # Remove current partner
 
                 session.commit()
@@ -1291,7 +1432,9 @@ class ChatDatabase:
 
             except Exception as e:
                 session.rollback()  # Rollback on error
-                print(f"Error establishing partnership between {user_id} and other person: {e}")
+                print(
+                    f"Error establishing partnership between {user_id} and other person: {e}"
+                )
                 return False
 
     def get_user_session(self, user_id: int) -> Optional[Sessions]:
@@ -1326,10 +1469,12 @@ class ChatDatabase:
             if session_obj:
                 return session_obj.partner_id
             else:
-                print(f'No session found for user {user_id} when trying to get partner ID.')
+                print(
+                    f"No session found for user {user_id} when trying to get partner ID."
+                )
                 return None
         except Exception as e:
-            print(f'Could not get partner id: {e}')
+            print(f"Could not get partner id: {e}")
             return None
 
     def cleanup_expired_links(self):
@@ -1339,19 +1484,21 @@ class ChatDatabase:
         with self.Session() as session:
             try:
                 session.query(Links).filter(
-                    Links.expire_time < datetime.now()  # Filter links older than current time
-                ).update({'active': False})  # Set 'active' to False for expired links
+                    Links.expire_time
+                    < datetime.now()  # Filter links older than current time
+                ).update({"active": False})  # Set 'active' to False for expired links
                 session.commit()
             except Exception as e:
                 session.rollback()  # Rollback on error
                 print(f"Error cleaning links: {e}")
 
-    def add_link(self,
-                 link: str,
-                 user_id: int,
-                 exp_time_hr: int = 24,
-                 max_uses: Optional[int] = None
-                 ) -> Optional[Links]:
+    def add_link(
+        self,
+        link: str,
+        user_id: int,
+        exp_time_hr: int = 24,
+        max_uses: Optional[int] = None,
+    ) -> Optional[Links]:
         """
         Adds a new link/token to the database with an owner, expiration, and optional max uses.
 
@@ -1375,9 +1522,12 @@ class ChatDatabase:
             try:
                 new_link = Links(
                     link=link,
-                    owner_id=str(user_id),  # Store user_id as string if needed, or int if column is int
-                    expire_time=datetime.now() + timedelta(hours=exp_time_hr),  # Calculate expiration time
-                    max_uses=max_uses
+                    owner_id=str(
+                        user_id
+                    ),  # Store user_id as string if needed, or int if column is int
+                    expire_time=datetime.now()
+                    + timedelta(hours=exp_time_hr),  # Calculate expiration time
+                    max_uses=max_uses,
                 )
 
                 session.add(new_link)
@@ -1385,7 +1535,7 @@ class ChatDatabase:
                 return new_link
             except Exception as e:
                 session.rollback()  # Rollback on error
-                print(f'Failed to add link: {e}')
+                print(f"Failed to add link: {e}")
                 return None
 
     def get_link(self, link: str) -> Optional[Links]:
@@ -1403,11 +1553,16 @@ class ChatDatabase:
 
         with self.Session() as session:
             try:
-                link_obj = session.query(Links).filter(
-                    Links.link == link,
-                    Links.active == True,  # Only retrieve active links
-                    Links.expire_time >= datetime.now()  # Only retrieve non-expired links
-                ).first()
+                link_obj = (
+                    session.query(Links)
+                    .filter(
+                        Links.link == link,
+                        Links.active == True,  # Only retrieve active links
+                        Links.expire_time
+                        >= datetime.now(),  # Only retrieve non-expired links
+                    )
+                    .first()
+                )
                 return link_obj
             except Exception as e:
                 print(f"Error fetching link: {e}")
@@ -1427,7 +1582,9 @@ class ChatDatabase:
         self.cleanup_expired_links()  # Clean up expired links first
 
         link_obj = self.get_link(link)  # Reuse the get_link method
-        return int(link_obj.owner_id) if link_obj and link_obj.owner_id else None # Ensure owner_id is returned as int
+        return (
+            int(link_obj.owner_id) if link_obj and link_obj.owner_id else None
+        )  # Ensure owner_id is returned as int
 
     def decrement_link_use(self, link: str) -> bool:
         """
@@ -1476,7 +1633,11 @@ class ChatDatabase:
         """
         with self.Session() as session:
             try:
-                msg_obj = session.query(MessageMap).filter_by(bot_message_id=robot_msg_id).first()
+                msg_obj = (
+                    session.query(MessageMap)
+                    .filter_by(bot_message_id=robot_msg_id)
+                    .first()
+                )
                 return msg_obj.message_id if msg_obj else None
             except Exception as e:
                 print(f"Error fetching message for bot message: {robot_msg_id}: {e}")
@@ -1494,13 +1655,22 @@ class ChatDatabase:
         """
         with self.Session() as session:
             try:
-                msg_obj = session.query(MessageMap).filter_by(message_id=user_msg_id).first()
+                msg_obj = (
+                    session.query(MessageMap).filter_by(message_id=user_msg_id).first()
+                )
                 return msg_obj.bot_message_id if msg_obj else None
             except Exception as e:
                 print(f"Error fetching message for user message: {user_msg_id}: {e}")
                 return None
 
-    def map_message(self, user_msg: int, bot_msg: int, user_id: int, partner_id: int, msg_txt: Optional[str] = None) -> bool:
+    def map_message(
+        self,
+        user_msg: int,
+        bot_msg: int,
+        user_id: int,
+        partner_id: int,
+        msg_txt: Optional[str] = None,
+    ) -> bool:
         """
         Maps an incoming user message to an outgoing bot message for chat tracking.
 
@@ -1520,7 +1690,7 @@ class ChatDatabase:
             sender_id=user_id,
             receiver_id=partner_id,
             time=datetime.now(),
-            msg_txt=msg_txt
+            msg_txt=msg_txt,
         )
         try:
             with self.Session() as session:
@@ -1531,7 +1701,9 @@ class ChatDatabase:
             print(f"Could not map message with message id: {user_msg} : {e}")
             return False
 
-    def secret_chat_toggle(self, user_id: int, hand_change: Optional[bool] = None) -> bool:
+    def secret_chat_toggle(
+        self, user_id: int, hand_change: Optional[bool] = None
+    ) -> bool:
         """
         Toggles or sets the secret chat status for a user.
 
@@ -1549,11 +1721,13 @@ class ChatDatabase:
             try:
                 session_obj = session.query(Sessions).filter_by(user_id=user_id).first()
                 if not session_obj:
-                    print(f'No session found for user {user_id}')
+                    print(f"No session found for user {user_id}")
                     return False
 
                 # Toggle or set based on hand_change argument
-                session_obj.secret_chat = not session_obj.secret_chat if hand_change is None else hand_change
+                session_obj.secret_chat = (
+                    not session_obj.secret_chat if hand_change is None else hand_change
+                )
 
                 session.commit()
                 return True
@@ -1577,15 +1751,20 @@ class ChatDatabase:
         """
         with self.Session() as session:
             try:
-                messages = session.query(MessageMap).filter(
-                    MessageMap.sender_id == user_id
-                ).order_by(MessageMap.time.desc()).all()
+                messages = (
+                    session.query(MessageMap)
+                    .filter(MessageMap.sender_id == user_id)
+                    .order_by(MessageMap.time.desc())
+                    .all()
+                )
                 return messages if messages else None
             except Exception as e:
-                print(f'Error fetching messages for user {user_id}: {str(e)}')
+                print(f"Error fetching messages for user {user_id}: {str(e)}")
                 return None
 
-    def get_previous_partner_messages(self, user_id: int, perv_partner_id: int) -> Optional[List[MessageMap]]:
+    def get_previous_partner_messages(
+        self, user_id: int, perv_partner_id: int
+    ) -> Optional[List[MessageMap]]:
         """
         Retrieves chat messages between a user and a previous partner.
         Messages are ordered by time in descending order.
@@ -1600,16 +1779,31 @@ class ChatDatabase:
         """
         with self.Session() as session:
             try:
-                messages = session.query(MessageMap).filter(
-                    (MessageMap.sender_id == user_id) | (MessageMap.receiver_id == user_id), # Messages sent by user_id or received by user_id
-                    (MessageMap.sender_id == perv_partner_id) | (MessageMap.receiver_id == perv_partner_id) # Messages involving perv_partner_id
-                ).order_by(MessageMap.time.desc()).all()
+                messages = (
+                    session.query(MessageMap)
+                    .filter(
+                        (MessageMap.sender_id == user_id)
+                        | (
+                            MessageMap.receiver_id == user_id
+                        ),  # Messages sent by user_id or received by user_id
+                        (MessageMap.sender_id == perv_partner_id)
+                        | (
+                            MessageMap.receiver_id == perv_partner_id
+                        ),  # Messages involving perv_partner_id
+                    )
+                    .order_by(MessageMap.time.desc())
+                    .all()
+                )
                 return messages if messages else None
             except Exception as e:
-                print(f'Error fetching previous partner messages for user {user_id} with partner {perv_partner_id}: {str(e)}')
+                print(
+                    f"Error fetching previous partner messages for user {user_id} with partner {perv_partner_id}: {str(e)}"
+                )
                 return None
 
-    def clear_msg_map(self, exp_time: Optional[int] = None, user_id: Optional[int] = None) -> tuple[int, Optional[str]]:
+    def clear_msg_map(
+        self, exp_time: Optional[int] = None, user_id: Optional[int] = None
+    ) -> tuple[int, Optional[str]]:
         """
         Clears entries from the `message_map` table based on expiration time and/or user ID.
 
@@ -1631,20 +1825,24 @@ class ChatDatabase:
                 query = session.query(MessageMap)
 
                 # Build filters
-                filters = [MessageMap.requested == False]  # Only delete non-requested messages
+                filters = [
+                    MessageMap.requested == False
+                ]  # Only delete non-requested messages
 
                 if exp_time:
                     time_threshold = datetime.now() - timedelta(hours=exp_time)
                     filters.append(MessageMap.time <= time_threshold)
                 if user_id:
                     filters.append(
-                        (MessageMap.sender_id == user_id) |
-                        (MessageMap.receiver_id == user_id)
+                        (MessageMap.sender_id == user_id)
+                        | (MessageMap.receiver_id == user_id)
                     )
 
                 # Execute deletion in a single operation
                 if filters:
-                    deleted_count = query.filter(*filters).delete(synchronize_session='fetch') # Use 'fetch' to ensure accurate count
+                    deleted_count = query.filter(*filters).delete(
+                        synchronize_session="fetch"
+                    )  # Use 'fetch' to ensure accurate count
                     session.commit()
 
                 return (deleted_count, None)
@@ -1668,7 +1866,9 @@ class ChatDatabase:
         """
         with self.Session() as session:
             try:
-                user_session = session.query(Sessions).filter_by(user_id=user_id).first()
+                user_session = (
+                    session.query(Sessions).filter_by(user_id=user_id).first()
+                )
                 if not user_session:
                     print(f"User session not found for {user_id}")
                     return False
@@ -1677,10 +1877,12 @@ class ChatDatabase:
 
                 # Verify the change (optional, but good for debugging)
                 session.refresh(user_session)
-                print(f"Updated status for {user_id}: {user_session.looking_random_chat}")
+                print(
+                    f"Updated status for {user_id}: {user_session.looking_random_chat}"
+                )
                 return True
             except Exception as e:
-                print(f'Could not change random chat status: {e}')
+                print(f"Could not change random chat status: {e}")
                 return False
 
     def get_random_chaters(self, female: bool = True, male: bool = True) -> list:
@@ -1699,19 +1901,23 @@ class ChatDatabase:
         with self.Session() as session:
             try:
                 # Join Sessions and User tables to get user gender information
-                random_users = session.query(Sessions, User).join(
-                    User, Sessions.user_id == User.user_id
-                ).filter(
-                    Sessions.looking_random_chat == True  # Filter for users looking for random chat
-                ).all()
+                random_users = (
+                    session.query(Sessions, User)
+                    .join(User, Sessions.user_id == User.user_id)
+                    .filter(
+                        Sessions.looking_random_chat
+                        == True  # Filter for users looking for random chat
+                    )
+                    .all()
+                )
 
                 result = []
                 print(random_users)  # For debugging
                 for session_obj, user in random_users:
-                    if user.gender and user.gender.lower() == 'male':
+                    if user.gender and user.gender.lower() == "male":
                         if male:  # Include male users if 'male' filter is True
                             result.append(user)
-                    elif user.gender and user.gender.lower() == 'female':
+                    elif user.gender and user.gender.lower() == "female":
                         if female:  # Include female users if 'female' filter is True
                             result.append(user)
                     else:
@@ -1725,7 +1931,9 @@ class ChatDatabase:
                 print(f"Error getting random chatters: {e}")
                 return []
 
-    def get_msg_requests_from_map(self, user_id: int, sender_id: int) -> Optional[List[str]]:
+    def get_msg_requests_from_map(
+        self, user_id: int, sender_id: int
+    ) -> Optional[List[str]]:
         """
         Retrieves the text of 'requested' messages sent from a specific sender to a user.
         After retrieval, these messages are marked as `requested=False`.
@@ -1740,20 +1948,28 @@ class ChatDatabase:
         """
         with self.Session() as session:
             try:
-                messages = session.query(MessageMap).filter_by(
-                    receiver_id=user_id,
-                    sender_id=sender_id,
-                    requested=True  # Filter for messages marked as requested
-                ).all()
+                messages = (
+                    session.query(MessageMap)
+                    .filter_by(
+                        receiver_id=user_id,
+                        sender_id=sender_id,
+                        requested=True,  # Filter for messages marked as requested
+                    )
+                    .all()
+                )
 
-                texts = [msg.msg_txt for msg in messages if msg.msg_txt is not None]  # Extract texts
+                texts = [
+                    msg.msg_txt for msg in messages if msg.msg_txt is not None
+                ]  # Extract texts
                 for msg in messages:
-                    msg.requested = False  # Mark messages as not requested after retrieval
+                    msg.requested = (
+                        False  # Mark messages as not requested after retrieval
+                    )
                 session.commit()
 
                 return texts
             except Exception as e:
-                print(f'Could not get request msgs : {e}')
+                print(f"Could not get request msgs : {e}")
                 return None
 
     def clear_msg_requests_from_map(self, user_id: int, sender_id: int) -> bool:
@@ -1769,11 +1985,15 @@ class ChatDatabase:
         """
         with self.Session() as session:
             try:
-                messages = session.query(MessageMap).filter_by(
-                    receiver_id=user_id,
-                    sender_id=sender_id,
-                    requested=True  # Filter for messages marked as requested
-                ).all()
+                messages = (
+                    session.query(MessageMap)
+                    .filter_by(
+                        receiver_id=user_id,
+                        sender_id=sender_id,
+                        requested=True,  # Filter for messages marked as requested
+                    )
+                    .all()
+                )
 
                 for msg in messages:
                     session.delete(msg)  # Delete each message
@@ -1781,7 +2001,7 @@ class ChatDatabase:
 
                 return True
             except Exception as e:
-                print(f'Could not clear request msgs : {e}')
+                print(f"Could not clear request msgs : {e}")
                 return False
 
     def add_requested_msg(self, sender_id: int, receiver_id: int, msg_txt: str) -> bool:
@@ -1805,14 +2025,15 @@ class ChatDatabase:
                     receiver_id=receiver_id,
                     msg_txt=msg_txt,
                     requested=True,  # Mark as a requested message
-                    time=datetime.now()
+                    time=datetime.now(),
                 )
                 session.add(new_msg)
                 session.commit()
                 return True
             except Exception as e:
-                print(f'Error in adding new request msg: {e}')
+                print(f"Error in adding new request msg: {e}")
                 return False
+
 
 class TorobDb:
     """
@@ -1828,8 +2049,9 @@ class TorobDb:
         Base.metadata.create_all(self.engine)  # Creates all tables defined by Base
         self.Session = sessionmaker(bind=self.engine)  # Creates a session factory
 
-
-    def add_item(self, user_id: int, preferred_price: float, torob_url: str, name: Optional[str]) -> bool:
+    def add_item(
+        self, user_id: int, preferred_price: float, torob_url: str, name: Optional[str]
+    ) -> bool:
         """
         Adds a new item to be tracked on Torob to the database.
 
@@ -1855,7 +2077,7 @@ class TorobDb:
                 session.commit()
                 return True
             except Exception as e:
-                print(f'Failed to add item: {e}')
+                print(f"Failed to add item: {e}")
                 return False
 
     def add_check(self, item_id: int, checked_price: float) -> bool:
@@ -1871,10 +2093,7 @@ class TorobDb:
         """
         try:
             with self.Session() as session:
-                new_check = TorobCheck(
-                    item_id=item_id,
-                    checked_price=checked_price
-                )
+                new_check = TorobCheck(item_id=item_id, checked_price=checked_price)
                 session.add(new_check)
                 session.commit()
                 return True
@@ -1919,17 +2138,19 @@ class TorobDb:
             user_items = self.get_user_items(user_id)  # Get all items owned by the user
             print(user_items)
             if user_items:
-                user_items_id = [item.item_id for item in user_items]  # Extract item IDs
+                user_items_id = [
+                    item.item_id for item in user_items
+                ]  # Extract item IDs
                 if item_id in user_items_id:
                     return True  # Item ID found in user's items
                 else:
-                    print('He/she is not the owner')
+                    print("He/she is not the owner")
                     return False
             else:
-                print('User does not have any item yet')
+                print("User does not have any item yet")
                 return False  # User has no items at all
         except Exception as e:
-            print(f'Error checking item owner: {e}')
+            print(f"Error checking item owner: {e}")
             return False
 
     def update_preferred_price(self, item_id: int, new_price: float) -> bool:
@@ -1978,7 +2199,7 @@ class TorobDb:
 
                 if item_to_update:
                     # Validate URL format if needed (simple check)
-                    if not new_url.startswith(('http://', 'https://')):
+                    if not new_url.startswith(("http://", "https://")):
                         print(f"Invalid URL format for item {item_id}")
                         return False
 
@@ -2042,8 +2263,12 @@ class TorobDb:
                 # Query for TorobCheck objects filtered by item_id
                 # .order_by(TorobCheck.check_timestamp) ensures the history is chronological
                 # .all() executes the query
-                price_history = session.query(TorobCheck).filter_by(item_id=item_id).order_by(
-                    TorobCheck.check_timestamp).all()
+                price_history = (
+                    session.query(TorobCheck)
+                    .filter_by(item_id=item_id)
+                    .order_by(TorobCheck.check_timestamp)
+                    .all()
+                )
                 return price_history
             except Exception as e:
                 print(f"Failed to retrieve price history for item {item_id}: {e}")
@@ -2109,8 +2334,12 @@ class TorobDb:
         with self.Session() as session:
             try:
                 # Query for the latest check by item_id, order by timestamp descending, and take the first one.
-                latest_check = session.query(TorobCheck).filter_by(item_id=item_id).order_by(
-                    TorobCheck.check_timestamp.desc()).first()
+                latest_check = (
+                    session.query(TorobCheck)
+                    .filter_by(item_id=item_id)
+                    .order_by(TorobCheck.check_timestamp.desc())
+                    .first()
+                )
                 return latest_check.checked_price if latest_check else None
             except Exception as e:
                 print(f"Failed to get latest price for item {item_id}: {e}")
@@ -2130,8 +2359,12 @@ class TorobDb:
         with self.Session() as session:
             try:
                 # Query for the latest check by item_id, order by timestamp descending, and take the first one.
-                latest_check = session.query(TorobCheck).filter_by(item_id=item_id).order_by(
-                    TorobCheck.check_timestamp.desc()).first()
+                latest_check = (
+                    session.query(TorobCheck)
+                    .filter_by(item_id=item_id)
+                    .order_by(TorobCheck.check_timestamp.desc())
+                    .first()
+                )
                 return latest_check.check_timestamp if latest_check else None
             except Exception as e:
                 print(f"Failed to get latest check time for item {item_id}: {e}")
@@ -2143,7 +2376,7 @@ class TorobDb:
                 user_ids = session.query(TorobScrapUser.user_id).distinct().all()
                 return [user_id[0] for user_id in user_ids]
             except Exception as e:
-                print(f'get_all_user_id_of_oweners: {e}')
+                print(f"get_all_user_id_of_oweners: {e}")
                 return []
 
 
@@ -2153,11 +2386,55 @@ def add_dummy_data_for_testing():
     This function is for development and testing only and does not use the 'random' library.
     """
     # Generated data lists
-    first_names = ['Jack', 'Alice', 'Bob', 'Cynthia', 'David', 'Eva', 'Frank', 'Grace', 'Henry', 'Ivy', 'John', 'Kate', 'Leo', 'Mia', 'Noah', 'Olivia', 'Peter', 'Quinn', 'Ryan', 'Sarah', 'Tom']
-    last_names = ['Smith', 'Johnson', 'Williams', 'Jones', 'Brown', 'Davis', 'Miller', 'Wilson', 'Moore', 'Taylor', 'Anderson', 'Thomas', 'Jackson', 'White', 'Harris', 'Martin', 'Thompson', 'Garcia', 'Martinez', 'Robinson', 'Clark']
-    genders = ['male', 'female'] * 11  # 11 male, 10 female to get 21
-    cities = iran_cities_fa[:21] # Use the first 21 cities from the provided list
-    languages = ['en', 'fa'] * 11
+    first_names = [
+        "Jack",
+        "Alice",
+        "Bob",
+        "Cynthia",
+        "David",
+        "Eva",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "John",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah",
+        "Olivia",
+        "Peter",
+        "Quinn",
+        "Ryan",
+        "Sarah",
+        "Tom",
+    ]
+    last_names = [
+        "Smith",
+        "Johnson",
+        "Williams",
+        "Jones",
+        "Brown",
+        "Davis",
+        "Miller",
+        "Wilson",
+        "Moore",
+        "Taylor",
+        "Anderson",
+        "Thomas",
+        "Jackson",
+        "White",
+        "Harris",
+        "Martin",
+        "Thompson",
+        "Garcia",
+        "Martinez",
+        "Robinson",
+        "Clark",
+    ]
+    genders = ["male", "female"] * 11  # 11 male, 10 female to get 21
+    cities = iran_cities_fa[:21]  # Use the first 21 cities from the provided list
+    languages = ["en", "fa"] * 11
 
     # Initialize the database engine and session
     engine = create_engine(SQLALCHEMY_DATABASE_URI)
@@ -2178,11 +2455,11 @@ def add_dummy_data_for_testing():
                     gender=genders[i],
                     age=20 + i,
                     city=cities[i],
-                    last_online=datetime.now() - timedelta(minutes=i*10),
+                    last_online=datetime.now() - timedelta(minutes=i * 10),
                     about=f"About {first_names[i]}...",
                     latitude=35.6892 + i * 0.1,  # Generated sequential lat/long
                     longitude=51.3890 + i * 0.1,
-                    language=languages[i]
+                    language=languages[i],
                 )
                 dummy_users.append(user)
             session.add_all(dummy_users)
@@ -2193,12 +2470,12 @@ def add_dummy_data_for_testing():
             dummy_sessions = []
             for i in range(21):
                 user_id = 1000 + i
-                partner_id = 1000 + (i + 1) % 21 # Connects each user to the next one
+                partner_id = 1000 + (i + 1) % 21  # Connects each user to the next one
                 session_entry = Sessions(
                     user_id=user_id,
                     partner_id=partner_id,
                     secret_chat=(i % 2 == 0),
-                    looking_random_chat=(i % 3 == 0)
+                    looking_random_chat=(i % 3 == 0),
                 )
                 dummy_sessions.append(session_entry)
             session.add_all(dummy_sessions)
@@ -2209,14 +2486,16 @@ def add_dummy_data_for_testing():
             dummy_relationships = []
             for i in range(21):
                 user_id = 1000 + i
-                target_id = 1000 + (i + 2) % 21 # Connects each user to a different user
+                target_id = (
+                    1000 + (i + 2) % 21
+                )  # Connects each user to a different user
                 relationship = Relationships(
                     user_id=user_id,
                     target_id=target_id,
                     like=(i % 2 == 0),
                     friend=(i % 3 == 0),
                     block=(i % 4 == 0),
-                    report=(i % 5 == 0)
+                    report=(i % 5 == 0),
                 )
                 dummy_relationships.append(relationship)
             session.add_all(dummy_relationships)
@@ -2228,14 +2507,16 @@ def add_dummy_data_for_testing():
             for i in range(21):
                 gold_price_ir = 1500000 + i * 5000
                 dollar_price_ir = 55000 + i * 100
-                dummy_gold_prices.append(GoldDollarRial(
-                    gold_18k_ir=gold_price_ir,
-                    dollar_ir_rial=dollar_price_ir,
-                    time_check_ir=datetime.now() - timedelta(minutes=i),
-                    gold_18k_international_dollar=1300 + i * 2,
-                    gold_18k_international_rial=dollar_price_ir * (1300 + i * 2),
-                    time_check_int=datetime.now() - timedelta(minutes=i)
-                ))
+                dummy_gold_prices.append(
+                    GoldDollarRial(
+                        gold_18k_ir=gold_price_ir,
+                        dollar_ir_rial=dollar_price_ir,
+                        time_check_ir=datetime.now() - timedelta(minutes=i),
+                        gold_18k_international_dollar=1300 + i * 2,
+                        gold_18k_international_rial=dollar_price_ir * (1300 + i * 2),
+                        time_check_int=datetime.now() - timedelta(minutes=i),
+                    )
+                )
             session.add_all(dummy_gold_prices)
             session.commit()
             print("Added 21 rows of dummy data to 'gold' table.")
@@ -2243,12 +2524,12 @@ def add_dummy_data_for_testing():
             # 5. Add 21 rows to 'torob_item'
             dummy_torob_items = []
             for i in range(21):
-                user_id = 1000 + (i+1) % 21 # Associate with existing dummy users
+                user_id = 1000 + (i + 1) % 21  # Associate with existing dummy users
                 item = TorobScrapUser(
                     user_id=user_id,
                     name_of_item=f"Laptop_{i}",
                     user_preferred_price=20000000 + i * 100000,
-                    torob_url=f"http://example.com/torob_item/{i}"
+                    torob_url=f"http://example.com/torob_item/{i}",
                 )
                 dummy_torob_items.append(item)
             session.add_all(dummy_torob_items)
@@ -2261,15 +2542,16 @@ def add_dummy_data_for_testing():
             dummy_torob_checks = []
             for i, item in enumerate(torob_items_from_db):
                 checked_price = item.user_preferred_price - (i * 1000)
-                dummy_torob_checks.append(TorobCheck(
-                    item_id=item.item_id,
-                    checked_price=checked_price,
-                    check_timestamp=datetime.now() - timedelta(minutes=i)
-                ))
+                dummy_torob_checks.append(
+                    TorobCheck(
+                        item_id=item.item_id,
+                        checked_price=checked_price,
+                        check_timestamp=datetime.now() - timedelta(minutes=i),
+                    )
+                )
             session.add_all(dummy_torob_checks)
             session.commit()
             print("Added 21 rows of dummy data to 'torob_check' table.")
-
 
             # 7. Add 21 rows to 'message_map'
             dummy_messages = []
@@ -2280,8 +2562,8 @@ def add_dummy_data_for_testing():
                     bot_message_id=50000 + i,
                     sender_id=sender_id,
                     receiver_id=receiver_id,
-                    msg_txt=f"Message {i+1} from {first_names[i]}.",
-                    requested=(i % 2 != 0)
+                    msg_txt=f"Message {i + 1} from {first_names[i]}.",
+                    requested=(i % 2 != 0),
                 )
                 dummy_messages.append(message)
             session.add_all(dummy_messages)
@@ -2298,7 +2580,7 @@ def add_dummy_data_for_testing():
                     owner_id=owner_id,
                     max_uses=(i % 5) + 1,
                     number_of_used=i % 2,
-                    active=(i % 2 == 0)
+                    active=(i % 2 == 0),
                 )
                 dummy_links.append(link)
             session.add_all(dummy_links)
@@ -2310,32 +2592,7 @@ def add_dummy_data_for_testing():
             print(f"An error occurred while adding dummy data: {e}")
         finally:
             session.close()
+
+
 if __name__ == "__main__":
-
     add_dummy_data_for_testing()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

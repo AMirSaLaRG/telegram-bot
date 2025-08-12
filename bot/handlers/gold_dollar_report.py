@@ -11,13 +11,10 @@ from bot.utils.messages_manager import languages as the_lans
 # messages = msg(language=context.user_data['lan'])
 
 
-
-
 class GoldDollarReport:
     def __init__(self):
         self.gold_db = GoldPriceDatabase()
         self.calculator = Calculator()
-
 
     @track_user_interaction
     async def gold_dollar(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -26,9 +23,11 @@ class GoldDollarReport:
         Displays live prices from tgju.org and goldpricez.com, and includes a calculator button.
         Handles potential errors during price fetching.
         """
-        messages = msg(language=context.user_data['lan'])
+        messages = msg(language=context.user_data["lan"])
         user_id = update.effective_chat.id
-        checking_msg = await context.bot.send_message(user_id, text='Checking site .... wait')
+        checking_msg = await context.bot.send_message(
+            user_id, text="Checking site .... wait"
+        )
 
         try:
             latest_price = await self.gold_db.get_latest_update()
@@ -36,20 +35,26 @@ class GoldDollarReport:
                 raise Exception("Could not fetch prices")
 
             keyboard = [
-                [InlineKeyboardButton(messages.CALCULATOR_BUTTON, callback_data=f'{self.calculator.calculate_command}')]]
+                [
+                    InlineKeyboardButton(
+                        messages.CALCULATOR_BUTTON,
+                        callback_data=f"{self.calculator.calculate_command}",
+                    )
+                ]
+            ]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             await context.bot.edit_message_text(
                 chat_id=user_id,
                 message_id=checking_msg.message_id,
                 text=messages.GOLD_PRICE_UPDATE.format(
-                    time=latest_price.time_check_ir.strftime('%Y-%m-%d %H:%M'),
+                    time=latest_price.time_check_ir.strftime("%Y-%m-%d %H:%M"),
                     gold_18k_ir=latest_price.gold_18k_ir,
                     dollar_ir_rial=latest_price.dollar_ir_rial,
                     gold_18k_international_dollar=latest_price.gold_18k_international_dollar,
-                    gold_18k_international_rial=latest_price.gold_18k_international_rial
+                    gold_18k_international_rial=latest_price.gold_18k_international_rial,
                 ),
-                reply_markup=reply_markup
+                reply_markup=reply_markup,
             )
 
         except Exception as e:
@@ -57,20 +62,18 @@ class GoldDollarReport:
             await context.bot.edit_message_text(
                 chat_id=user_id,
                 message_id=checking_msg.message_id,
-                text=messages.PRICE_FETCH_ERROR)
-
+                text=messages.PRICE_FETCH_ERROR,
+            )
 
     async def button(self, update, context):
-
         query = update.callback_query
         await query.answer()
 
-        if query.data == f'{self.calculator.calculate_command}':
+        if query.data == f"{self.calculator.calculate_command}":
             await query.answer()
             conv_handler = self.calculator.get_calculated_price_conversation_handler()
             await conv_handler.trigger(update, context)
             await query.delete_message()
-
 
     def handlers(self):
         languages = [key for key, value in the_lans.items()]
@@ -79,8 +82,10 @@ class GoldDollarReport:
             messages = msg(language=lan)
 
             lan_handler = [
-                MessageHandler(filters.Regex(rf"^{messages.GOLD_DOLLAR_BUTTON}$"), self.gold_dollar),
-                               ]
+                MessageHandler(
+                    filters.Regex(rf"^{messages.GOLD_DOLLAR_BUTTON}$"), self.gold_dollar
+                ),
+            ]
             handlers += lan_handler
         print(handlers)
-        return  handlers
+        return handlers

@@ -4,12 +4,25 @@ import telegram
 from dotenv import load_dotenv
 
 
-from telegram import (Update, ReplyKeyboardMarkup,
-                      KeyboardButton, InlineKeyboardButton,
-                      InlineKeyboardMarkup, InlineQueryResultArticle, InputTextMessageContent, )
+from telegram import (
+    Update,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    InlineQueryResultArticle,
+    InputTextMessageContent,
+)
 
-from telegram.ext import (filters, ContextTypes, CommandHandler,
-                          ApplicationBuilder, MessageHandler, CallbackQueryHandler, InlineQueryHandler)
+from telegram.ext import (
+    filters,
+    ContextTypes,
+    CommandHandler,
+    ApplicationBuilder,
+    MessageHandler,
+    CallbackQueryHandler,
+    InlineQueryHandler,
+)
 
 
 from bot.handlers.gold_dollar_report import GoldDollarReport
@@ -20,33 +33,42 @@ from bot.handlers.filter import Filter
 from bot.handlers.relationship import RelationshipHandler
 from bot.handlers.show_cases import ShowCases
 
-from bot.db.database import GoldPriceDatabase, UserDatabase, iran_cities_fa, ChatDatabase, TorobDb
+from bot.db.database import (
+    GoldPriceDatabase,
+    UserDatabase,
+    iran_cities_fa,
+    ChatDatabase,
+    TorobDb,
+)
 from bot.handlers.telegram_chat_handler import UserMessage
 from bot.handlers.start import Start
 import os
 import warnings
 
 from bot.handlers.intraction import track_user_interaction
-#the error per_message=True  i think that will be not issue not sure though
+
+# the error per_message=True  i think that will be not issue not sure though
 from telegram.warnings import PTBUserWarning
 from bot.utils.messages_manager import messages as msg
+
 # messages = msg(language=context.user_data['lan'])
 
-warnings.filterwarnings("ignore", category=PTBUserWarning, message=".*per_message=False.*")
+warnings.filterwarnings(
+    "ignore", category=PTBUserWarning, message=".*per_message=False.*"
+)
 
 
-#todo moshakhas beshe in user_data haii ke add kardam kojaha add mishe kojaha estefade mishe
+# todo moshakhas beshe in user_data haii ke add kardam kojaha add mishe kojaha estefade mishe
 
 
+# todo bara static cardane searcha mishe ye table mesle user tolid kard ke searcharo ba id generate save mikone bad to query mass mide
 
-#todo bara static cardane searcha mishe ye table mesle user tolid kard ke searcharo ba id generate save mikone bad to query mass mide
-
-#todo main problem in scripting the site the robot get freez kinda until it get all
+# todo main problem in scripting the site the robot get freez kinda until it get all
 
 messages = msg()
 load_dotenv()
 
-BOT_TOKEN = os.getenv('TELEGRAM_TOKEN')
+BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 divider = messages.DIVIDER
 
 
@@ -55,7 +77,7 @@ os.makedirs("../profiles", exist_ok=True)
 
 user_message = UserMessage()
 
-#____________________ commandhandlers______________________________
+# ____________________ commandhandlers______________________________
 start = Start()
 gold_dollar_report = GoldDollarReport()
 torob_interact = TorobInteract()
@@ -74,10 +96,8 @@ chat_db = ChatDatabase()
 torob_db = TorobDb()
 
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
-
 
 
 # ___________________________________________________________________________________________
@@ -93,17 +113,16 @@ async def handle_inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     query = update.inline_query.query.strip().lower()
 
-    #gettingfilteredppl
+    # gettingfilteredppl
     if query == message.QUERY_PATTERN_FILTERED_PPL:
-
         ppl = context.user_data.get("selected_users", None)
         if ppl:
             await show_case.inline_show_selected_users(update, context, ppl)
 
-    #todo in as filter migire na az show case fitler as show case migire
-
+    # todo in as filter migire na az show case fitler as show case migire
 
     # await update.inline_query.answer(results, cache_time=0)
+
 
 # ___________________________________________________________________________________________
 #                             inline keys
@@ -124,7 +143,6 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await rel.buttons(update, context)
         await profile.buttons(update, context)
 
-
         await torob_interact.button(update, context)
         await gold_dollar_report.button(update, context)
         await show_case.buttons(update, context)
@@ -136,13 +154,14 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
             raise
 
         # _______________________________________________________________________________
+
+
 # ________________________Robot run and handlers_________________________________
 # _______________________________________________________________________________
 
 if __name__ == "__main__":
     # Initialize the Telegram Application Builder with bot token and concurrent updates.
     application = ApplicationBuilder().token(BOT_TOKEN).concurrent_updates(True).build()
-
 
     # Create Handlers for various commands and message types.
     start_handler = start.handler()
@@ -172,4 +191,3 @@ if __name__ == "__main__":
 # _______________________________________________________________________________
 # ___________________________Problems & checks___________________________________
 # _______________________________________________________________________________
-

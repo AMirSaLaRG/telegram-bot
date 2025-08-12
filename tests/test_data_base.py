@@ -2,12 +2,15 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, clear_mappers
 import os, sys
-print('RUNNING TEST FILE:', os.path.abspath(__file__))
+
+print("RUNNING TEST FILE:", os.path.abspath(__file__))
 print("PYTHONPATH:", sys.path)
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from bot.db.database import User, Base, GoldDollarRial
+
 print("User imported from:", User.__module__, "Dict:", dir(User))
 print("User columns:", [c.name for c in User.__table__.columns])
+
 
 @pytest.fixture(scope="function")
 def session():
@@ -19,6 +22,7 @@ def session():
     yield sess
     sess.close()
     clear_mappers()
+
 
 def test_create_user(session):
     user = User(
@@ -41,8 +45,8 @@ def test_create_user(session):
     assert retrieved.name == "John"
     assert retrieved.age == 30
 
-def test_update_user(session):
 
+def test_update_user(session):
     user = User(generated_id="abc123")
     session.add(user)
     session.commit()
@@ -52,6 +56,7 @@ def test_update_user(session):
     updated = session.query(User).filter_by(generated_id="to_update").first()
     assert updated.name == "UpdatedName"
 
+
 def test_delete_user(session):
     user = User(generated_id="to_delete")
     session.add(user)
@@ -60,6 +65,7 @@ def test_delete_user(session):
     session.commit()
     assert session.query(User).filter_by(generated_id="to_delete").first() is None
 
+
 def test_create_gold_dollar_rial(session):
     gold = GoldDollarRial(
         gold_18k_ir=123456.7,
@@ -67,13 +73,14 @@ def test_create_gold_dollar_rial(session):
         time_check_ir="2025-07-07 00:00:00",
         gold_18k_international_dollar=50.0,
         gold_18k_international_rial=200000.0,
-        time_check_int="2025-07-07 00:00:00"
+        time_check_int="2025-07-07 00:00:00",
     )
     session.add(gold)
     session.commit()
     result = session.query(GoldDollarRial).first()
     assert result.gold_18k_ir == 123456.7
     assert result.dollar_ir_rial == 42000.0
+
 
 def test_user_repr_and_defaults(session):
     user = User(generated_id="default", name="A")

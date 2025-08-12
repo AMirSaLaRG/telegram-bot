@@ -6,15 +6,15 @@ class Messages(Ms):
     # Frequently Changing Messages (Top) - Persian Translations
     # ==============================================
 
-    TOROB_EDIT_PRICE = 'ویرایش قیمت محصول'
-    TOROB_EDIT_URL = 'ویرایش URL محصول'
-    TOROB_EDIT_NAME = 'ویرایش نام محصول'
-    TOROB_EDIT_DELETE = 'حذف محصول'
+    TOROB_EDIT_PRICE = "ویرایش قیمت محصول"
+    TOROB_EDIT_URL = "ویرایش URL محصول"
+    TOROB_EDIT_NAME = "ویرایش نام محصول"
+    TOROB_EDIT_DELETE = "حذف محصول"
 
-    EDIT_BUTTON = 'ویرایش'
+    EDIT_BUTTON = "ویرایش"
 
-    LIKES_SHOW_BUTTON = 'لایک ها'
-    FRIENDS_SHOW_BUTTON= 'دوستان'
+    LIKES_SHOW_BUTTON = "لایک ها"
+    FRIENDS_SHOW_BUTTON = "دوستان"
 
     EDIT_NAME_BUTTON = "ویرایش نام"
     EDIT_ABOUT_BUTTON = "ویرایش بیوگرافی"
@@ -36,9 +36,7 @@ class Messages(Ms):
 
     EDIT_LOCATION_SUCCESS = "موقعیت به‌روزرسانی شد"
 
-
     EDIT_CITY_SUCCESS = "شهر به {new_city} به‌روزرسانی شد"
-
 
     EDIT_ABOUT_ERROR_LONG = "متن بیوگرافی بسیار طولانی است، لطفاً آن را کوتاه‌تر کنید"
     EDIT_ABOUT_SUCCESS = "بیوگرافی با موفقیت به‌روزرسانی شد!"
@@ -93,7 +91,7 @@ class Messages(Ms):
     PROFILE_NOTE = "\nنام:{gender_icon} {name}\nسن: {age} سال\nآخرین بازدید: {last_online}\nشهر: {city}\nفاصله: {distance} کیلومتر\n\nشناسه کاربری: /chaT_{generated_id}\n\n{divider}\n"
 
     # Gold price display
-    GOLD_PRICE_UPDATE = ("""✨💰 *به‌روزرسانی قیمت طلا* 💰✨
+    GOLD_PRICE_UPDATE = """✨💰 *به‌روزرسانی قیمت طلا* 💰✨
         ___⏰ آخرین بروزرسانی: {time}
 
         *قیمت داخلی* 🇮🇷 
@@ -104,11 +102,13 @@ class Messages(Ms):
         🟡 18 عیار: ${gold_18k_international_dollar}
         ➡️ معادل تومان: {gold_18k_international_rial:,} تومان
 
-       """)
+       """
 
     # Torob item display
     TOROB_ITEM_NOTE = "{signal}{name} @{latest_check}: قیمت {latest_price}\n\nویرایش /item_{item_id}\n\n{divider}"
-    TOROB_ITEM_UNCHECKED = "\n{signal}{name} هنوز بررسی نشده\n\nویرایش /item_{item_id}\n\n{divider}\n"
+    TOROB_ITEM_UNCHECKED = (
+        "\n{signal}{name} هنوز بررسی نشده\n\nویرایش /item_{item_id}\n\n{divider}\n"
+    )
 
     # Status icons (kept same as they're visual)
     ONLINE_ICON = "آنلاین"
@@ -116,7 +116,7 @@ class Messages(Ms):
     FEMALE_ICON = "👩🏻"
     PRICE_OK_ICON = "✅"
     PRICE_HIGH_ICON = "❌"
-    DIVIDER = '〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️'
+    DIVIDER = "〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️"
 
     # General messages
     NOT_IN_CHAT = "⚠️ شما در چت فعالی نیستید. /start را بزنید."
@@ -128,7 +128,9 @@ class Messages(Ms):
     SECRET_MODE_NOTE = "\n\nℹ️ رسانه‌ها محافظت می‌شوند."
 
     # Link messages
-    ANON_CHAT_LINK = "🔗 لینک چت خصوصی:\n`{token}`\n\nبرای چت ناشناس این لینک را به اشتراک بگذارید!"
+    ANON_CHAT_LINK = (
+        "🔗 لینک چت خصوصی:\n`{token}`\n\nبرای چت ناشناس این لینک را به اشتراک بگذارید!"
+    )
     ANON_MSG_LINK = "🔗 لینک پیام خصوصی:\n`{token}`\n\nبرای دریافت پیام ناشناس این لینک را به اشتراک بگذارید!"
     INVALID_LINK = "⚠️ لینک نامعتبر یا منقضی شده\n\nلطفا لینک جدید دریافت کنید."
     SELF_CHAT_ERROR = "❌ نمی‌توانید با خودتان چت کنید!"
@@ -191,9 +193,9 @@ class Messages(Ms):
     DIRECT_MSG_ACCEPTED = "پیام‌های /chaT_{target_id} پذیرفته شد"
     DIRECT_MSG_DECLINED = "پیام‌های /chaT_{target_id} رد شد"
     DIRECT_MSG_RECEIVED = "/chaT_{user_id}: پیام شما دریافت شد"
-    DIRECT_MSG_DECLINE_NOTIFY = '/chaT_{user_id} پیام شما را رد کرد'
-    DIRECT_MSG_NO_MSGS = 'پیامی از /chaT_{target_id} وجود ندارد'
-    DIRECT_MSG_FAILED_DECLINE = 'خطا در رد پیام‌ها'
+    DIRECT_MSG_DECLINE_NOTIFY = "/chaT_{user_id} پیام شما را رد کرد"
+    DIRECT_MSG_NO_MSGS = "پیامی از /chaT_{target_id} وجود ندارد"
+    DIRECT_MSG_FAILED_DECLINE = "خطا در رد پیام‌ها"
 
     # Calculator messages
     CALCULATOR_START = "محاسبه را شروع می‌کنیم\nابتدا نام آیتم را وارد کنید"
@@ -215,7 +217,7 @@ class Messages(Ms):
     TOROB_ASK_PRICE = "حداکثر قیمت مورد نظر برای {name} را وارد کنید"
     TOROB_INVALID_PRICE = "❌ قیمت نامعتبر\n\nمثال: 1250000"
     TOROB_PRICE_TOO_LOW = "❌ قیمت باید بیشتر از 0 باشد"
-    TOROB_ASK_URL = "لینک ترب مربوط به {name} را ارسال کنید"
+    TOROB_ASK_URL = "لینک ترب مربوط به {name} را ارسال کنید\nhttps://torob.com"
     TOROB_INVALID_URL = "لینک ترب نامعتبر است"
     TOROB_ADD_SUCCESS = "{name} با قیمت {price} افزوده شد\n\n/start"
     TOROB_ADD_FAILED = "خطا در افزودن آیتم. لینک را بررسی کنید."
@@ -233,7 +235,6 @@ class Messages(Ms):
     OPERATION_CANCELLED = "عملیات لغو شد"
     TEXT_INPUT_REQUIRED = "لطفا متن وارد کنید"
 
-
     CREATE_ANON_CHAT = "چت_ناشناس"
     CREATE_ANON_MSG = "پیام_ناشناس"
 
@@ -246,21 +247,21 @@ class Messages(Ms):
 
     # Core patterns (should rarely change)
     REL_STARTER_PATTERN = "rel to rel"
-    REL_INSPECT_PATTERN = 'rel what what'
-    LIKE_PATTERN = 'it like it'
-    FRIEND_PATTERN = 'it add it'
-    BLOCK_PATTERN = 'it block it'
-    REPORT_PATTERN = 'it report it'
-    UNLIKE_PATTERN = 'it unlike it'
-    UNFRIEND_PATTERN = 'it unadd it'
-    UNBLOCK_PATTERN = 'it unblock it'
+    REL_INSPECT_PATTERN = "rel what what"
+    LIKE_PATTERN = "it like it"
+    FRIEND_PATTERN = "it add it"
+    BLOCK_PATTERN = "it block it"
+    REPORT_PATTERN = "it report it"
+    UNLIKE_PATTERN = "it unlike it"
+    UNFRIEND_PATTERN = "it unadd it"
+    UNBLOCK_PATTERN = "it unblock it"
     PROFILE_EDIT_PATTERN = "I EDIT ME"
-    NAME_PATTERN = 'namae'
+    NAME_PATTERN = "namae"
     ABOUT_PATTERN = "manan"
-    CITY_PATTERN = 'shahrmahr'
-    PHOTO_PATTERN = 'axmax'
-    LOCATION_PATTER = 'ja jo ja'
-    LANGUAGE_PATTERN = 'taghirzaban'
+    CITY_PATTERN = "shahrmahr"
+    PHOTO_PATTERN = "axmax"
+    LOCATION_PATTER = "ja jo ja"
+    LANGUAGE_PATTERN = "taghirzaban"
     QUERY_PATTERN_FILTERED_PPL = "gettingfilteredppl"
 
     # Gender options (stable)
@@ -304,11 +305,10 @@ class Messages(Ms):
     ITEM_CHECKED_FORMAT = "{signal}{name} @آخرین بررسی: با قیمت {latest_price}\n\nویرایش /item_{item_id}\n\n{divider}"
 
     ITEM_UNCHECKED_FORMAT = "\n{signal}{name} هنوز بررسی نشده، لطفاً منتظر بمانید\n\nویرایش /item_{item_id}\n\n{divider}\n"
-    CHAT_REGEX = fr"^{CHAT_BUTTON}$"
+    CHAT_REGEX = rf"^{CHAT_BUTTON}$"
     ADVANCE_SEARCH_REGEX = r"^Advance Search$"
     # RANDOM_CHAT_REGEX = r"^Random chat$"
     # GOLD_DOLLAR_REGEX = r"^Gold & Dollar$"
     # TOROB_REGEX = r"^Torob price check$"
-    ITEM_EDIT_REGEX = r'^/item_'
-    CHAT_PROFILE_REGEX = r'^/chaT_'
-
+    ITEM_EDIT_REGEX = r"^/item_"
+    CHAT_PROFILE_REGEX = r"^/chaT_"

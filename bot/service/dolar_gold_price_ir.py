@@ -22,8 +22,8 @@ class CheckSitePrice:
         self.int_site = "https://goldpricez.com/us/18k/gram#navbar"
         # Standard HTTP headers to mimic a web browser
         self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept-Language': 'en-US,en;q=0.9'
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
         }
         # Initialize a requests session with the defined headers
         # self.session = requests.Session()
@@ -64,12 +64,13 @@ class CheckSitePrice:
         """
         html_iran = await self.safe_get(self.ir_site, client)
         if html_iran:
-
             soup = BeautifulSoup(html_iran, "html.parser")
             # Select the element containing the 18K gold price
             price_iran_18k_gold = soup.select_one("#l-geram18 .info-price").getText()
             # Select the element containing the Dollar to Rial exchange rate
-            price_dollar_rial = soup.select_one("#l-price_dollar_rl .info-price").getText()
+            price_dollar_rial = soup.select_one(
+                "#l-price_dollar_rl .info-price"
+            ).getText()
             print(f"Iran 18K Gold: {price_iran_18k_gold}")
             print(f"Dollar to Rial: {price_dollar_rial}")
             return price_iran_18k_gold, price_dollar_rial, datetime.now()
@@ -95,7 +96,9 @@ class CheckSitePrice:
         if html_world:
             soup = BeautifulSoup(html_world, "html.parser")
             # Select the element containing the international 18K gold price in USD
-            price_element = soup.select_one('p span[aria-label="Current 18-Karat Gold Price per Gram in USD"]')
+            price_element = soup.select_one(
+                'p span[aria-label="Current 18-Karat Gold Price per Gram in USD"]'
+            )
             if price_element:
                 # Extract text, strip whitespace, and remove '$' sign
                 price_usd_18k_gold = price_element.getText().strip().replace("$", "")
@@ -104,7 +107,9 @@ class CheckSitePrice:
                 int_gold_rial = None
                 if price_dollar_rial:
                     # Convert USD gold price to Rial using the provided exchange rate
-                    int_gold_rial = float(price_usd_18k_gold) * float(price_dollar_rial.replace(',', ''))
+                    int_gold_rial = float(price_usd_18k_gold) * float(
+                        price_dollar_rial.replace(",", "")
+                    )
                 # else:
                 #     # If no exchange rate is provided, ask the user
                 #     price_dollar_rial = input("plz insert price of dollar in Rial")
@@ -119,8 +124,8 @@ class CheckSitePrice:
         """
         try:
             async with httpx.AsyncClient() as client:
-                ip = await client.get('https://api.ipify.org?format=json')
-                ip = ip.json().get('ip', 'Unknown')
+                ip = await client.get("https://api.ipify.org?format=json")
+                ip = ip.json().get("ip", "Unknown")
         except Exception:
             ip = "Unknown"
 
@@ -137,10 +142,19 @@ async def main():
     # Use httpx.AsyncClient as a context manager for the entire session
     async with httpx.AsyncClient() as client:
         # Fetch Iranian gold and dollar prices
-        gold_ir_price, dollar_ir_price, time_ir_checked = await robot_checker.get_ir_gold_dollar(client)
+        (
+            gold_ir_price,
+            dollar_ir_price,
+            time_ir_checked,
+        ) = await robot_checker.get_ir_gold_dollar(client)
         # Fetch international gold price and convert to Rial
-        gold_int_price, gold_int_to_rial_price, time_int_checked = await robot_checker.get_int_gold_to_dollar_to_rial(
-            client, price_dollar_rial=dollar_ir_price)
+        (
+            gold_int_price,
+            gold_int_to_rial_price,
+            time_int_checked,
+        ) = await robot_checker.get_int_gold_to_dollar_to_rial(
+            client, price_dollar_rial=dollar_ir_price
+        )
 
     # Print all fetched prices
     print(gold_ir_price, dollar_ir_price, gold_int_price, gold_int_to_rial_price)

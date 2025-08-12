@@ -5,9 +5,9 @@ from telegram.ext import ContextTypes
 
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from bot.handlers.telegram_chat_handler import UserMessage
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from bot.handlers.telegram_chat_handler import UserMessage
 
 
 @pytest.mark.asyncio
@@ -26,7 +26,9 @@ async def test_handle_text_message():
     context.bot.send_message = AsyncMock(return_value="sent-message")
 
     # Act
-    result = await handler._handle_text_message(update, context, partner_id, name, reply_to_id, secret_chat=False)
+    result = await handler._handle_text_message(
+        update, context, partner_id, name, reply_to_id, secret_chat=False
+    )
 
     # Assert
     context.bot.send_message.assert_awaited_once_with(
@@ -35,6 +37,7 @@ async def test_handle_text_message():
         reply_to_message_id=reply_to_id,
     )
     assert result == "sent-message"
+
 
 @pytest.mark.asyncio
 async def test_handle_photo_message():
@@ -67,6 +70,7 @@ async def test_handle_photo_message():
     )
     assert result == "sent-photo"
 
+
 @pytest.mark.asyncio
 async def test_handle_video_message():
     handler = UserMessage()
@@ -94,11 +98,13 @@ async def test_handle_video_message():
         reply_to_message_id=reply_to_id,
         has_spoiler=True,
         protect_content=True,
-        supports_streaming=True
+        supports_streaming=True,
     )
     assert result == "sent-video"
 
+
 # You can add similar tests for _handle_video_note_message and other public methods.
+
 
 @pytest.mark.asyncio
 async def test_handle_text_message_no_reply():
@@ -110,13 +116,16 @@ async def test_handle_text_message_no_reply():
     reply_to_id = None
     update.message.text = "Just a msg"
     context.bot.send_message = AsyncMock(return_value="sent-message")
-    result = await handler._handle_text_message(update, context, partner_id, name, reply_to_id, secret_chat=False)
+    result = await handler._handle_text_message(
+        update, context, partner_id, name, reply_to_id, secret_chat=False
+    )
     context.bot.send_message.assert_awaited_once_with(
         partner_id,
         f"{name}: {update.message.text}",
         reply_to_message_id=None,
     )
     assert result == "sent-message"
+
 
 @pytest.mark.asyncio
 async def test_handle_photo_message_no_caption():
@@ -145,6 +154,7 @@ async def test_handle_photo_message_no_caption():
     )
     assert result == "sent-photo"
 
+
 @pytest.mark.asyncio
 async def test_handle_video_message_non_secret():
     handler = UserMessage()
@@ -168,9 +178,10 @@ async def test_handle_video_message_non_secret():
         reply_to_message_id=reply_to_id,
         has_spoiler=False,
         protect_content=False,
-        supports_streaming=False
+        supports_streaming=False,
     )
     assert result == "sent-video"
+
 
 @pytest.mark.asyncio
 async def test_get_reply_to_id_none():
@@ -178,6 +189,7 @@ async def test_get_reply_to_id_none():
     message = MagicMock(spec=Message)
     message.reply_to_message = None
     assert handler._get_reply_to_id(message) is None
+
 
 def test_get_reply_to_id_calls_db_methods(monkeypatch):
     handler = UserMessage()
@@ -190,6 +202,7 @@ def test_get_reply_to_id_calls_db_methods(monkeypatch):
     monkeypatch.setattr(handler.db, "get_msg_id_by_robot_msg", lambda msg_id: None)
     monkeypatch.setattr(handler.db, "get_msg_id_by_user_msg", lambda msg_id: 42)
     assert handler._get_reply_to_id(message) == 42
+
 
 @pytest.mark.asyncio
 async def test_handle_photo_message_with_spoiler_and_protect():

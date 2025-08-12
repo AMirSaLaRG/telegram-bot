@@ -4,12 +4,10 @@ import time
 from bs4 import BeautifulSoup
 import requests
 from requests.exceptions import HTTPError, RequestException
-#can be a class
+
+# can be a class
 import random
 from bot.db.database import TorobDb
-
-
-
 
 
 class TorobScraper:
@@ -19,7 +17,7 @@ class TorobScraper:
         self.name = None
         self.db = TorobDb()
 
-    def add_item(self, user_id, item_name, url, preferred_price)->bool:
+    def add_item(self, user_id, item_name, url, preferred_price) -> bool:
         """
 
         :param user_id: id of who wants the scrap
@@ -29,17 +27,16 @@ class TorobScraper:
         :return: True if item added, False if it did not add
         """
         try:
-            preferred_price= float(preferred_price)
+            preferred_price = float(preferred_price)
         except Exception as e:
-            print(f'price format: {e}')
+            print(f"price format: {e}")
 
         if self.db.add_item(user_id, preferred_price, url, item_name):
             return True
         else:
             return False
 
-
-    def torop_price_format_clear(self, text:str) ->int:
+    def torop_price_format_clear(self, text: str) -> int:
         price = text.replace("٫", "")
         price = price.split()[0]
         price = int(price)
@@ -55,9 +52,9 @@ class TorobScraper:
         random_agent = random.choice(user_agents)
         print(random_agent)
         headers = {
-            'User-Agent': random_agent,
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Referer': 'https://torob.com/',
+            "User-Agent": random_agent,
+            "Accept-Language": "en-US,en;q=0.9",
+            "Referer": "https://torob.com/",
         }
         session = requests.Session()
         session.headers.update(headers)
@@ -83,13 +80,17 @@ class TorobScraper:
             soup = BeautifulSoup(my_html, "html.parser")
 
             box_lower_price_tag = soup.select_one(".Showcase_buy_box__q4cpD")
-            seller_price_tag = box_lower_price_tag.select(".Showcase_buy_box_text__otYW_")
+            seller_price_tag = box_lower_price_tag.select(
+                ".Showcase_buy_box_text__otYW_"
+            )
             # seller = seller_price_tag[0].getText()
             price_torop_recommend = seller_price_tag[1].getText()
             price_torop_recommend = self.torop_price_format_clear(price_torop_recommend)
 
             top_5_prices_tag = soup.select(".price-credit a")
-            top_5_price = [self.torop_price_format_clear(tag.getText()) for tag in top_5_prices_tag]
+            top_5_price = [
+                self.torop_price_format_clear(tag.getText()) for tag in top_5_prices_tag
+            ]
             lowest_top_5 = min(top_5_price)
 
             if lowest_top_5 < price_torop_recommend:
@@ -97,7 +98,7 @@ class TorobScraper:
             else:
                 return price_torop_recommend
 
-    def the_good_offer(self ,max_retries=11, retry_count=0):
+    def the_good_offer(self, max_retries=11, retry_count=0):
         if max_retries == retry_count:
             logging.warning(f"Max retries reached for URL: {self.url}")
             return None
@@ -111,7 +112,7 @@ class TorobScraper:
             logging.error(f"Scraping error: {e}")
             return None
 
-    def scrap_user_items(self, user_id:int) -> bool:
+    def scrap_user_items(self, user_id: int) -> bool:
         """
         this will scrap the users interested items and fill the database checked items
         :param user_id: id of user who want check items
@@ -128,14 +129,14 @@ class TorobScraper:
                         self.db.add_check(item.item_id, float(best_price))
                         added += 1
                     except Exception as e:
-                        print(f'could not add to check db : {e}')
+                        print(f"could not add to check db : {e}")
             if added != 0:
-                print(f'{added} item from {len(items)} checked for new price')
+                print(f"{added} item from {len(items)} checked for new price")
                 return True
             else:
-                print('could not update check')
+                print("could not update check")
                 return False
-        print('database is emty')
+        print("database is emty")
         return False
 
     def scrap_all_users_items(self):
@@ -143,7 +144,6 @@ class TorobScraper:
         if users:
             for user in users:
                 self.scrap_user_items(user)
-
 
 
 def main():
@@ -156,6 +156,6 @@ def main():
     #     print(good_offer)
     torob_scraper.scrap_all_users_items()
 
+
 if __name__ == "__main__":
     main()
-

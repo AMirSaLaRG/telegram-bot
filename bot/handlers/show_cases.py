@@ -50,7 +50,10 @@ class ShowCases:
 
         for idx, user_data in enumerate(selected_users[:max_num]):
             user = user_data["user"]
-            distance = int(user_data["distance"])
+            try:
+                distance = int(user_data["distance"])
+            except ValueError:
+                distance = 'xXx'
             is_online = user_data["is_online"]
 
             # Format profile information
@@ -76,7 +79,7 @@ class ShowCases:
                 InlineQueryResultArticle(
                     id=str(idx),
                     title=f"{user.name} ({user.age})",
-                    description=f"{user.city} | {distance}km | {status} | sibzamini",
+                    description=f"{user.city} | {distance}km | {status}",
                     thumbnail_url=photo_url,  # Use file_id directly
                     thumbnail_width=100,
                     thumbnail_height=100,
@@ -162,7 +165,10 @@ class ShowCases:
         for data in paginated_users:
             name = data["user"].name
             generated_id = data["user"].generated_id
-            distance = int(data["distance"])
+            try:
+                distance = int(data["distance"])
+            except ValueError:
+                distance = 'xXx'
 
             if data["is_online"]:
                 last_online = messages.ONLINE_ICON

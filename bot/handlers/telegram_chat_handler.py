@@ -22,6 +22,7 @@ from bot.db.database import ChatDatabase, UserDatabase, RelationshipManager
 from random import choice
 import asyncio
 from bot.handlers.intraction import track_user_interaction
+from bot.handlers.start import Start
 
 from bot.utils.messages_manager import messages as msg
 from bot.utils.messages_manager import languages as the_lans
@@ -411,25 +412,6 @@ class UserMessage:
         )  # Load user data for keyboard layout
         user_id = update.effective_user.id
         # Define keyboard options based on whether the user has a profile name
-        if context.user_data.get("name", ""):
-            keyboard2 = [
-                [KeyboardButton("ChaT")],
-                [
-                    KeyboardButton("Torob price check"),
-                    KeyboardButton("Gold & Dollar"),
-                ],
-                [KeyboardButton("/profile")],
-            ]
-        else:
-            keyboard2 = [
-                [KeyboardButton("ChaT")],
-                [
-                    KeyboardButton("Torob price check"),
-                    KeyboardButton("Gold & Dollar"),
-                ],
-                [KeyboardButton(f"/createprofile")],
-            ]
-        reply_markup2 = ReplyKeyboardMarkup(keyboard2)
 
         # Check if the user is currently in a chat
         if self.db.get_partner_id(user_id):
@@ -459,16 +441,12 @@ class UserMessage:
                     messages.PARTNER_LEFT,
                     reply_markup=InlineKeyboardMarkup(keyboard),
                 )  # Offer partner message deletion option
-                await context.bot.send_message(
-                    partner_id, messages.WHAT_ELSE, reply_markup=reply_markup2
-                )
+
                 # Notify the user and offer message deletion option
                 await update.message.reply_text(
                     messages.CHAT_LEFT, reply_markup=InlineKeyboardMarkup(keyboard)
                 )
-                await context.bot.send_message(
-                    user_id, messages.WHAT_ELSE, reply_markup=reply_markup2
-                )
+
 
                 # Ensure secret chat is toggled off for both users
                 self.db.secret_chat_toggle(user_id, hand_change=False)
@@ -478,13 +456,16 @@ class UserMessage:
                 self.db.remove_partner(user_id)
                 self.db.secret_chat_toggle(user_id, hand_change=False)
                 await context.bot.send_message(
-                    user_id, "what else i can do for you.", reply_markup=reply_markup2
+                    user_id, "what else i can do for you.",
                 )
+
+
 
         else:
             # If user is not in any active chat
-            await update.message.reply_text(messages.NOT_IN_CHAT)
 
+            await update.message.reply_text(messages.NOT_IN_CHAT)
+        await Start().start(update, context)
     async def secret_toggle(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Toggles the 'secret mode' for the current chat, blurring and protecting media.

@@ -70,7 +70,7 @@ class Filter:
         return handlers
         # messages = msg()
         # return MessageHandler(filters.Regex(messages.ADVANCE_SEARCH_REGEX), self.advance_search)
-
+    @track_user_interaction
     async def buttons(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
         await query.answer()

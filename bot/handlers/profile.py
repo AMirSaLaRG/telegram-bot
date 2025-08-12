@@ -766,6 +766,7 @@ class Profile:
         await update.message.reply_text(
             messages.EDIT_NAME_SUCCESS.format(new_name=new_name)
         )
+        await Start().start(update, context)
         await self.show_my_profile(update, context)
         return ConversationHandler.END
 
@@ -783,6 +784,7 @@ class Profile:
         context.user_data["about"] = new_about
         self.user_db.add_or_update_user(update.effective_user.id, context.user_data)
         await update.message.reply_text(messages.EDIT_ABOUT_SUCCESS)
+        await Start().start(update, context)
         await self.show_my_profile(update, context)
         return ConversationHandler.END
 
@@ -800,6 +802,7 @@ class Profile:
         await update.message.reply_text(
             messages.EDIT_CITY_SUCCESS.format(new_city=new_city)
         )
+        await Start().start(update, context)
         await self.show_my_profile(update, context)
         return ConversationHandler.END
 
@@ -814,6 +817,7 @@ class Profile:
         context.user_data["longitude"] = context.user_data["location"][1]
         self.user_db.add_or_update_user(update.effective_user.id, context.user_data)
         await update.message.reply_text(messages.EDIT_LOCATION_SUCCESS)
+        await Start().start(update, context)
         await self.show_my_profile(update, context)
         return ConversationHandler.END
 
@@ -833,6 +837,7 @@ class Profile:
         context.user_data["profile_photo"] = photo_id
         self.user_db.add_or_update_user(update.effective_user.id, context.user_data)
         await Start().start(update, context)
+
         await update.message.reply_text(messages.EDIT_PHOTO_SUCCESS)
         await self.show_my_profile(update, context)
 

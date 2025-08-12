@@ -1052,60 +1052,96 @@ class UserDatabase:
         with self.Session() as session:
             # 1. Get the requesting user's location
             requesting_user = session.get(User, user_id)
-            if not requesting_user or not requesting_user.latitude:
-                return []  # Return empty if requesting user or their location is missing
+            if not requesting_user:
+                return []  # Return empty if requesting user
 
-            # 2. Get all users (or better: filter nearby users directly in SQL)
-            # Exclude self and ensure other users have location data
-            # todo what the fuck ppl who dont have latitude long should be shown
-            all_users = (
-                session.query(User)
-                .filter(
-                    User.latitude.isnot(None),
-                    User.longitude.isnot(None),
-                    User.user_id
-                    != requesting_user.user_id,  # Exclude the requesting user itself
+            if not requesting_user.latitude:
+                all_users = (
+                    session.query(User)
+                    .filter(
+                        User.latitude.isnot(None),
+                        User.longitude.isnot(None),
+                        User.user_id
+                        != requesting_user.user_id,  # Exclude the requesting user itself
+                    )
+                    .all()
                 )
-                .all()
-            )
-
-            # 3. Calculate distances and online status for each user
-            now = datetime.now()
-            nearby_users = []
-
-            for user in all_users:
-                distance = self._calculate_distance(
-                    requesting_user.latitude,
-                    requesting_user.longitude,
-                    user.latitude,
-                    user.longitude,
-                )
-
-                if distance <= max_km:
-                    # Calculate minutes since last online
+                now = datetime.now()
+                nearby_users = []
+                print(all_users)
+                for user in all_users:
                     mins_ago = (now - user.last_online).total_seconds() / 60
                     is_online = (
-                        mins_ago <= 1
-                    )  # Consider online if active in last 1 minute
-
+                            mins_ago <= 1
+                    )
                     nearby_users.append(
-                        {
-                            "user": user,
-                            "distance": distance,
-                            "mins_ago": mins_ago,
-                            "is_online": is_online,
-                        }
+                            {
+                                "user": user,
+                                "distance":"xXx",
+                                "mins_ago": mins_ago,
+                                "is_online": is_online,
+                            }
+                        )
+                return sorted(
+                    nearby_users,
+                    key=lambda x: (
+                        not x["is_online"],  # Online users first (False sorts before True)
+                        x["mins_ago"],  # Then by minutes since last online
+                    ),
+                )
+            else:
+
+                # 2. Get all users (or better: filter nearby users directly in SQL)
+                # Exclude self and ensure other users have location data
+                # todo what the fuck ppl who dont have latitude long should be shown
+                all_users = (
+                    session.query(User)
+                    .filter(
+                        User.latitude.isnot(None),
+                        User.longitude.isnot(None),
+                        User.user_id
+                        != requesting_user.user_id,  # Exclude the requesting user itself
+                    )
+                    .all()
+                )
+
+                # 3. Calculate distances and online status for each user
+                now = datetime.now()
+                nearby_users = []
+
+                for user in all_users:
+                    distance = self._calculate_distance(
+                        requesting_user.latitude,
+                        requesting_user.longitude,
+                        user.latitude,
+                        user.longitude,
                     )
 
-            # 4. Sort by: online status first, then by minutes ago, then by distance
-            return sorted(
-                nearby_users,
-                key=lambda x: (
-                    not x["is_online"],  # Online users first (False sorts before True)
-                    x["mins_ago"],  # Then by minutes since last online
-                    x["distance"],  # Then by distance
-                ),
-            )
+                    if distance <= max_km:
+                        # Calculate minutes since last online
+                        mins_ago = (now - user.last_online).total_seconds() / 60
+                        is_online = (
+                            mins_ago <= 1
+                        )  # Consider online if active in last 1 minute
+
+                        nearby_users.append(
+                            {
+                                "user": user,
+                                "distance": distance,
+                                "mins_ago": mins_ago,
+                                "is_online": is_online,
+                            }
+                        )
+
+                # 4. Sort by: online status first, then by minutes ago, then by distance
+                return sorted(
+                    nearby_users,
+                    key=lambda x: (
+                        not x["is_online"],  # Online users first (False sorts before True)
+                        x["mins_ago"],  # Then by minutes since last online
+                        x["distance"],  # Then by distance
+                    ),
+                )
 
     @staticmethod
     def _calculate_distance(

@@ -1093,7 +1093,7 @@ class UserDatabase:
 
                 # 2. Get all users (or better: filter nearby users directly in SQL)
                 # Exclude self and ensure other users have location data
-                # todo what the fuck ppl who dont have latitude long should be shown
+
                 all_users = (
                     session.query(User)
                     .filter(

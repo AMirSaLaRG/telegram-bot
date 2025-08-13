@@ -925,6 +925,9 @@ class Profile:
         target_id = context.user_data["request_from_id"]  # Retrieve target ID
         the_msg = update.message.text
 
+        user_generated_id = self.user_db.get_user_generated_id(user_id)
+        target_generated_id = self.user_db.get_user_generated_id(target_id)
+
         # Basic message validation
         if not the_msg:
             return ConversationHandler.END  # End conversation if no message text
@@ -957,7 +960,7 @@ class Profile:
             # Notify the recipient with the message request and action buttons
             await context.bot.send_message(
                 target_id,
-                text=messages.DIRECT_MSG_REQUEST.format(user_id=user_id),
+                text=messages.DIRECT_MSG_REQUEST.format(user_id=user_generated_id),
                 reply_markup=reply_markup,
             )
             return ConversationHandler.END  # End conversation
@@ -982,6 +985,9 @@ class Profile:
         messages = msg(language=context.user_data["lan"])
         user_id = update.effective_user.id
         message_db = ChatDatabase()
+        user_generated_id = self.user_db.get_user_generated_id(user_id)
+        target_generated_id = self.user_db.get_user_generated_id(target_id)
+
 
         # Get requested messages from the database
         msgs = message_db.get_msg_requests_from_map(user_id, target_id)
@@ -996,11 +1002,11 @@ class Profile:
                     user_id, text=f"/chaT_{target_id}: {the_msg}"
                 )  # Send each message to the accepting user
             await context.bot.send_message(
-                target_id, text=messages.DIRECT_MSG_RECEIVED.format(user_id=user_id)
+                target_id, text=messages.DIRECT_MSG_RECEIVED.format(user_id=user_generated_id)
             )  # Notify sender
         else:
             await query.edit_message_text(
-                messages.DIRECT_MSG_NO_MSGS.format(target_id=target_id)
+                messages.DIRECT_MSG_NO_MSGS.format(target_id=target_generated_id)
             )  # No messages found
 
         # Consider ending the conversation or offering next steps here

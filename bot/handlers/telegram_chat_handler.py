@@ -400,7 +400,7 @@ class UserMessage:
         except Exception as e:
             print(f"Error in delete_handler: {e}")
             await query.edit_message_text(messages.DELETE_ERROR)
-
+    @track_user_interaction
     async def leave_chat(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Allows a user to leave an active chat. It notifies the partner,
@@ -778,6 +778,8 @@ class UserMessage:
         """
         messages = msg(language=context.user_data["lan"])
         user_id = update.effective_user.id
+        user_generated_id = self.user_db.get_user_generated_id(user_id)
+        target_generated_id = self.user_db.get_user_generated_id(target_id)
         if self.db_rel.is_block(target_id, user_id):
             await context.bot.send_message(
                 user_id, text=messages.BLOCKED_FROM_USER_WARNING
@@ -806,16 +808,16 @@ class UserMessage:
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
                 await context.bot.send_message(
-                    user_id, text=messages.REQUEST_SENT.format(target_id=target_id)
+                    user_id, text=messages.REQUEST_SENT.format(target_id=target_generated_id)
                 )
                 await context.bot.send_message(
                     target_id,
-                    text=messages.REQUEST_RECEIVED.format(user_id=user_id),
+                    text=messages.REQUEST_RECEIVED.format(user_id=user_generated_id),
                     reply_markup=reply_markup,
                 )
             else:
                 await context.bot.send_message(
-                    user_id, messages.BUSY_USER.format(target_id=target_id)
+                    user_id, messages.BUSY_USER.format(target_id=target_generated_id)
                 )
         else:
             await context.bot.send_message(user_id, text=messages.INVALID_USER)
@@ -849,6 +851,8 @@ class UserMessage:
         """
         user_id = update.effective_user.id
         query = update.callback_query
+        user_generated_id = self.user_db.get_user_generated_id(user_id)
+        target_generated_id = self.user_db.get_user_generated_id(target_id)
         if self.db.set_partnership(
             user_id, target_id
         ):  # Establish mutual partnership in database
@@ -857,7 +861,7 @@ class UserMessage:
                 [KeyboardButton(f"/{self.secret_command}")],
             ]
             reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-            await query.edit_message_text(f"connected to /chaT_{target_id}")
+            await query.edit_message_text(f"connected to /chaT_{target_generated_id}")
             await context.bot.send_message(
                 user_id,
                 text="You can use buttons to leave or start secret chats",
@@ -865,7 +869,7 @@ class UserMessage:
             )
             await context.bot.send_message(
                 target_id,
-                text=f"connected to /chaT_{user_id}",
+                text=f"connected to /chaT_{user_generated_id}",
                 reply_markup=reply_markup,
             )
         else:

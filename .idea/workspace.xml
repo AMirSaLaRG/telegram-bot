@@ -4,12 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35578467-47ec-4149-be7c-60947fca684a" name="Changes" comment="updated md photo">
+    <list default="true" id="35578467-47ec-4149-be7c-60947fca684a" name="Changes" comment="/leave trigger the start&#10;while person not complete the profile show ppl in advance search but not have any distance&#10;advance search does not show the ppl who not completed the profile&#10;in edits at end start get triggered">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bot/db/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/db/database.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bot/handlers/filter.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/filter.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bot/handlers/profile.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/profile.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bot/handlers/show_cases.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/show_cases.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bot/handlers/telegram_chat_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot/handlers/telegram_chat_handler.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -407,7 +405,15 @@
       <option name="project" value="LOCAL" />
       <updated>1754975032920</updated>
     </task>
-    <option name="localTasksCounter" value="32" />
+    <task id="LOCAL-00032" summary="/leave trigger the start&#10;while person not complete the profile show ppl in advance search but not have any distance&#10;advance search does not show the ppl who not completed the profile&#10;in edits at end start get triggered">
+      <option name="closed" value="true" />
+      <created>1755011896946</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1755011896946</updated>
+    </task>
+    <option name="localTasksCounter" value="33" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -422,7 +428,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="adding torob conversation ADD" />
     <MESSAGE value="updated some normal chat manager going to re structure the telegram_chat_handler.py lets put a save point here" />
     <MESSAGE value="before changes message chat" />
     <MESSAGE value="applied the change and merge them just secret toggle need to be fix" />
@@ -447,7 +452,8 @@
     <MESSAGE value="at first make a profile with generated id &#10;add option to complete profile until name change&#10;moved language to start&#10;add cancel to conversations &#10;add go to start when needed" />
     <MESSAGE value="status online fixed&#10;sat description for bot&#10;black and ruff formated&#10;requirements.txt" />
     <MESSAGE value="updated md photo" />
-    <option name="LAST_COMMIT_MESSAGE" value="updated md photo" />
+    <MESSAGE value="/leave trigger the start&#10;while person not complete the profile show ppl in advance search but not have any distance&#10;advance search does not show the ppl who not completed the profile&#10;in edits at end start get triggered" />
+    <option name="LAST_COMMIT_MESSAGE" value="/leave trigger the start&#10;while person not complete the profile show ppl in advance search but not have any distance&#10;advance search does not show the ppl who not completed the profile&#10;in edits at end start get triggered" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
